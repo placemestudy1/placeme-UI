@@ -122,10 +122,10 @@ export function ProgressChart({ className }: { className?: string }) {
   return (
     <div className={cn("flex h-40 items-end gap-3", className)}>
       {progressSeries.map((p) => (
-        <div key={p.label} className="flex flex-1 flex-col items-center gap-2">
-          <div className="flex w-full flex-1 items-end">
+        <div key={p.label} className="flex h-full flex-1 flex-col items-center gap-2">
+          <div className="relative w-full flex-1">
             <div
-              className="w-full rounded-t-lg bg-[image:var(--gradient-primary)]"
+              className="absolute inset-x-0 bottom-0 rounded-t-lg bg-[image:var(--gradient-primary)]"
               style={{ height: `${(p.score / max) * 100}%` }}
             />
           </div>
