@@ -20,6 +20,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MatchRouteImport } from './routes/match'
 import { Route as SessionRouteImport } from './routes/session'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppJoinRouteImport } from './routes/app.join'
+import { Route as AppNewRouteImport } from './routes/app.new'
 import { Route as RoomsNewRouteImport } from './routes/rooms.new'
 
 const IndexRoute = IndexRouteImport.update({
@@ -77,6 +80,21 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/app/',
+  path: '/app/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppJoinRoute = AppJoinRouteImport.update({
+  id: '/app/join',
+  path: '/app/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppNewRoute = AppNewRouteImport.update({
+  id: '/app/new',
+  path: '/app/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoomsNewRoute = RoomsNewRouteImport.update({
   id: '/rooms/new',
   path: '/rooms/new',
@@ -95,7 +113,10 @@ export interface FileRoutesByFullPath {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/join': typeof AppJoinRoute
+  '/app/new': typeof AppNewRoute
   '/rooms/new': typeof RoomsNewRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,7 +130,10 @@ export interface FileRoutesByTo {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/join': typeof AppJoinRoute
+  '/app/new': typeof AppNewRoute
   '/rooms/new': typeof RoomsNewRoute
+  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,7 +148,10 @@ export interface FileRoutesById {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/join': typeof AppJoinRoute
+  '/app/new': typeof AppNewRoute
   '/rooms/new': typeof RoomsNewRoute
+  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,7 +167,10 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/join'
+    | '/app/new'
     | '/rooms/new'
+    | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,7 +184,10 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/join'
+    | '/app/new'
     | '/rooms/new'
+    | '/app'
   id:
     | '__root__'
     | '/'
@@ -168,7 +201,10 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/join'
+    | '/app/new'
     | '/rooms/new'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,7 +219,10 @@ export interface RootRouteChildren {
   MatchRoute: typeof MatchRoute
   SessionRoute: typeof SessionRoute
   SignupRoute: typeof SignupRoute
+  AppJoinRoute: typeof AppJoinRoute
+  AppNewRoute: typeof AppNewRoute
   RoomsNewRoute: typeof RoomsNewRoute
+  AppIndexRoute: typeof AppIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +304,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/app'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/join': {
+      id: '/app/join'
+      path: '/app/join'
+      fullPath: '/app/join'
+      preLoaderRoute: typeof AppJoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/new': {
+      id: '/app/new'
+      path: '/app/new'
+      fullPath: '/app/new'
+      preLoaderRoute: typeof AppNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rooms/new': {
       id: '/rooms/new'
       path: '/rooms/new'
@@ -287,7 +347,10 @@ const rootRouteChildren: RootRouteChildren = {
   MatchRoute: MatchRoute,
   SessionRoute: SessionRoute,
   SignupRoute: SignupRoute,
+  AppJoinRoute: AppJoinRoute,
+  AppNewRoute: AppNewRoute,
   RoomsNewRoute: RoomsNewRoute,
+  AppIndexRoute: AppIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
