@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConsentRouteImport } from './routes/consent'
+import { Route as JoinRouteImport } from './routes/join'
+import { Route as LobbyRouteImport } from './routes/lobby'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MatchRouteImport } from './routes/match'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as RoomsNewRouteImport } from './routes/rooms.new'
 
@@ -25,9 +28,24 @@ const ConsentRoute = ConsentRouteImport.update({
   path: '/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LobbyRoute = LobbyRouteImport.update({
+  id: '/lobby',
+  path: '/lobby',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchRoute = MatchRouteImport.update({
+  id: '/match',
+  path: '/match',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -44,14 +62,20 @@ const RoomsNewRoute = RoomsNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/consent': typeof ConsentRoute
+  '/join': typeof JoinRoute
+  '/lobby': typeof LobbyRoute
   '/login': typeof LoginRoute
+  '/match': typeof MatchRoute
   '/signup': typeof SignupRoute
   '/rooms/new': typeof RoomsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/consent': typeof ConsentRoute
+  '/join': typeof JoinRoute
+  '/lobby': typeof LobbyRoute
   '/login': typeof LoginRoute
+  '/match': typeof MatchRoute
   '/signup': typeof SignupRoute
   '/rooms/new': typeof RoomsNewRoute
 }
@@ -59,22 +83,53 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/consent': typeof ConsentRoute
+  '/join': typeof JoinRoute
+  '/lobby': typeof LobbyRoute
   '/login': typeof LoginRoute
+  '/match': typeof MatchRoute
   '/signup': typeof SignupRoute
   '/rooms/new': typeof RoomsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/consent' | '/login' | '/signup' | '/rooms/new'
+  fullPaths:
+    | '/'
+    | '/consent'
+    | '/join'
+    | '/lobby'
+    | '/login'
+    | '/match'
+    | '/signup'
+    | '/rooms/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/consent' | '/login' | '/signup' | '/rooms/new'
-  id: '__root__' | '/' | '/consent' | '/login' | '/signup' | '/rooms/new'
+  to:
+    | '/'
+    | '/consent'
+    | '/join'
+    | '/lobby'
+    | '/login'
+    | '/match'
+    | '/signup'
+    | '/rooms/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/consent'
+    | '/join'
+    | '/lobby'
+    | '/login'
+    | '/match'
+    | '/signup'
+    | '/rooms/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConsentRoute: typeof ConsentRoute
+  JoinRoute: typeof JoinRoute
+  LobbyRoute: typeof LobbyRoute
   LoginRoute: typeof LoginRoute
+  MatchRoute: typeof MatchRoute
   SignupRoute: typeof SignupRoute
   RoomsNewRoute: typeof RoomsNewRoute
 }
@@ -95,11 +150,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lobby': {
+      id: '/lobby'
+      path: '/lobby'
+      fullPath: '/lobby'
+      preLoaderRoute: typeof LobbyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/match': {
+      id: '/match'
+      path: '/match'
+      fullPath: '/match'
+      preLoaderRoute: typeof MatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -122,7 +198,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConsentRoute: ConsentRoute,
+  JoinRoute: JoinRoute,
+  LobbyRoute: LobbyRoute,
   LoginRoute: LoginRoute,
+  MatchRoute: MatchRoute,
   SignupRoute: SignupRoute,
   RoomsNewRoute: RoomsNewRoute,
 }
