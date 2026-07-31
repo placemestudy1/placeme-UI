@@ -21,11 +21,14 @@ import { Route as MatchRouteImport } from './routes/match'
 import { Route as SessionRouteImport } from './routes/session'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppConsentRouteImport } from './routes/app.consent'
 import { Route as AppHistoryRouteImport } from './routes/app.history'
 import { Route as AppJoinRouteImport } from './routes/app.join'
+import { Route as AppLobbyRouteImport } from './routes/app.lobby'
 import { Route as AppLoginRouteImport } from './routes/app.login'
 import { Route as AppMatchRouteImport } from './routes/app.match'
 import { Route as AppNewRouteImport } from './routes/app.new'
+import { Route as AppSessionRouteImport } from './routes/app.session'
 import { Route as AppSignupRouteImport } from './routes/app.signup'
 import { Route as RoomsNewRouteImport } from './routes/rooms.new'
 
@@ -89,6 +92,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppConsentRoute = AppConsentRouteImport.update({
+  id: '/app/consent',
+  path: '/app/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppHistoryRoute = AppHistoryRouteImport.update({
   id: '/app/history',
   path: '/app/history',
@@ -97,6 +105,11 @@ const AppHistoryRoute = AppHistoryRouteImport.update({
 const AppJoinRoute = AppJoinRouteImport.update({
   id: '/app/join',
   path: '/app/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppLobbyRoute = AppLobbyRouteImport.update({
+  id: '/app/lobby',
+  path: '/app/lobby',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppLoginRoute = AppLoginRouteImport.update({
@@ -112,6 +125,11 @@ const AppMatchRoute = AppMatchRouteImport.update({
 const AppNewRoute = AppNewRouteImport.update({
   id: '/app/new',
   path: '/app/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppSessionRoute = AppSessionRouteImport.update({
+  id: '/app/session',
+  path: '/app/session',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSignupRoute = AppSignupRouteImport.update({
@@ -137,11 +155,14 @@ export interface FileRoutesByFullPath {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/consent': typeof AppConsentRoute
   '/app/history': typeof AppHistoryRoute
   '/app/join': typeof AppJoinRoute
+  '/app/lobby': typeof AppLobbyRoute
   '/app/login': typeof AppLoginRoute
   '/app/match': typeof AppMatchRoute
   '/app/new': typeof AppNewRoute
+  '/app/session': typeof AppSessionRoute
   '/app/signup': typeof AppSignupRoute
   '/rooms/new': typeof RoomsNewRoute
   '/app/': typeof AppIndexRoute
@@ -158,11 +179,14 @@ export interface FileRoutesByTo {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/consent': typeof AppConsentRoute
   '/app/history': typeof AppHistoryRoute
   '/app/join': typeof AppJoinRoute
+  '/app/lobby': typeof AppLobbyRoute
   '/app/login': typeof AppLoginRoute
   '/app/match': typeof AppMatchRoute
   '/app/new': typeof AppNewRoute
+  '/app/session': typeof AppSessionRoute
   '/app/signup': typeof AppSignupRoute
   '/rooms/new': typeof RoomsNewRoute
   '/app': typeof AppIndexRoute
@@ -180,11 +204,14 @@ export interface FileRoutesById {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/consent': typeof AppConsentRoute
   '/app/history': typeof AppHistoryRoute
   '/app/join': typeof AppJoinRoute
+  '/app/lobby': typeof AppLobbyRoute
   '/app/login': typeof AppLoginRoute
   '/app/match': typeof AppMatchRoute
   '/app/new': typeof AppNewRoute
+  '/app/session': typeof AppSessionRoute
   '/app/signup': typeof AppSignupRoute
   '/rooms/new': typeof RoomsNewRoute
   '/app/': typeof AppIndexRoute
@@ -203,11 +230,14 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/consent'
     | '/app/history'
     | '/app/join'
+    | '/app/lobby'
     | '/app/login'
     | '/app/match'
     | '/app/new'
+    | '/app/session'
     | '/app/signup'
     | '/rooms/new'
     | '/app/'
@@ -224,11 +254,14 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/consent'
     | '/app/history'
     | '/app/join'
+    | '/app/lobby'
     | '/app/login'
     | '/app/match'
     | '/app/new'
+    | '/app/session'
     | '/app/signup'
     | '/rooms/new'
     | '/app'
@@ -245,11 +278,14 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/consent'
     | '/app/history'
     | '/app/join'
+    | '/app/lobby'
     | '/app/login'
     | '/app/match'
     | '/app/new'
+    | '/app/session'
     | '/app/signup'
     | '/rooms/new'
     | '/app/'
@@ -267,11 +303,14 @@ export interface RootRouteChildren {
   MatchRoute: typeof MatchRoute
   SessionRoute: typeof SessionRoute
   SignupRoute: typeof SignupRoute
+  AppConsentRoute: typeof AppConsentRoute
   AppHistoryRoute: typeof AppHistoryRoute
   AppJoinRoute: typeof AppJoinRoute
+  AppLobbyRoute: typeof AppLobbyRoute
   AppLoginRoute: typeof AppLoginRoute
   AppMatchRoute: typeof AppMatchRoute
   AppNewRoute: typeof AppNewRoute
+  AppSessionRoute: typeof AppSessionRoute
   AppSignupRoute: typeof AppSignupRoute
   RoomsNewRoute: typeof RoomsNewRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -363,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/consent': {
+      id: '/app/consent'
+      path: '/app/consent'
+      fullPath: '/app/consent'
+      preLoaderRoute: typeof AppConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/history': {
       id: '/app/history'
       path: '/app/history'
@@ -375,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/app/join'
       fullPath: '/app/join'
       preLoaderRoute: typeof AppJoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/lobby': {
+      id: '/app/lobby'
+      path: '/app/lobby'
+      fullPath: '/app/lobby'
+      preLoaderRoute: typeof AppLobbyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/login': {
@@ -396,6 +449,13 @@ declare module '@tanstack/react-router' {
       path: '/app/new'
       fullPath: '/app/new'
       preLoaderRoute: typeof AppNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/session': {
+      id: '/app/session'
+      path: '/app/session'
+      fullPath: '/app/session'
+      preLoaderRoute: typeof AppSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/signup': {
@@ -427,11 +487,14 @@ const rootRouteChildren: RootRouteChildren = {
   MatchRoute: MatchRoute,
   SessionRoute: SessionRoute,
   SignupRoute: SignupRoute,
+  AppConsentRoute: AppConsentRoute,
   AppHistoryRoute: AppHistoryRoute,
   AppJoinRoute: AppJoinRoute,
+  AppLobbyRoute: AppLobbyRoute,
   AppLoginRoute: AppLoginRoute,
   AppMatchRoute: AppMatchRoute,
   AppNewRoute: AppNewRoute,
+  AppSessionRoute: AppSessionRoute,
   AppSignupRoute: AppSignupRoute,
   RoomsNewRoute: RoomsNewRoute,
   AppIndexRoute: AppIndexRoute,
