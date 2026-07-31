@@ -21,8 +21,12 @@ import { Route as MatchRouteImport } from './routes/match'
 import { Route as SessionRouteImport } from './routes/session'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppHistoryRouteImport } from './routes/app.history'
 import { Route as AppJoinRouteImport } from './routes/app.join'
+import { Route as AppLoginRouteImport } from './routes/app.login'
+import { Route as AppMatchRouteImport } from './routes/app.match'
 import { Route as AppNewRouteImport } from './routes/app.new'
+import { Route as AppSignupRouteImport } from './routes/app.signup'
 import { Route as RoomsNewRouteImport } from './routes/rooms.new'
 
 const IndexRoute = IndexRouteImport.update({
@@ -85,14 +89,34 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/app/history',
+  path: '/app/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppJoinRoute = AppJoinRouteImport.update({
   id: '/app/join',
   path: '/app/join',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/app/login',
+  path: '/app/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppMatchRoute = AppMatchRouteImport.update({
+  id: '/app/match',
+  path: '/app/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppNewRoute = AppNewRouteImport.update({
   id: '/app/new',
   path: '/app/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppSignupRoute = AppSignupRouteImport.update({
+  id: '/app/signup',
+  path: '/app/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoomsNewRoute = RoomsNewRouteImport.update({
@@ -113,8 +137,12 @@ export interface FileRoutesByFullPath {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/history': typeof AppHistoryRoute
   '/app/join': typeof AppJoinRoute
+  '/app/login': typeof AppLoginRoute
+  '/app/match': typeof AppMatchRoute
   '/app/new': typeof AppNewRoute
+  '/app/signup': typeof AppSignupRoute
   '/rooms/new': typeof RoomsNewRoute
   '/app/': typeof AppIndexRoute
 }
@@ -130,8 +158,12 @@ export interface FileRoutesByTo {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/history': typeof AppHistoryRoute
   '/app/join': typeof AppJoinRoute
+  '/app/login': typeof AppLoginRoute
+  '/app/match': typeof AppMatchRoute
   '/app/new': typeof AppNewRoute
+  '/app/signup': typeof AppSignupRoute
   '/rooms/new': typeof RoomsNewRoute
   '/app': typeof AppIndexRoute
 }
@@ -148,8 +180,12 @@ export interface FileRoutesById {
   '/match': typeof MatchRoute
   '/session': typeof SessionRoute
   '/signup': typeof SignupRoute
+  '/app/history': typeof AppHistoryRoute
   '/app/join': typeof AppJoinRoute
+  '/app/login': typeof AppLoginRoute
+  '/app/match': typeof AppMatchRoute
   '/app/new': typeof AppNewRoute
+  '/app/signup': typeof AppSignupRoute
   '/rooms/new': typeof RoomsNewRoute
   '/app/': typeof AppIndexRoute
 }
@@ -167,8 +203,12 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/history'
     | '/app/join'
+    | '/app/login'
+    | '/app/match'
     | '/app/new'
+    | '/app/signup'
     | '/rooms/new'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
@@ -184,8 +224,12 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/history'
     | '/app/join'
+    | '/app/login'
+    | '/app/match'
     | '/app/new'
+    | '/app/signup'
     | '/rooms/new'
     | '/app'
   id:
@@ -201,8 +245,12 @@ export interface FileRouteTypes {
     | '/match'
     | '/session'
     | '/signup'
+    | '/app/history'
     | '/app/join'
+    | '/app/login'
+    | '/app/match'
     | '/app/new'
+    | '/app/signup'
     | '/rooms/new'
     | '/app/'
   fileRoutesById: FileRoutesById
@@ -219,8 +267,12 @@ export interface RootRouteChildren {
   MatchRoute: typeof MatchRoute
   SessionRoute: typeof SessionRoute
   SignupRoute: typeof SignupRoute
+  AppHistoryRoute: typeof AppHistoryRoute
   AppJoinRoute: typeof AppJoinRoute
+  AppLoginRoute: typeof AppLoginRoute
+  AppMatchRoute: typeof AppMatchRoute
   AppNewRoute: typeof AppNewRoute
+  AppSignupRoute: typeof AppSignupRoute
   RoomsNewRoute: typeof RoomsNewRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -311,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/history': {
+      id: '/app/history'
+      path: '/app/history'
+      fullPath: '/app/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/join': {
       id: '/app/join'
       path: '/app/join'
@@ -318,11 +377,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppJoinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/login': {
+      id: '/app/login'
+      path: '/app/login'
+      fullPath: '/app/login'
+      preLoaderRoute: typeof AppLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/match': {
+      id: '/app/match'
+      path: '/app/match'
+      fullPath: '/app/match'
+      preLoaderRoute: typeof AppMatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/new': {
       id: '/app/new'
       path: '/app/new'
       fullPath: '/app/new'
       preLoaderRoute: typeof AppNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/signup': {
+      id: '/app/signup'
+      path: '/app/signup'
+      fullPath: '/app/signup'
+      preLoaderRoute: typeof AppSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rooms/new': {
@@ -347,8 +427,12 @@ const rootRouteChildren: RootRouteChildren = {
   MatchRoute: MatchRoute,
   SessionRoute: SessionRoute,
   SignupRoute: SignupRoute,
+  AppHistoryRoute: AppHistoryRoute,
   AppJoinRoute: AppJoinRoute,
+  AppLoginRoute: AppLoginRoute,
+  AppMatchRoute: AppMatchRoute,
   AppNewRoute: AppNewRoute,
+  AppSignupRoute: AppSignupRoute,
   RoomsNewRoute: RoomsNewRoute,
   AppIndexRoute: AppIndexRoute,
 }
