@@ -47,7 +47,7 @@ export const topics = [
   "Should India regulate gig-economy platforms?",
   "Open source as a hiring signal",
   "Startups vs. service companies for campus placements",
-];
+] as const;
 
 export type Room = {
   code: string;
