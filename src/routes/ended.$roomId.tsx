@@ -15,19 +15,14 @@ import {
   SectionTitle,
   TranscriptLineItem,
 } from "@/components/pm/kit";
-import {
-  feedbackImprovements,
-  feedbackScores,
-  feedbackStrengths,
-  participants,
-  topics,
-} from "@/lib/demo";
+import { participants, topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMyFeedback,
   getRoomStatus,
   getRoomTranscript,
   rateFeedback,
+  type FeedbackDimension,
   type RoomStatus,
   type TranscriptLine,
 } from "@/lib/api";
@@ -73,6 +68,15 @@ function EndedPage() {
   const [ratingReason, setRatingReason] = useState("");
   const [savingRating, setSavingRating] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptLine[] | null>(null);
+  // BE-6/BE-7 (SPEC-0006): real structured feedback, replacing the
+  // feedbackScores/feedbackStrengths/feedbackImprovements demo fixtures.
+  // score stays null (never a fabricated 0) for a pre-migration row or the
+  // transcription-failed stub -- both have empty dimensions/strengths/
+  // improvements too, so the rubric/lists simply don't render for those.
+  const [score, setScore] = useState<number | null>(null);
+  const [dimensions, setDimensions] = useState<FeedbackDimension[]>([]);
+  const [strengths, setStrengths] = useState<string[]>([]);
+  const [improvements, setImprovements] = useState<string[]>([]);
 
   useEffect(() => {
     getRoomStatus(session, roomId)
@@ -93,6 +97,10 @@ function EndedPage() {
         .then((r) => {
           if (cancelled || !r.feedback) return;
           setFeedback(r.feedback);
+          setScore(r.score);
+          setDimensions(r.dimensions);
+          setStrengths(r.strengths);
+          setImprovements(r.improvements);
           if (r.rating !== undefined) setRating(r.rating);
           if (r.ratingReason) setRatingReason(r.ratingReason);
           clearInterval(interval);
@@ -207,15 +215,20 @@ function EndedPage() {
           </PmCard>
 
           {/*
-            MOCK — no numeric score / per-dimension rubric yet, see
-            docs/BACKEND_REQUIREMENTS.md#BE-6 #BE-7. This whole card (score,
-            "+6 vs last session", talk-time/filler-word/citation badges,
-            summary paragraph) is fixture data, not derived from the real
-            feedback paragraph above — kept exactly as designed until the
-            backend returns structured feedback.
+            BE-6/BE-7 (SPEC-0006): score is real (gd-proto's structured
+            Gemini feedback). The "+6 vs last session" delta badge and the
+            talk-time/filler-word/citation badges + summary paragraph stay
+            mock -- separate, unrelated gaps (BE-8 score history, BE-10
+            talk-time share), not part of this change.
           */}
           <PmCard glass className="grid gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] md:p-8">
-            <ScoreRing score={78} />
+            {score != null ? (
+              <ScoreRing score={score} />
+            ) : (
+              <div className="grid size-[132px] place-items-center rounded-full border border-dashed border-border text-center text-xs text-muted-foreground">
+                Score not available
+              </div>
+            )}
             <div className="min-w-0">
               <PmBadge tone="success">+6 vs your last session</PmBadge>
               <h2 className="mt-3 text-xl font-bold">{status?.topicText ?? "This discussion"}</h2>
@@ -231,16 +244,25 @@ function EndedPage() {
               </div>
             </div>
           </PmCard>
-          <PmCard className="space-y-5 p-6">
-            <SectionTitle title="Score breakdown" subtitle="Weighted like a real placement panel" />
-            {feedbackScores.map((s) => (
-              <ScoreBar key={s.label} {...s} />
-            ))}
-          </PmCard>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FeedbackList title="What worked" items={feedbackStrengths} />
-            <FeedbackList title="Fix next time" items={feedbackImprovements} tone="warning" />
-          </div>
+          {dimensions.length > 0 && (
+            <PmCard className="space-y-5 p-6">
+              <SectionTitle
+                title="Score breakdown"
+                subtitle="Weighted like a real placement panel"
+              />
+              {dimensions.map((d) => (
+                <ScoreBar key={d.label} {...d} />
+              ))}
+            </PmCard>
+          )}
+          {(strengths.length > 0 || improvements.length > 0) && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {strengths.length > 0 && <FeedbackList title="What worked" items={strengths} />}
+              {improvements.length > 0 && (
+                <FeedbackList title="Fix next time" items={improvements} tone="warning" />
+              )}
+            </div>
+          )}
 
           <PmCard className="p-6">
             <SectionTitle

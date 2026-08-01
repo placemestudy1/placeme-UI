@@ -43,8 +43,10 @@ function toSessionRow(s: HistorySession): Session {
     date: s.startedAt ? dateFormatter.format(new Date(s.startedAt)) : "Not started yet",
     duration: `${Math.round(s.durationSeconds / 60)} min`,
     code: s.code,
-    // Real substitute for the mock's numeric score — see
-    // docs/BACKEND_REQUIREMENTS.md#BE-19 (score itself is BE-6/BE-7).
+    // BE-19: real score once BE-6/BE-7 has produced one -- "Analyzed" is
+    // now only a genuine fallback (feedback generated, score not, e.g. a
+    // pre-migration row), not the everyday case.
+    score: s.score ?? undefined,
     status: s.status === "ended" && s.feedback ? "Analyzed" : "Processing",
   };
 }

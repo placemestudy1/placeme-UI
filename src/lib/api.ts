@@ -179,14 +179,30 @@ export const getRoomTranscript = (session: Session | null, roomId: string) =>
     method: "GET",
   });
 
+// BE-6/BE-7 (SPEC-0006, gd-proto): score/dimensions/strengths/improvements
+// are only ever present once feedback itself exists -- gd-proto's route
+// returns bare { feedback: null } while generation is still in flight, so
+// those fields must not be read (real or defaulted) before feedback is
+// truthy. score can still be null even once feedback exists (a
+// pre-migration row, or the transcription-failed stub) -- never render
+// that as a real 0.
+export type FeedbackDimension = { label: string; score: number; note: string };
+
 export const getMyFeedback = (session: Session | null, roomId: string) =>
-  callApi<{ feedback: string | null; rating?: boolean; ratingReason?: string }>(
-    session,
-    `/api/rooms/${roomId}/feedback/mine`,
-    {
-      method: "GET",
-    },
-  );
+  callApi<
+    | { feedback: null }
+    | {
+        feedback: string;
+        score: number | null;
+        dimensions: FeedbackDimension[];
+        strengths: string[];
+        improvements: string[];
+        rating?: boolean;
+        ratingReason?: string;
+      }
+  >(session, `/api/rooms/${roomId}/feedback/mine`, {
+    method: "GET",
+  });
 
 export const rateFeedback = (
   session: Session | null,
@@ -213,6 +229,7 @@ export type HistorySession = {
   startedAt: string | null;
   endedAt: string | null;
   feedback: string | null;
+  score: number | null;
 };
 
 export const getMyHistory = (session: Session | null) =>

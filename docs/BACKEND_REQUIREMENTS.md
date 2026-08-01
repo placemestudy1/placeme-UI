@@ -112,28 +112,34 @@ is BE-4's still-deferred match-filtering half (2026-08-01 decision to fold it in
 rather than build it twice) — needs a `matchmaking_queue` schema change (currently only
 stores `user_id`) and a change to `domain/matchmaking.js`'s `matchmake()` itself.
 
-### BE-6 — Numeric overall score (P1)
+### BE-6 — Numeric overall score (P1) — done, not yet live
 
-**Where**: `/ended`'s `ScoreRing` (currently hardcoded `78`), `/history`'s score badges.
-**Why it's blocked**: `domain/feedbackPrompt.js` explicitly instructs Gemini to "Respond
-with a single plain paragraph. No numeric scores" — the `feedback` table only has a
-`body` text column (plus a boolean `rating`, unrelated — that's the student's thumbs-up/
-down on the feedback text itself, not a performance score).
-**Suggested shape**: rework the feedback prompt to request structured output (e.g. Gemini
-JSON mode) including a 0–100 overall score, and add a `score integer` column to
-`feedback`. Needs care: guardrail-equivalent language in the current prompt ("never
-discouraging") should still apply to how a low score is framed.
+**Where**: `/ended`'s `ScoreRing`, `/history`'s score badges.
+**Status (2026-08-01)**: resolved. `gd-proto`'s `domain/feedbackPrompt.js` now requests
+Gemini's structured-output mode (`generationConfig.responseSchema`) for a 0–100 overall
+score alongside the rubric/strengths/improvements (`SPEC-0006`, PR #77); `feedback.score
+integer` (0–100 check constraint) is migration `0017`. `GET /api/rooms/:id/feedback/mine`
+and `GET /api/history/mine` both return `score` additively. `src/lib/api.ts`'s
+`getMyFeedback` and `ended.$roomId.tsx` are wired to the real value — `ScoreRing` renders
+it when present, and a "Score not available" placeholder (never a fabricated 0) when
+`score` is `null` (a pre-migration row, or the transcription-failed case). `/history`'s
+badge was wired separately as BE-19.
+**Not live yet** — depends on `gd-proto` migration `0017` being applied to the live
+Supabase project (tracked in `gd-proto/docs/engineering/PLAN.md` §3, not here).
 
-### BE-7 — Per-dimension rubric (P1, likely same change as BE-6)
+### BE-7 — Per-dimension rubric (P1, same change as BE-6) — done, not yet live
 
 **Where**: `/ended`'s "Score breakdown" bars (Content depth / Clarity / Confidence /
-Listening / Fluency).
-**Why it's blocked**: same root cause as BE-6 — one prose paragraph, no structured
-dimensions.
-**Suggested shape**: same structured-output rework as BE-6, adding a `dimensions jsonb`
-column (`[{label, score, note}]`) to `feedback`. Also directly enables replacing the
-`feedbackStrengths`/`feedbackImprovements` mock arrays with real structured lists instead
-of hand-parsing the prose paragraph.
+Listening / Fluency) and the "What worked"/"Fix next time" `FeedbackList`s.
+**Status (2026-08-01)**: resolved, same change as BE-6. `feedback.dimensions jsonb`
+(`[{label, score, note}]`, migration `0017`) is a fixed 5-entry array in this exact order,
+enforced by the prompt's `responseSchema` and validated defensively in
+`parseFeedbackResponse` (exact count/label/order, 0–100 bounds). `strengths`/
+`improvements jsonb` (also `0017`) replace the old `feedbackStrengths`/
+`feedbackImprovements` mock arrays in `ended.$roomId.tsx` — the score-breakdown card and
+both feedback lists only render when real data exists (empty for a pre-migration row or
+the transcription-failed stub, never a placeholder list of nothing).
+**Not live yet** — same migration `0017` dependency as BE-6.
 
 ### BE-8 — Score trend over time (P1, depends on BE-6)
 
@@ -246,12 +252,22 @@ for real rows rather than doing that.
 **Suggested shape**: have `buildSessionHistory` join a participant count per room (a single
 grouped query) and include it in the response.
 
-### BE-19 — "Analyzed" sessions with no numeric score (P1, same root cause as BE-6)
+### BE-19 — "Analyzed" sessions with no numeric score (P1) — done, not yet live
 
 **Where**: `/history`'s and `/`'s `SessionRow` score badge.
-**Why it's blocked**: same as BE-6 — no numeric score exists. The frontend shows a plain
-"Analyzed" badge instead of a number for real rows today, which is honest but not what the
-mock originally showed (a number). Resolves automatically once BE-6 ships.
+**Status (2026-08-01)**: resolved. Note this did *not* actually resolve "automatically"
+as this entry originally predicted — `GET /api/history/mine` returning a real `score` (via
+BE-6/BE-7) wasn't enough by itself; `src/lib/api.ts`'s `HistorySession` type and both
+`toSessionRow` mappers (`history.tsx`, `index.tsx`) still needed the field wired through
+explicitly. `SessionRow` (`components/pm/blocks.tsx`) already had the right rendering logic
+built in ahead of time (`s.score != null ? <PmBadge>{s.score}</PmBadge> : ...Analyzed`), so
+no component change was needed there. **"Analyzed" is now only a genuine fallback**
+(feedback exists but no score — e.g. a pre-migration row), not the everyday case. **Not
+live yet** — depends on BE-6/BE-7's `gd-proto` migration `0017` being applied to the live
+Supabase project (tracked there, not here).
+**Why it was blocked**: same as BE-6 — no numeric score existed. The frontend showed a
+plain "Analyzed" badge instead of a number for real rows, which was honest but not what the
+mock originally showed (a number).
 
 ### BE-20 — Raise-hand signal (P2)
 
