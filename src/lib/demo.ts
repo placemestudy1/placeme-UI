@@ -38,7 +38,14 @@ export const participants: Participant[] = [
   { id: "p3", name: "Karan Bhatia", initials: "KB", college: "IIIT Hyderabad", talkShare: 19 },
   { id: "p4", name: "Meera Nair", initials: "MN", college: "BITS Pilani", talkShare: 17 },
   { id: "p5", name: "Rohit Sen", initials: "RS", college: "DTU Delhi", muted: true, talkShare: 9 },
-  { id: "p6", name: "Sana Qureshi", initials: "SQ", college: "COEP Pune", muted: true, talkShare: 7 },
+  {
+    id: "p6",
+    name: "Sana Qureshi",
+    initials: "SQ",
+    college: "COEP Pune",
+    muted: true,
+    talkShare: 7,
+  },
 ];
 
 export const topics = [
@@ -55,7 +62,10 @@ export type Room = {
   host: string;
   seats: number;
   filled: number;
-  level: "Beginner" | "Intermediate" | "Advanced";
+  // Widened from a fixed "Beginner" | "Intermediate" | "Advanced" union so a
+  // real room (no level field yet, see BE-4) can honestly say "Any level"
+  // instead of fabricating one of the three tiers.
+  level: string;
   startsIn: string;
   duration: string;
 };
@@ -183,7 +193,7 @@ export const feedbackStrengths = [
 ];
 
 export const feedbackImprovements = [
-  "Reduce filler words (\"um\", \"you know\") — 18 detected, target under 8.",
+  'Reduce filler words ("um", "you know") — 18 detected, target under 8.',
   "Invite quieter participants in; Sana spoke for only 7% of the session.",
   "Avoid re-stating a point you already made at 01:22 and 02:44.",
 ];
@@ -193,8 +203,11 @@ export type Session = {
   topic: string;
   date: string;
   duration: string;
-  participants: number;
-  score: number;
+  // Optional so SessionRow can also render real history rows, which don't
+  // have a participant count (docs/BACKEND_REQUIREMENTS.md notes this as a
+  // small history-endpoint gap) or a numeric score (BE-6/BE-7) yet.
+  participants?: number;
+  score?: number;
   code: string;
   status: "Analyzed" | "Processing";
 };

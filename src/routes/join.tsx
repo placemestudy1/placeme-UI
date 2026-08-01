@@ -1,10 +1,37 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search, Ticket } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
-import { Field, PmButton, PmCard, PmInput, SectionTitle, CardSkeleton } from "@/components/pm/kit";
+import { ProtectedRoute } from "@/components/pm/protected-route";
+import {
+  Field,
+  PmButton,
+  PmCard,
+  PmInput,
+  SectionTitle,
+  CardSkeleton,
+  EmptyState,
+} from "@/components/pm/kit";
 import { RoomCard } from "@/components/pm/blocks";
-import { liveRooms } from "@/lib/demo";
+import type { Room } from "@/lib/demo";
+import { useAuth } from "@/lib/auth-context";
+import { joinRoomByCode, listOpenRooms, type OpenRoom } from "@/lib/api";
+
+// BE-4 (level) doesn't exist yet -- an honest "any level" rather than
+// fabricating one of the fixture data's three tiers.
+function toRoomCard(r: OpenRoom): Room {
+  return {
+    code: r.code,
+    topic: r.topicText ?? "Untitled discussion",
+    host: r.hostDisplayName,
+    seats: r.maxParticipants,
+    filled: r.participantCount,
+    level: "Any level",
+    startsIn: "Waiting to start",
+    duration: `${Math.round(r.durationSeconds / 60)} min`,
+  };
+}
 
 export const Route = createFileRoute("/join")({
   head: () => ({
@@ -14,30 +41,62 @@ export const Route = createFileRoute("/join")({
         name: "description",
         content: "Enter a room code or browse open group discussions to join right now.",
       },
-      { property: "og:title", content: "Join a GD room · PlaceMe" },
-      { property: "og:description", content: "Browse open rooms or join instantly with a code." },
     ],
   }),
-  component: JoinPage,
+  component: () => (
+    <ProtectedRoute>
+      <JoinPage />
+    </ProtectedRoute>
+  ),
 });
 
 function JoinPage() {
+  const { session } = useAuth();
+  const navigate = useNavigate();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [openRooms, setOpenRooms] = useState<OpenRoom[] | null>(null);
+
+  useEffect(() => {
+    listOpenRooms(session)
+      .then((r) => setOpenRooms(r.rooms))
+      .catch(() => setOpenRooms([]));
+  }, [session]);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const room = await joinRoomByCode(session, code.trim());
+      navigate({ to: "/lobby/$roomId", params: { roomId: room.id }, search: { code: room.code } });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <WebShell title="Join a room" subtitle="4 rooms open · 23 students practicing right now">
+    <WebShell title="Join a room" subtitle="Have a code, or browse rooms open right now">
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <PmCard glass className="h-fit p-6">
-          <SectionTitle title="Have a code?" subtitle="Ask the host for the 4-digit room code" />
-          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <SectionTitle title="Have a code?" subtitle="Ask the host for their room code" />
+          <form className="space-y-4" onSubmit={onSubmit}>
             <Field label="Room code">
               <PmInput
                 placeholder="GD-0000"
                 icon={<Ticket />}
-                defaultValue="GD-4821"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
                 className="font-mono tracking-[0.2em]"
               />
             </Field>
-            <PmButton asChild block size="lg">
-              <Link to="/lobby">Join room</Link>
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+            <PmButton type="submit" block size="lg" loading={busy} disabled={busy || !code.trim()}>
+              {busy ? "Joining…" : "Join room"}
             </PmButton>
           </form>
           <div className="mt-6 border-t border-border pt-5">
@@ -53,12 +112,23 @@ function JoinPage() {
             <PmButton variant="outline">Filters</PmButton>
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
-            {liveRooms.map((r) => (
-              <RoomCard key={r.code} room={r} />
+            {openRooms === null && (
+              <>
+                <CardSkeleton />
+                <CardSkeleton />
+              </>
+            )}
+            {openRooms?.map((r) => (
+              <RoomCard key={r.code} room={toRoomCard(r)} onSelect={() => setCode(r.code)} />
             ))}
-            <CardSkeleton />
-            <CardSkeleton />
           </div>
+          {openRooms?.length === 0 && (
+            <EmptyState
+              icon={<Search />}
+              title="No open rooms right now"
+              description="Every public room is either full or already in session — check back soon, or start your own."
+            />
+          )}
         </div>
       </div>
     </WebShell>

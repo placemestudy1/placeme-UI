@@ -1,9 +1,10 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
   Clock3,
   Home,
   LogIn,
+  LogOut,
   PlusCircle,
   Search,
   Shuffle,
@@ -13,8 +14,39 @@ import {
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import { currentUser } from "@/lib/demo";
+import { useAuth } from "@/lib/auth-context";
 import { PmAvatar, PmBadge, PmButton, PmInput } from "./kit";
+
+function useDisplayName() {
+  const { user } = useAuth();
+  const name =
+    (user?.user_metadata?.["display_name"] as string | undefined) || user?.email || "Signed in";
+  const initials = name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return { name, initials, email: user?.email ?? "" };
+}
+
+function SignOutButton({ className }: { className?: string }) {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => signOut().then(() => navigate({ to: "/login" }))}
+      className={cn(
+        "flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground",
+        className,
+      )}
+      aria-label="Log out"
+    >
+      <LogOut className="size-4" /> Log out
+    </button>
+  );
+}
 
 export const webNav = [
   { to: "/", label: "Home", icon: Home },
@@ -96,6 +128,7 @@ export function WebShell({
   subtitle?: string;
   actions?: ReactNode;
 }) {
+  const me = useDisplayName();
   return (
     <div className="aurora min-h-screen bg-background">
       {/* Desktop / laptop sidebar */}
@@ -122,11 +155,13 @@ export function WebShell({
             <Smartphone className="size-4" /> Open mobile app
           </Link>
           <div className="flex min-w-0 items-center gap-3 border-t border-border pt-4">
-            <PmAvatar initials={currentUser.initials} size="sm" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{currentUser.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{currentUser.college}</p>
+            <PmAvatar initials={me.initials} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{me.name}</p>
+              {/* College string has no backend field yet — docs/BACKEND_REQUIREMENTS.md#BE-14 */}
+              <p className="truncate text-xs text-muted-foreground">{me.email}</p>
             </div>
+            <SignOutButton />
           </div>
         </div>
       </aside>
@@ -143,7 +178,8 @@ export function WebShell({
           <PmButton variant="ghost" size="iconSm" aria-label="Notifications">
             <Bell />
           </PmButton>
-          <PmAvatar initials={currentUser.initials} size="sm" />
+          <PmAvatar initials={me.initials} size="sm" />
+          <SignOutButton />
         </div>
       </header>
 
@@ -154,7 +190,7 @@ export function WebShell({
           <PmButton variant="ghost" size="iconSm" aria-label="Notifications">
             <Bell />
           </PmButton>
-          <PmAvatar initials={currentUser.initials} size="sm" />
+          <PmAvatar initials={me.initials} size="sm" />
         </div>
       </header>
 
@@ -164,9 +200,7 @@ export function WebShell({
             <div className="mx-auto grid max-w-[1200px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
               <div className="min-w-0">
                 <h1 className="truncate text-2xl font-bold">{title}</h1>
-                {subtitle ? (
-                  <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-                ) : null}
+                {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
               </div>
               <div className="flex items-center gap-3">
                 <div className="hidden w-64 xl:block">
@@ -181,9 +215,7 @@ export function WebShell({
           {title ? (
             <div className="mb-5 lg:hidden">
               <h1 className="text-xl font-bold md:text-2xl">{title}</h1>
-              {subtitle ? (
-                <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-              ) : null}
+              {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
               {actions ? <div className="mt-4 flex gap-3">{actions}</div> : null}
             </div>
           ) : null}

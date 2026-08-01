@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Copy, Lock, Users } from "lucide-react";
+import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Copy, Lock, Loader2, Users } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
+import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
   Field,
   PmBadge,
@@ -13,6 +15,8 @@ import {
   SectionTitle,
 } from "@/components/pm/kit";
 import { topics } from "@/lib/demo";
+import { useAuth } from "@/lib/auth-context";
+import { createRoom, generateTopic, submitCustomTopic } from "@/lib/api";
 
 export const Route = createFileRoute("/rooms/new")({
   head: () => ({
@@ -29,53 +33,135 @@ export const Route = createFileRoute("/rooms/new")({
       },
     ],
   }),
-  component: CreateRoomPage,
+  component: () => (
+    <ProtectedRoute>
+      <CreateRoomPage />
+    </ProtectedRoute>
+  ),
 });
 
+const AI_TOPIC_VALUE = "__ai__";
+const durationOptions = [
+  { label: "15 min", seconds: 900 },
+  { label: "20 min", seconds: 1200 },
+  { label: "25 min", seconds: 1500 },
+];
+
 function CreateRoomPage() {
+  const { session } = useAuth();
+  const navigate = useNavigate();
+  const [topicChoice, setTopicChoice] = useState<string>(topics[0]);
+  const [durationSeconds, setDurationSeconds] = useState(1200);
+  const [maxParticipants, setMaxParticipants] = useState(8);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const topic =
+        topicChoice === AI_TOPIC_VALUE
+          ? await generateTopic(session)
+          : await submitCustomTopic(session, { text: topicChoice });
+      const room = await createRoom(session, {
+        topicId: topic.id,
+        durationSeconds,
+        maxParticipants,
+        visibility,
+        level,
+      });
+      navigate({
+        to: "/lobby/$roomId",
+        params: { roomId: room.id },
+        search: { code: room.code, topicText: topic.text, isCreator: true },
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <WebShell title="Create a room" subtitle="Your room code is generated instantly">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <PmCard className="p-6 md:p-8">
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-            <Field label="Discussion topic" hint="Pick a suggested topic or write your own">
-              <PmSelect defaultValue={topics[0]}>
+          <form className="space-y-5" onSubmit={onSubmit}>
+            <Field
+              label="Discussion topic"
+              hint="Pick a suggested topic, write your own, or let AI choose"
+            >
+              <PmSelect value={topicChoice} onChange={(e) => setTopicChoice(e.target.value)}>
+                <option value={AI_TOPIC_VALUE}>✨ Let AI suggest one</option>
                 {topics.map((t) => (
-                  <option key={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
               </PmSelect>
             </Field>
+            {/*
+              MOCK — no backend field for free-form room instructions yet, see
+              docs/BACKEND_REQUIREMENTS.md#BE-15. Left in the form, not submitted.
+            */}
             <Field label="Context for participants">
               <PmTextarea defaultValue="Panel-style GD. Moderator opens, each speaker gets 90 seconds, then free debate. Cite data where possible." />
             </Field>
             <div className="grid gap-5 sm:grid-cols-3">
               <Field label="Seats">
-                <PmSelect defaultValue="8">
-                  <option>4</option>
-                  <option>6</option>
-                  <option>8</option>
-                  <option>10</option>
+                <PmSelect
+                  value={String(maxParticipants)}
+                  onChange={(e) => setMaxParticipants(Number(e.target.value))}
+                >
+                  <option value="4">4</option>
+                  <option value="6">6</option>
+                  <option value="8">8</option>
+                  <option value="10">10</option>
                 </PmSelect>
               </Field>
               <Field label="Duration">
-                <PmSelect defaultValue="20 min">
-                  <option>15 min</option>
-                  <option>20 min</option>
-                  <option>25 min</option>
+                <PmSelect
+                  value={String(durationSeconds)}
+                  onChange={(e) => setDurationSeconds(Number(e.target.value))}
+                >
+                  {durationOptions.map((d) => (
+                    <option key={d.seconds} value={d.seconds}>
+                      {d.label}
+                    </option>
+                  ))}
                 </PmSelect>
               </Field>
               <Field label="Level">
-                <PmSelect defaultValue="Intermediate">
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
+                <PmSelect
+                  value={level}
+                  onChange={(e) =>
+                    setLevel(e.target.value as "beginner" | "intermediate" | "advanced")
+                  }
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
                 </PmSelect>
               </Field>
             </div>
             <Field label="Visibility">
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/50 bg-primary/10 p-4">
-                  <input type="radio" name="vis" defaultChecked className="accent-[var(--primary)]" />
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
+                    visibility === "public" ? "border-primary/50 bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="vis"
+                    checked={visibility === "public"}
+                    onChange={() => setVisibility("public")}
+                    className="accent-[var(--primary)]"
+                  />
                   <span>
                     <span className="flex items-center gap-2 text-sm font-semibold">
                       <Users className="size-4" /> Public
@@ -83,8 +169,18 @@ function CreateRoomPage() {
                     <span className="text-xs text-muted-foreground">Listed for matched peers</span>
                   </span>
                 </label>
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-4">
-                  <input type="radio" name="vis" className="accent-[var(--primary)]" />
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
+                    visibility === "private" ? "border-primary/50 bg-primary/10" : "border-border"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="vis"
+                    checked={visibility === "private"}
+                    onChange={() => setVisibility("private")}
+                    className="accent-[var(--primary)]"
+                  />
                   <span>
                     <span className="flex items-center gap-2 text-sm font-semibold">
                       <Lock className="size-4" /> Private
@@ -94,12 +190,10 @@ function CreateRoomPage() {
                 </label>
               </div>
             </Field>
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             <div className="flex flex-wrap gap-3 pt-2">
-              <PmButton asChild size="lg">
-                <Link to="/lobby">Create room</Link>
-              </PmButton>
-              <PmButton variant="ghost" size="lg" type="reset">
-                Reset
+              <PmButton type="submit" size="lg" loading={busy} disabled={busy}>
+                {busy ? "Creating…" : "Create room"}
               </PmButton>
             </div>
           </form>
@@ -108,15 +202,21 @@ function CreateRoomPage() {
         <aside className="space-y-4">
           <PmCard glass className="p-5">
             <SectionTitle title="Room preview" />
-            <PmBadge tone="primary">Starting in 2m</PmBadge>
-            <p className="mt-3 text-base font-semibold leading-snug">{topics[0]}</p>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Hosted by you · 20 min · Intermediate
+            <PmBadge tone="primary">Waiting for you to create it</PmBadge>
+            <p className="mt-3 text-base font-semibold leading-snug">
+              {topicChoice === AI_TOPIC_VALUE ? "AI will pick your topic" : topicChoice}
             </p>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Hosted by you · {Math.round(durationSeconds / 60)} min
+            </p>
+            {/* Illustrative only — the real room code is only assigned once
+                the room is actually created (POST /api/rooms). */}
             <div className="mt-5 rounded-xl border border-dashed border-border p-4 text-center">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">Room code</p>
-              <p className="mt-1 font-mono text-2xl font-bold tracking-[0.2em]">GD-5312</p>
-              <PmButton variant="outline" size="sm" className="mt-3">
+              <p className="mt-1 font-mono text-2xl font-bold tracking-[0.2em] text-muted-foreground">
+                {busy ? <Loader2 className="mx-auto size-6 animate-spin" /> : "— — — —"}
+              </p>
+              <PmButton variant="outline" size="sm" className="mt-3" disabled>
                 <Copy /> Copy invite
               </PmButton>
             </div>
