@@ -1,3 +1,10 @@
+/**
+ * Catch-all 404 screen for the web app — shown when a URL doesn't match any
+ * route, or a room code has expired.
+ *
+ * - NotFoundPage(): main route component — renders the 404 message with
+ *   links back home or to join a room.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Compass } from "lucide-react";
 
@@ -17,6 +24,8 @@ export const Route = createFileRoute("/$")({
   component: NotFoundPage,
 });
 
+// Main 404 page: tells the visitor the page/room doesn't exist (or its code
+// expired) and offers links back home or to join with a code.
 function NotFoundPage() {
   return (
     <WebShell>

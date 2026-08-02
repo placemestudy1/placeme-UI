@@ -1,3 +1,12 @@
+/**
+ * Renders the mobile "create new room" screen: a form-like preview for
+ * picking topic, context, seats, duration and visibility, plus a static
+ * room-code preview card, before linking to the consent screen. Uses static
+ * demo data; not wired to the room-creation API.
+ *
+ * - NativeNewRoom(): main route component; renders the new-room
+ *   configuration UI and the room-code preview card.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Copy } from "lucide-react";
 
@@ -9,7 +18,10 @@ export const Route = createFileRoute("/app/new")({
   head: () => ({
     meta: [
       { title: "New room · PlaceMe Mobile" },
-      { name: "description", content: "Create a group discussion room from the PlaceMe mobile app." },
+      {
+        name: "description",
+        content: "Create a group discussion room from the PlaceMe mobile app.",
+      },
       { property: "og:title", content: "New room · PlaceMe Mobile" },
       { property: "og:description", content: "Pick a topic, set the timer, share the code." },
     ],
@@ -17,6 +29,8 @@ export const Route = createFileRoute("/app/new")({
   component: NativeNewRoom,
 });
 
+// Main route component: renders the new-room configuration form fields and
+// the static room-code preview card, linking onward to the consent screen.
 function NativeNewRoom() {
   return (
     <NativeTabScreen title="New room">

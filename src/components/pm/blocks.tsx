@@ -1,55 +1,90 @@
 import { Link } from "@tanstack/react-router";
-import { Clock3, Mic, MicOff, Users } from "lucide-react";
+import { Clock3, Hand, Mic, MicOff, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Participant, Room, Session } from "@/lib/demo";
 import { progressSeries } from "@/lib/demo";
 import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 
-export function RoomCard({ room, to = "/lobby" }: { room: Room; to?: string }) {
+// Higher-level, domain-specific UI blocks (room cards, participant tiles,
+// session rows, stat cards, progress chart, timer pill) built on top of the
+// generic `kit.tsx` primitives.
+//
+// Exports:
+// - RoomCard: a browsable/joinable room summary card.
+// - ParticipantTile: a single participant's avatar/name/mic-status tile.
+// - SessionRow: a past-session row for history lists.
+// - StatCard: a small labeled stat tile with an optional delta.
+// - ProgressPoint, ProgressChart: a simple bar chart of score-over-time
+//   points.
+// - TimerPill: a small pill showing an elapsed/remaining time string.
+
+// Card summarizing a room to browse/join: live/level badges, topic, host,
+// duration, room code, and a filled/seats avatar stack. Navigates via `to`,
+// or calls `onSelect(room)` instead when provided (see the BE-1 note below).
+export function RoomCard({
+  room,
+  to = "/lobby",
+  onSelect,
+}: {
+  room: Room;
+  to?: string;
+  // BE-1 (place-me-UI/docs/BACKEND_REQUIREMENTS.md): real open rooms have
+  // nowhere fixed to navigate to (there's no per-room route to browse
+  // into) -- callers with real data pass onSelect instead of `to`, e.g. to
+  // prefill a join-code field. Fixture-data callers keep using `to`
+  // unchanged.
+  onSelect?: (room: Room) => void;
+}) {
   const live = room.startsIn === "Live now";
+  const content = (
+    <>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <PmBadge tone={live ? "live" : "primary"}>
+              {live ? <StatusDot status="live" /> : null}
+              {room.startsIn}
+            </PmBadge>
+            <PmBadge>{room.level}</PmBadge>
+          </div>
+          <h3 className="mt-3 line-clamp-2 text-base font-semibold leading-snug">{room.topic}</h3>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Hosted by {room.host} · {room.duration}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-lg bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground">
+          {room.code}
+        </span>
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+        <AvatarStack items={["IR", "KB", "MN", "RS", "SQ"].slice(0, room.filled)} max={4} />
+        <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Users className="size-3.5" />
+          {room.filled}/{room.seats} seats
+        </span>
+      </div>
+    </>
+  );
   return (
     <PmCard interactive className="p-5">
-      <Link to={to} className="block">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <PmBadge tone={live ? "live" : "primary"}>
-                {live ? <StatusDot status="live" /> : null}
-                {room.startsIn}
-              </PmBadge>
-              <PmBadge>{room.level}</PmBadge>
-            </div>
-            <h3 className="mt-3 line-clamp-2 text-base font-semibold leading-snug">
-              {room.topic}
-            </h3>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Hosted by {room.host} · {room.duration}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-lg bg-secondary px-2.5 py-1 font-mono text-xs text-muted-foreground">
-            {room.code}
-          </span>
-        </div>
-        <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-          <AvatarStack items={["IR", "KB", "MN", "RS", "SQ"].slice(0, room.filled)} max={4} />
-          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <Users className="size-3.5" />
-            {room.filled}/{room.seats} seats
-          </span>
-        </div>
-      </Link>
+      {onSelect ? (
+        <button type="button" onClick={() => onSelect(room)} className="block w-full text-left">
+          {content}
+        </button>
+      ) : (
+        <Link to={to} className="block">
+          {content}
+        </Link>
+      )}
     </PmCard>
   );
 }
 
-export function ParticipantTile({
-  p,
-  compact,
-}: {
-  p: Participant;
-  compact?: boolean;
-}) {
+// Tile showing one participant's avatar (with a speaking/muted ring), name,
+// college, mic icon, and talk-share percentage. `compact` shrinks sizing for
+// denser grids.
+export function ParticipantTile({ p, compact }: { p: Participant; compact?: boolean }) {
   return (
     <div
       className={cn(
@@ -66,6 +101,7 @@ export function ParticipantTile({
       <p className="mt-2.5 w-full truncate text-sm font-semibold">{p.name}</p>
       <p className="w-full truncate text-[11px] text-muted-foreground">{p.college}</p>
       <div className="mt-2 flex items-center gap-1.5">
+        {p.handRaised && <Hand className="size-3.5 text-warning" />}
         {p.muted ? (
           <MicOff className="size-3.5 text-muted-foreground" />
         ) : (
@@ -77,6 +113,9 @@ export function ParticipantTile({
   );
 }
 
+// Row for a past session in a history list: topic, date/duration/participant
+// count/code, and a status badge (Processing, or the numeric score/Analyzed).
+// Links to `to` (typically the session's feedback/ended page).
 export function SessionRow({ s, to = "/ended" }: { s: Session; to?: string }) {
   return (
     <PmCard interactive className="p-4">
@@ -84,14 +123,17 @@ export function SessionRow({ s, to = "/ended" }: { s: Session; to?: string }) {
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{s.topic}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">
-            {s.date} · {s.duration} · {s.participants} participants · {s.code}
+            {s.date} · {s.duration}
+            {s.participants != null ? ` · ${s.participants} participants` : ""} · {s.code}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           {s.status === "Processing" ? (
             <PmBadge tone="warning">Processing</PmBadge>
-          ) : (
+          ) : s.score != null ? (
             <PmBadge tone="success">{s.score}</PmBadge>
+          ) : (
+            <PmBadge tone="success">Analyzed</PmBadge>
           )}
         </div>
       </Link>
@@ -99,6 +141,8 @@ export function SessionRow({ s, to = "/ended" }: { s: Session; to?: string }) {
   );
 }
 
+// Small stat tile: uppercase label, large value, and an optional delta line
+// (e.g. "+4 this week").
 export function StatCard({
   label,
   value,
@@ -117,11 +161,27 @@ export function StatCard({
   );
 }
 
-export function ProgressChart({ className }: { className?: string }) {
+export type ProgressPoint = { label: string; score: number };
+
+// Simple bar chart rendering a series of labeled score points (0-100) as
+// vertical bars with the label underneath each bar.
+export function ProgressChart({
+  className,
+  // BE-8 (place-me-UI/docs/BACKEND_REQUIREMENTS.md): real score history,
+  // computed client-side from GET /api/history/mine per that item's own
+  // suggested shape (a dedicated trend endpoint is only worth it "if
+  // history grows large" -- not the case at pilot scale). Defaults to the
+  // fixture series so callers that haven't been wired to real data yet
+  // (e.g. the legacy /app/history page) keep working unchanged.
+  series = progressSeries,
+}: {
+  className?: string;
+  series?: ProgressPoint[];
+}) {
   const max = 100;
   return (
     <div className={cn("flex h-40 items-end gap-3", className)}>
-      {progressSeries.map((p) => (
+      {series.map((p) => (
         <div key={p.label} className="flex h-full flex-1 flex-col items-center gap-2">
           <div className="relative w-full flex-1">
             <div
@@ -136,7 +196,9 @@ export function ProgressChart({ className }: { className?: string }) {
   );
 }
 
-export function TimerPill({ time = "08:14" }: { time?: string }) {
+// Small pill showing a monospaced clock icon + time string (defaults to a
+// placeholder "08:14").
+export function TimerPill({ time = "08:14" }: { time?: string | undefined }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 font-mono text-xs font-semibold">
       <Clock3 className="size-3.5 text-muted-foreground" />

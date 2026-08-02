@@ -1,3 +1,10 @@
+/**
+ * Native/mobile login screen — lets a student sign in with their college
+ * email and password (or Apple) before joining a group discussion.
+ *
+ * - NativeLogin(): main route component — renders the login form and a link
+ *   to sign up.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { KeyRound, Mail } from "lucide-react";
 
@@ -16,6 +23,8 @@ export const Route = createFileRoute("/app/login")({
   component: NativeLogin,
 });
 
+// Main login screen: email/password form (plus an Apple sign-in button)
+// that currently just navigates on to the mic-consent screen.
 function NativeLogin() {
   return (
     <NativeStackScreen

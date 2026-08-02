@@ -4,6 +4,19 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
+// Native-app-style shell: an iPhone device frame with tab bar / stacked
+// screen chrome, used to present the mobile ("/app/*") routes as a native
+// app mockup.
+//
+// Exports:
+// - nativeTabs: the bottom tab bar's route/label/icon definitions.
+// - DeviceFrame: the iPhone device frame wrapper.
+// - NativeTabScreen: a top-level tabbed screen (status bar + title + content
+//   + bottom tab bar) inside the device frame.
+// - NativeStackScreen: a pushed/stacked screen (status bar + optional back
+//   header + content + optional footer) inside the device frame, no tab bar.
+
+// Bottom tab bar entries for the native mobile screens.
 export const nativeTabs = [
   { to: "/app", label: "Home", icon: Home },
   { to: "/app/new", label: "New Room", icon: PlusCircle },
@@ -25,6 +38,8 @@ export function DeviceFrame({ children }: { children: ReactNode }) {
   );
 }
 
+// Renders the fake iOS status bar (clock, notch, signal/battery glyphs) at
+// the top of the device frame.
 function StatusBar({ dark }: { dark?: boolean }) {
   return (
     <div
@@ -44,6 +59,7 @@ function StatusBar({ dark }: { dark?: boolean }) {
   );
 }
 
+// Renders the fake iOS home-indicator bar at the bottom of the device frame.
 function HomeIndicator() {
   return (
     <div className="flex h-5 shrink-0 items-center justify-center">

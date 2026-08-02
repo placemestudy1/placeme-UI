@@ -1,3 +1,12 @@
+/**
+ * Renders the mobile "live session" screen: mic/hand/transcript/leave
+ * controls in a footer, a switchable room/transcript tab view of
+ * participants and captions, and a leave-confirmation dialog. Uses static
+ * demo data rather than a live LiveKit connection.
+ *
+ * - NativeSession(): main route component; manages mute/tab/leaving UI
+ *   state and renders the room/transcript tabs plus the leave dialog.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Hand, Mic, MicOff, PhoneOff, ScrollText } from "lucide-react";
@@ -27,6 +36,9 @@ export const Route = createFileRoute("/app/session")({
   component: NativeSession,
 });
 
+// Main route component: renders the mobile live-session screen, including
+// the room/transcript tabs, participant tiles, live caption, footer
+// controls, and the leave-confirmation dialog.
 function NativeSession() {
   const [muted, setMuted] = useState(false);
   const [tab, setTab] = useState<"room" | "transcript">("room");

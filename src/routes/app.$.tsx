@@ -1,3 +1,10 @@
+/**
+ * Catch-all 404 screen for the native/mobile app — shown when a mobile route
+ * doesn't match, or a room code has expired.
+ *
+ * - NativeNotFound(): main route component — renders the 404 message with a
+ *   link to join another room.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Compass } from "lucide-react";
 
@@ -17,6 +24,8 @@ export const Route = createFileRoute("/app/$")({
   component: NativeNotFound,
 });
 
+// Main 404 screen for the mobile app: tells the visitor the room is gone and
+// offers a link to join another room.
 function NativeNotFound() {
   return (
     <NativeStackScreen title="Not found" backTo="/app" backLabel="Home">

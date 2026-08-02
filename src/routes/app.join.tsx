@@ -1,3 +1,9 @@
+/**
+ * Renders the PlaceMe mobile app's join screen: a room-code entry card and a
+ * searchable list of open live rooms a student can tap into.
+ *
+ * - NativeJoin(): main route component; renders the mobile join screen.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 
@@ -18,6 +24,8 @@ export const Route = createFileRoute("/app/join")({
   component: NativeJoin,
 });
 
+// Main route component: renders the mobile join screen with a room-code
+// entry card, a search field, and a list of open rooms.
 function NativeJoin() {
   const digits = ["4", "8", "2", "1"];
   return (

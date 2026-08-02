@@ -1,3 +1,11 @@
+/**
+ * Post-session feedback screen for the native/mobile app — shows the
+ * student's AI-generated score and feedback for their last group discussion,
+ * with a tab to switch over to the full session transcript.
+ *
+ * - NativeEnded(): main route component — renders the score summary and a
+ *   tabbed feedback/transcript view for the most recent session.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Share2 } from "lucide-react";
@@ -34,6 +42,8 @@ export const Route = createFileRoute("/app/ended")({
   component: NativeEnded,
 });
 
+// Main "session ended" screen: shows the score ring and feedback breakdown,
+// and a toggle to view the full transcript instead.
 function NativeEnded() {
   const [tab, setTab] = useState<"feedback" | "transcript">("feedback");
   return (

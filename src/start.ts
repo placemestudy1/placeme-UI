@@ -2,6 +2,16 @@ import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/r
 
 import { renderErrorPage } from "./lib/error-page";
 
+// TanStack Start server middleware configuration for this app.
+//
+// Exports:
+// - startInstance: the createStart() instance wiring in errorMiddleware
+//   (renders a friendly error page for uncaught, non-HTTP server errors) and
+//   csrfMiddleware (CSRF protection for server functions).
+
+// Catches uncaught errors from server function/loader handling; rethrows
+// errors that already carry a statusCode (framework-level HTTP errors) and
+// otherwise logs the error and returns a generic 500 error page.
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
     return await next();
