@@ -1,3 +1,10 @@
+/**
+ * Renders the PlaceMe mobile app's sign-up screen where a new student enters
+ * their name, college email, college, graduating year, and password to
+ * create an account, then continues to the consent gate.
+ *
+ * - NativeSignup(): main route component; renders the mobile sign-up form.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GraduationCap, KeyRound, Mail, User } from "lucide-react";
 
@@ -16,6 +23,7 @@ export const Route = createFileRoute("/app/signup")({
   component: NativeSignup,
 });
 
+// Main route component: renders the mobile sign-up form and its footer CTA.
 function NativeSignup() {
   return (
     <NativeStackScreen

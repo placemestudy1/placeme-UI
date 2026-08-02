@@ -1,3 +1,11 @@
+/**
+ * Renders the mobile "room lobby" screen: shows the discussion topic, a
+ * countdown-to-start badge, the participant grid, and ground rules while
+ * waiting to join the live session. Uses static demo data.
+ *
+ * - NativeLobby(): main route component; renders the lobby UI and the
+ *   "Join audio" action into the live session.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Copy, Mic } from "lucide-react";
 
@@ -18,6 +26,8 @@ export const Route = createFileRoute("/app/lobby")({
   component: NativeLobby,
 });
 
+// Main route component: renders the lobby topic card, participant grid,
+// ground-rules banner, and the footer action to join the live session.
 function NativeLobby() {
   return (
     <NativeStackScreen

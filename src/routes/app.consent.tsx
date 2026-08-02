@@ -1,3 +1,11 @@
+/**
+ * Native/mobile mic-permission screen — asks the student to grant
+ * microphone access before joining a live GD room, with a simulated input
+ * level meter and a reminder to use headphones.
+ *
+ * - NativeConsent(): main route component — renders the mic-permission
+ *   prompt, a simulated input-level meter, and allow/not-now actions.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Mic, ShieldCheck } from "lucide-react";
 
@@ -16,6 +24,9 @@ export const Route = createFileRoute("/app/consent")({
   component: NativeConsent,
 });
 
+// Main mic-permission screen: explains why the mic is needed, shows a
+// simulated audio level meter, and offers allow/not-now actions leading to
+// the lobby or app home.
 function NativeConsent() {
   const levels = [24, 52, 80, 96, 62, 34, 18];
   return (

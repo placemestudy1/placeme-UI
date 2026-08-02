@@ -1,3 +1,19 @@
+/**
+ * Renders the "Random match" page where a signed-in student can request to be
+ * paired into a live group discussion, watches a searching/queued state while
+ * waiting, and can cancel or retry if no match is found in time.
+ *
+ * - MatchPage(): main route component; manages match/queue state and renders
+ *   the idle / searching / gave-up UI.
+ * - stopWaiting(): clears the active queue-poll interval and give-up timeout.
+ * - enterRoom(): stops waiting and navigates into the matched lobby room.
+ * - startQueuePolling(): polls for an active room while queued, and gives up
+ *   after MAX_QUEUE_WAIT_MS.
+ * - handleMatch(): requests a match and either starts queue polling or enters
+ *   a room immediately.
+ * - handleCancel(): cancels the search, stopping timers and leaving the match
+ *   queue.
+ */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { RefreshCw, Shuffle, Users, X } from "lucide-react";
@@ -42,6 +58,8 @@ const MAX_QUEUE_WAIT_MS = 90000;
 
 type State = "idle" | "searching" | "gaveUp";
 
+// Main route component: renders the idle / searching / gave-up states for
+// requesting a random group-discussion match and handles polling for a room.
 function MatchPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -52,6 +70,7 @@ function MatchPage() {
   const sessionRef = useRef(session);
   sessionRef.current = session;
 
+  // Stops the active queue-poll interval and give-up timeout.
   const stopWaiting = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     if (giveUpRef.current) clearTimeout(giveUpRef.current);
@@ -64,6 +83,7 @@ function MatchPage() {
     };
   }, [stopWaiting]);
 
+  // Stops waiting and navigates the student into the matched lobby room.
   function enterRoom(room: { id: string; code: string }) {
     stopWaiting();
     navigate({
@@ -73,6 +93,8 @@ function MatchPage() {
     });
   }
 
+  // Polls for an active room while queued, entering it if one appears, and
+  // gives up (moving to the "gaveUp" state) after MAX_QUEUE_WAIT_MS.
   function startQueuePolling() {
     pollRef.current = setInterval(async () => {
       try {
@@ -90,6 +112,8 @@ function MatchPage() {
     }, MAX_QUEUE_WAIT_MS);
   }
 
+  // Requests a match; if the response says queued, starts queue polling,
+  // otherwise enters the returned room immediately.
   async function handleMatch() {
     setState("searching");
     setError(null);
@@ -106,6 +130,7 @@ function MatchPage() {
     }
   }
 
+  // Cancels the search: stops timers, resets to idle, and leaves the match queue.
   async function handleCancel() {
     stopWaiting();
     setState("idle");

@@ -1,3 +1,16 @@
+/**
+ * Lobby screen shown to a student after joining or creating a group
+ * discussion room, while everyone waits for the host to start the session.
+ * Polls the room's status and participant list from the server, lets the
+ * host start the discussion, and auto-navigates everyone to the live session
+ * (or the ended screen) once the room's status changes.
+ *
+ * - initialsFor(): derives up to two-letter initials from a participant's
+ *   display name, used for avatar tiles.
+ * - LobbyPage(): main route component — polls room status/participants,
+ *   renders the waiting-room UI (topic, invite code, start/leave actions,
+ *   participant grid) and the audio-settings dialog.
+ */
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
@@ -50,6 +63,7 @@ export const Route = createFileRoute("/lobby/$roomId")({
 
 const POLL_INTERVAL_MS = 3000;
 
+// Builds up to two initials (e.g. "Jane Doe" -> "JD") from a display name, for avatar tiles.
 function initialsFor(name: string) {
   return name
     .split(" ")
@@ -60,6 +74,10 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
+// Main lobby route component: polls room status and participant list, shows
+// the topic/invite code/start-or-wait actions and participant grid, opens
+// the audio settings dialog, and redirects to the live session or ended
+// screen once the room status changes.
 function LobbyPage() {
   const { roomId } = Route.useParams();
   const search = Route.useSearch();
@@ -121,6 +139,7 @@ function LobbyPage() {
   const topicText = status?.topicText ?? search.topicText ?? "Group discussion room";
   const isCreator = status?.isCreator ?? search.isCreator ?? false;
 
+  // Copies the room code to the clipboard and shows a brief "copied" confirmation.
   function copyCode() {
     if (!code) return;
     navigator.clipboard?.writeText(code).then(() => {
@@ -129,6 +148,7 @@ function LobbyPage() {
     });
   }
 
+  // Calls the API to start the room (host only), tracking loading/error state.
   async function handleStart() {
     setStarting(true);
     setError(null);

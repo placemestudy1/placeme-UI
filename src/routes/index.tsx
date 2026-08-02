@@ -1,12 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, PlusCircle, Shuffle, Sparkles } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { PmButton, PmCard, SectionTitle, PmBadge, EmptyState } from "@/components/pm/kit";
-import { ProgressChart, RoomCard, SessionRow, StatCard } from "@/components/pm/blocks";
-import { stats, type Session, type Room } from "@/lib/demo";
+import {
+  ProgressChart,
+  RoomCard,
+  SessionRow,
+  StatCard,
+  type ProgressPoint,
+} from "@/components/pm/blocks";
+import { type Session, type Room } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, listOpenRooms, type HistorySession, type OpenRoom } from "@/lib/api";
 
@@ -49,6 +55,56 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   hour: "numeric",
   minute: "2-digit",
 });
+const trendLabelFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric" });
+
+// BE-8: same approach as history.tsx's buildScoreTrend -- a plain
+// last-N-scored-sessions line rather than fake weekly buckets, since a
+// student may have very few sessions at pilot scale.
+const MAX_TREND_POINTS = 8;
+
+function buildScoreTrend(sessions: HistorySession[]): ProgressPoint[] {
+  return sessions
+    .filter(
+      (s): s is HistorySession & { score: number; startedAt: string } =>
+        s.score != null && s.startedAt != null,
+    )
+    .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
+    .slice(-MAX_TREND_POINTS)
+    .map((s) => ({ label: trendLabelFormatter.format(new Date(s.startedAt)), score: s.score }));
+}
+
+// BE-9: same helpers as history.tsx -- no `delta` text (that's a
+// period-over-period comparison this item doesn't ask for).
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
+}
+
+// "Current streak" = consecutive calendar days with at least one ended
+// session, still counted as active through the end of the day after the
+// most recent practiced day (standard habit-tracker semantics).
+function computeStreak(sessions: HistorySession[]): number {
+  const practicedDays = new Set(
+    sessions
+      .filter((s) => s.status === "ended" && s.startedAt)
+      .map((s) => new Date(s.startedAt as string).toDateString()),
+  );
+  function streakFrom(start: Date): number {
+    let count = 0;
+    const cursor = new Date(start);
+    while (practicedDays.has(cursor.toDateString())) {
+      count++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return count;
+  }
+  const today = new Date();
+  const fromToday = streakFrom(today);
+  if (fromToday > 0) return fromToday;
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return streakFrom(yesterday);
+}
 
 function toSessionRow(s: HistorySession): Session {
   return {
@@ -68,14 +124,26 @@ function toSessionRow(s: HistorySession): Session {
 function Index() {
   const { user, session } = useAuth();
   const navigate = useNavigate();
-  const [recent, setRecent] = useState<HistorySession[] | null>(null);
+  const [sessions, setSessions] = useState<HistorySession[] | null>(null);
   const [openRooms, setOpenRooms] = useState<OpenRoom[] | null>(null);
 
   useEffect(() => {
     getMyHistory(session)
-      .then((r) => setRecent(r.sessions.slice(0, 3)))
+      .then((r) => setSessions(r.sessions))
       .catch(() => {});
   }, [session]);
+
+  const recent = sessions?.slice(0, 3) ?? null;
+  const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
+  const avgScore = useMemo(
+    () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
+    [sessions],
+  );
+  const avgTalkShare = useMemo(
+    () => average((sessions ?? []).flatMap((s) => (s.talkShare != null ? [s.talkShare] : []))),
+    [sessions],
+  );
+  const streak = useMemo(() => computeStreak(sessions ?? []), [sessions]);
 
   useEffect(() => {
     listOpenRooms(session)
@@ -90,8 +158,14 @@ function Index() {
   return (
     <WebShell
       title={`Welcome back, ${firstName}`}
-      // MOCK — streak/level-matched-rooms copy, see docs/BACKEND_REQUIREMENTS.md#BE-9 #BE-1
-      subtitle="You're on a 12-day streak. Two rooms match your practice level right now."
+      // BE-9: real streak. The mock's second clause ("Two rooms match your
+      // practice level right now") is dropped rather than kept fake --
+      // there's no backend item that computes a level-matched-room count.
+      subtitle={
+        streak > 0
+          ? `You're on a ${streak}-day streak. Keep it going!`
+          : "Ready to start your first streak?"
+      }
       actions={
         <PmButton asChild>
           <Link to="/rooms/new">
@@ -125,11 +199,14 @@ function Index() {
             </div>
           </PmCard>
 
-          {/* MOCK — avg score / speak time / streak have no backend source yet, see BE-9 */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {stats.map((s) => (
-              <StatCard key={s.label} {...s} />
-            ))}
+            <StatCard label="Sessions" value={sessions ? String(sessions.length) : "…"} />
+            <StatCard label="Avg. score" value={avgScore != null ? String(avgScore) : "—"} />
+            <StatCard label="Speak time" value={avgTalkShare != null ? `${avgTalkShare}%` : "—"} />
+            <StatCard
+              label="Streak"
+              value={streak > 0 ? `${streak} day${streak === 1 ? "" : "s"}` : "—"}
+            />
           </div>
 
           <div>
@@ -162,10 +239,15 @@ function Index() {
         </div>
 
         <aside className="space-y-6">
-          {/* MOCK — score trend needs a real score first, see BE-8/BE-6 */}
           <PmCard className="p-5">
-            <SectionTitle title="Score trend" subtitle="Last 6 weeks" />
-            <ProgressChart />
+            <SectionTitle title="Score trend" subtitle="Your last scored sessions" />
+            {scoreTrend.length > 0 ? (
+              <ProgressChart series={scoreTrend} />
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No scored sessions yet.
+              </p>
+            )}
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle

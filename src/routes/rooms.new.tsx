@@ -1,3 +1,15 @@
+/**
+ * Renders the "Create a room" screen for hosting a new group discussion: lets
+ * the host pick a topic (curated, custom, or AI-generated), configure seats,
+ * duration, level and visibility, then creates the room via the API before
+ * navigating to the room's lobby.
+ *
+ * - CreateRoomPage(): main route component; renders the room-creation form
+ *   and a live preview panel, and submits the form to create the topic/room.
+ * - onSubmit(): form submit handler defined inside CreateRoomPage; resolves
+ *   the chosen topic (AI-generated or custom), creates the room via the API,
+ *   and navigates to the lobby on success.
+ */
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Copy, Lock, Loader2, Users } from "lucide-react";
@@ -47,6 +59,9 @@ const durationOptions = [
   { label: "25 min", seconds: 1500 },
 ];
 
+// Main route component: renders the room-creation form (topic, context,
+// seats, duration, level, visibility) and a live preview sidebar, and
+// creates the room on submit.
 function CreateRoomPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -58,6 +73,8 @@ function CreateRoomPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Resolves the selected topic (AI-generated or custom), creates the room
+  // via the API, and navigates to the room's lobby on success.
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);

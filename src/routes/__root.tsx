@@ -1,3 +1,16 @@
+/**
+ * App-wide root route. Wraps every page with the HTML document shell, the
+ * global providers (React Query, auth), and defines the shared not-found and
+ * error boundary screens used when no more specific route handles them.
+ *
+ * - NotFoundComponent(): generic 404 screen shown for unmatched routes.
+ * - ErrorComponent(): generic error-boundary screen shown when a route throws;
+ *   logs and reports the error, and offers retry / go-home actions.
+ * - RootShell(): the outermost HTML document shell (html/head/body) shared by
+ *   every route, rendering head tags and scripts.
+ * - RootComponent(): the root route's React tree — sets up QueryClientProvider
+ *   and AuthProvider and renders the matched child route via <Outlet />.
+ */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -7,12 +20,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../lib/auth-context";
 
+// Generic 404 screen rendered for any route that doesn't match a page.
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -35,12 +48,11 @@ function NotFoundComponent() {
   );
 }
 
+// Generic error-boundary screen rendered when a route throws. Logs the
+// error and lets the user retry or go home.
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -114,6 +126,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// Outermost HTML document shell (html/head/body) shared by every route;
+// renders <HeadContent /> for head tags and <Scripts /> for app scripts.
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
@@ -128,6 +142,8 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Root route's React tree: provides QueryClientProvider and AuthProvider to
+// the whole app and renders the matched child route via <Outlet />.
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 

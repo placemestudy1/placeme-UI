@@ -1,3 +1,8 @@
+// Generic server-error fallback page.
+//
+// Exports:
+// - renderErrorPage: returns a self-contained HTML string for a generic
+//   "this page didn't load" error page, used when server rendering fails.
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">

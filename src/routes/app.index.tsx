@@ -1,3 +1,10 @@
+/**
+ * Renders the PlaceMe mobile app's home tab: a greeting with streak badge, a
+ * quick-match call to action, at-a-glance stats, open rooms to join, and
+ * recent session history.
+ *
+ * - NativeHome(): main route component; renders the mobile home screen.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, ChevronRight, Shuffle, Sparkles } from "lucide-react";
 
@@ -21,6 +28,8 @@ export const Route = createFileRoute("/app/")({
   component: NativeHome,
 });
 
+// Main route component: renders the mobile home tab with a greeting, quick
+// match CTA, stats grid, open rooms, and recent session history.
 function NativeHome() {
   return (
     <NativeTabScreen
@@ -39,9 +48,7 @@ function NativeHome() {
           <PmBadge tone="accent">
             <Sparkles className="size-3" /> 12-day streak
           </PmBadge>
-          <p className="mt-3 text-lg font-bold leading-snug">
-            Ready for today's discussion round?
-          </p>
+          <p className="mt-3 text-lg font-bold leading-snug">Ready for today's discussion round?</p>
           <p className="mt-1.5 text-xs text-muted-foreground">
             Average match time right now: 24 seconds.
           </p>
@@ -62,7 +69,10 @@ function NativeHome() {
           <SectionTitle
             title="Open rooms"
             action={
-              <Link to="/app/join" className="flex items-center text-xs font-semibold text-primary-glow">
+              <Link
+                to="/app/join"
+                className="flex items-center text-xs font-semibold text-primary-glow"
+              >
                 See all <ChevronRight className="size-3.5" />
               </Link>
             }

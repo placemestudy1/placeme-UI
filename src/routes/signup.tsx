@@ -27,6 +27,8 @@ function SignupPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [college, setCollege] = useState("");
+  const [graduationYear, setGraduationYear] = useState("2027");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -35,10 +37,12 @@ function SignupPage() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    // Full name is real — the profiles table's signup trigger reads
-    // raw_user_meta_data.display_name (supabase/migrations/0001_profiles.sql).
+    // Full name, college, and graduating year are all real — the profiles
+    // table's signup trigger reads raw_user_meta_data for each
+    // (supabase/migrations/0001_profiles.sql, extended by
+    // 0018_profiles_college_graduation_year.sql for the latter two).
     const { error: signUpError } = await signUp(email, password, {
-      data: { display_name: name },
+      data: { display_name: name, college, graduation_year: graduationYear },
     });
     setSubmitting(false);
     if (signUpError) {
@@ -81,20 +85,21 @@ function SignupPage() {
             required
           />
         </Field>
-        {/*
-          MOCK — no `college`/`graduating year` columns on profiles yet, see
-          docs/BACKEND_REQUIREMENTS.md#BE-14. Kept in the form, not submitted.
-        */}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="College">
-            <PmInput placeholder="NITK Surathkal" icon={<GraduationCap />} />
+            <PmInput
+              placeholder="NITK Surathkal"
+              icon={<GraduationCap />}
+              value={college}
+              onChange={(e) => setCollege(e.target.value)}
+            />
           </Field>
           <Field label="Graduating year">
-            <PmSelect defaultValue="2027">
-              <option>2026</option>
-              <option>2027</option>
-              <option>2028</option>
-              <option>2029</option>
+            <PmSelect value={graduationYear} onChange={(e) => setGraduationYear(e.target.value)}>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+              <option value="2029">2029</option>
             </PmSelect>
           </Field>
         </div>

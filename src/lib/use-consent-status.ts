@@ -3,6 +3,12 @@ import type { Session } from "@supabase/supabase-js";
 
 import { getConsentStatus, grantConsent as grantConsentApi } from "./api";
 
+// Hook for tracking whether this user can enable their mic.
+//
+// Exports:
+// - useConsentStatus: fetches and exposes consent status (canEnableMic,
+//   loading, error), plus refresh/grantConsent actions.
+//
 // Mirrors gd-proto/apps/web/src/consent/useConsentStatus.js. Any screen about
 // to enable a mic should check `canEnableMic` here first — false until the
 // student has granted the current consent version.

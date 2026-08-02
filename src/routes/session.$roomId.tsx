@@ -1,3 +1,20 @@
+/**
+ * Renders the live group-discussion session screen: connects to the live
+ * LiveKit audio room, shows participant tiles, live captions/transcript and
+ * the topic/timer, and provides mute/raise-hand/leave controls while a
+ * discussion is in progress.
+ *
+ * - formatCountdown(): formats a remaining-seconds count as an mm:ss string
+ *   for the timer pill.
+ * - SessionPage(): main route component; connects to the live room via
+ *   useLiveRoom, polls server room status for topic/code/end time, and
+ *   renders the session UI plus the leave-confirmation dialog.
+ * - refresh(): defined inside SessionPage's status-polling effect; fetches
+ *   the current room status from the server, updates topic/code/end-time
+ *   state, and redirects to the ended screen once the room has ended.
+ * - confirmLeave(): defined inside SessionPage; leaves the live room and
+ *   navigates back to the room's lobby.
+ */
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Hand, Mic, MicOff, PhoneOff, ScrollText, Users } from "lucide-react";
@@ -32,12 +49,16 @@ export const Route = createFileRoute("/session/$roomId")({
   ),
 });
 
+// Formats a remaining-seconds count as an mm:ss string for the timer pill.
 function formatCountdown(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
+// Main route component: connects to the live room, polls server room status
+// for the topic/code/end time, and renders participant tiles, live
+// captions/transcript, controls, and the leave-confirmation dialog.
 function SessionPage() {
   const { roomId } = Route.useParams();
   const { session } = useAuth();
@@ -52,8 +73,12 @@ function SessionPage() {
 
   // The server is the sole authority on room status/end time — poll it
   // alongside the LiveKit connection instead of relying on a local timer.
+  // This effect starts that polling loop on mount and tears it down on
+  // unmount.
   useEffect(() => {
     let cancelled = false;
+    // Fetches the current room status and applies topic/code/end-time
+    // updates, redirecting to the ended screen once the room has ended.
     function refresh() {
       getRoomStatus(session, roomId)
         .then((r) => {
@@ -79,6 +104,7 @@ function SessionPage() {
     return () => clearInterval(tick);
   }, [endsAt]);
 
+  // Leaves the live room and navigates back to the room's lobby.
   function confirmLeave() {
     live.leave();
     navigate({ to: "/lobby/$roomId", params: { roomId } });

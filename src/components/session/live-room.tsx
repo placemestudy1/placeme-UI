@@ -7,6 +7,20 @@ import { Banner, LiveCaption, TranscriptLineItem } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
 import type { Participant } from "@/lib/demo";
 
+// LiveKit-backed live discussion room: connects to the room's audio, tracks
+// active speakers and live captions from the transcriber bot, and renders
+// the connection-error/caption-feed/transcript-panel UI around it.
+//
+// Exports:
+// - useLiveRoom: hook that connects to a room's LiveKit audio, subscribes to
+//   remote tracks, active speakers, and transcriber captions, and exposes
+//   connection status, participant tiles, mute toggle, and leave().
+// - LiveRoomError: renders a connection-error banner (consent-specific
+//   messaging when the failure looks consent-related).
+// - LiveCaptionFeed: renders the single latest live caption, if any.
+// - LiveTranscriptPanel: renders the scrollable list of captions so far, or
+//   a placeholder when there are none yet.
+
 const decoder = new TextDecoder();
 const MAX_CAPTIONS = 20;
 
@@ -18,6 +32,8 @@ const TRANSCRIBER_IDENTITY = "transcriber";
 
 type Caption = { id: number; identity: string; displayName: string; text: string };
 
+// Derives up-to-two-letter initials from a display name (e.g. "Aarav Menon"
+// -> "AM").
 function initialsFor(name: string) {
   return name
     .split(" ")
@@ -28,6 +44,11 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
+// Connects this user to a room's LiveKit audio and manages its live state:
+// fetches seated participants, joins the LiveKit room, attaches remote audio
+// tracks, tracks active speakers, decodes transcriber-bot captions into a
+// rolling buffer (capped at MAX_CAPTIONS), and exposes mute/leave controls
+// plus participant tiles mapped onto the shared `Participant` shape.
 export function useLiveRoom(roomId: string) {
   const { session, user } = useAuth();
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
@@ -115,6 +136,7 @@ export function useLiveRoom(roomId: string) {
     };
   }, [roomId]);
 
+  // Flips this user's own microphone on/off via LiveKit and updates `muted`.
   async function toggleMute() {
     const room = roomRef.current;
     if (!room) return;
@@ -123,6 +145,7 @@ export function useLiveRoom(roomId: string) {
     setMuted(nextMuted);
   }
 
+  // Disconnects this user from the LiveKit room.
   function leave() {
     roomRef.current?.disconnect();
   }
@@ -131,6 +154,8 @@ export function useLiveRoom(roomId: string) {
     () => new Map(participants.map((p) => [p.userId, p.displayName])),
     [participants],
   );
+  // Resolves a LiveKit participant identity to its display name, falling
+  // back to a truncated identity string if unknown.
   function nameFor(identity: string) {
     return nameById.get(identity) ?? identity.slice(0, 8);
   }
@@ -168,6 +193,9 @@ export function useLiveRoom(roomId: string) {
   };
 }
 
+// Danger banner for a room connection failure; shows consent-specific
+// messaging when `needsConsent` is true, a generic reconnect message
+// otherwise.
 export function LiveRoomError({ error, needsConsent }: { error: string; needsConsent: boolean }) {
   return (
     <Banner
@@ -182,6 +210,8 @@ export function LiveRoomError({ error, needsConsent }: { error: string; needsCon
   );
 }
 
+// Renders the single most recent live caption (speaker name + text), or
+// nothing if there isn't one yet.
 export function LiveCaptionFeed({
   latestCaption,
   nameFor,
@@ -193,6 +223,8 @@ export function LiveCaptionFeed({
   return <LiveCaption text={`${nameFor(latestCaption.identity)}: ${latestCaption.text}`} />;
 }
 
+// Scrollable panel listing all captions collected so far as transcript
+// lines; shows a placeholder message when there are none yet.
 export function LiveTranscriptPanel({
   captions,
   nameFor,

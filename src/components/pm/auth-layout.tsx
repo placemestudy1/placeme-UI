@@ -5,6 +5,12 @@ import { Mic, Sparkles, Users } from "lucide-react";
 import { Logo } from "./web-shell";
 import { PmBadge, PmCard } from "./kit";
 
+// Two-column layout for auth screens (login/signup/consent): a marketing
+// panel on desktop/laptop, and a centered card containing `children` (the
+// actual form) with a title/subtitle and optional footer.
+//
+// Exports:
+// - AuthLayout: the auth screen layout described above.
 export function AuthLayout({
   title,
   subtitle,

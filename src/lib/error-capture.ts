@@ -1,9 +1,19 @@
 // Captures the original Error out-of-band so server.ts can recover the stack
 // when h3 has already swallowed the throw into a generic 500 Response.
+//
+// Exports:
+// - describeError: expands an Error (and its cause chain) into a loggable
+//   string that preserves message/stack/status, since console.error alone
+//   can lose that detail.
+// - consumeLastCapturedError: reads and clears the most recently captured
+//   error (within a short TTL), used by server.ts to recover error detail
+//   after h3 has swallowed a throw into a generic 500 Response.
 
 let lastCapturedError: { error: unknown; at: number } | undefined;
 const TTL_MS = 5_000;
 
+// Stashes an error (with a timestamp) so it can be recovered shortly after
+// via consumeLastCapturedError.
 function record(error: unknown) {
   lastCapturedError = { error, at: Date.now() };
 }
@@ -15,6 +25,10 @@ function record(error: unknown) {
 const CAUSE_DEPTH_LIMIT = 5;
 const DESCRIPTION_LENGTH_LIMIT = 8_000;
 
+// Expands an Error (and, recursively, its `.cause` chain up to
+// CAUSE_DEPTH_LIMIT) into a single string containing each error's
+// message/stack and any status/statusCode, truncated to
+// DESCRIPTION_LENGTH_LIMIT.
 export function describeError(error: unknown): string {
   const parts: string[] = [];
   let current: unknown = error;
@@ -31,12 +45,15 @@ export function describeError(error: unknown): string {
   return parts.join("\n").slice(0, DESCRIPTION_LENGTH_LIMIT);
 }
 
+// Formats an error's numeric status/statusCode as " (status N)", or "" if it
+// has neither.
 function describeStatus(error: Error): string {
   const { status, statusCode } = error as { status?: unknown; statusCode?: unknown };
   const value = status ?? statusCode;
   return typeof value === "number" ? ` (status ${value})` : "";
 }
 
+// JSON.stringify with a String(value) fallback if serialization throws.
 function safeStringify(value: unknown): string {
   try {
     return JSON.stringify(value) ?? String(value);
@@ -45,6 +62,7 @@ function safeStringify(value: unknown): string {
   }
 }
 
+// Type guard: true if the value is an Error instance.
 function isErrorLike(value: unknown): value is Error {
   return value instanceof Error;
 }
@@ -69,6 +87,8 @@ if (typeof globalThis.addEventListener === "function") {
   );
 }
 
+// Returns and clears the most recently captured error, or undefined if none
+// was captured or it's older than TTL_MS.
 export function consumeLastCapturedError(): unknown {
   if (!lastCapturedError) return undefined;
   if (Date.now() - lastCapturedError.at > TTL_MS) {

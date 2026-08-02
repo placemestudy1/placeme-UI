@@ -15,14 +15,16 @@ import {
   SectionTitle,
   TranscriptLineItem,
 } from "@/components/pm/kit";
-import { participants, topics } from "@/lib/demo";
+import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMyFeedback,
+  getRoomParticipants,
   getRoomStatus,
   getRoomTranscript,
   rateFeedback,
   type FeedbackDimension,
+  type RoomParticipant,
   type RoomStatus,
   type TranscriptLine,
 } from "@/lib/api";
@@ -68,6 +70,7 @@ function EndedPage() {
   const [ratingReason, setRatingReason] = useState("");
   const [savingRating, setSavingRating] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptLine[] | null>(null);
+  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
   // BE-6/BE-7 (SPEC-0006): real structured feedback, replacing the
   // feedbackScores/feedbackStrengths/feedbackImprovements demo fixtures.
   // score stays null (never a fabricated 0) for a pre-migration row or the
@@ -118,6 +121,14 @@ function EndedPage() {
   useEffect(() => {
     getRoomTranscript(session, roomId)
       .then((r) => setTranscript(r.lines))
+      .catch(() => {});
+  }, [session, roomId]);
+
+  // BE-10: real participants + their talk-time share, replacing the
+  // fixture list this card used to render unconditionally.
+  useEffect(() => {
+    getRoomParticipants(session, roomId)
+      .then((r) => setParticipants(r.participants))
       .catch(() => {});
   }, [session, roomId]);
 
@@ -289,20 +300,19 @@ function EndedPage() {
         </div>
 
         <aside className="space-y-4">
-          {/* MOCK — per-participant talk-time split not computed yet, see BE-10 */}
           <PmCard className="p-5">
             <SectionTitle title="Talk-time split" />
             <div className="space-y-3">
               {participants.map((p) => (
-                <div key={p.id}>
+                <div key={p.userId}>
                   <div className="flex justify-between text-xs">
-                    <span className="truncate">{p.name}</span>
+                    <span className="truncate">{p.displayName}</span>
                     <span className="font-mono text-muted-foreground">{p.talkShare}%</span>
                   </div>
                   <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
                     <div
                       className="h-full rounded-full bg-accent"
-                      style={{ width: `${p.talkShare * 3}%` }}
+                      style={{ width: `${p.talkShare}%` }}
                     />
                   </div>
                 </div>

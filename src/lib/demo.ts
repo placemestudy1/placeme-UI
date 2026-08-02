@@ -1,3 +1,22 @@
+// Fixture/demo data for the UI before it's wired to real backend endpoints.
+// Used by screens that haven't been migrated to real API data yet, and as
+// fallback defaults for components (e.g. ProgressChart's `series` prop) that
+// now accept real data too.
+//
+// Exports:
+// - Participant, currentUser, participants: a demo room's roster and the
+//   signed-in "current" user shown in fixture screens.
+// - topics: sample GD discussion prompts.
+// - Room, liveRooms: sample open/live rooms for the browse-rooms screens.
+// - TranscriptLine, transcript: a sample session transcript.
+// - feedbackScores, feedbackStrengths, feedbackImprovements: sample
+//   post-session feedback content.
+// - Session, history: sample past-session rows for the history screen.
+// - stats: sample profile/dashboard stat tiles.
+// - progressSeries: sample score-over-time series (default data for
+//   ProgressChart when a real `series` isn't passed in).
+
+// A single participant in a discussion room (fixture data).
 export type Participant = {
   id: string;
   name: string;
@@ -9,6 +28,7 @@ export type Participant = {
   role?: "Moderator" | "Participant";
 };
 
+// Demo "signed-in" user shown on fixture-data screens.
 export const currentUser = {
   name: "Aarav Menon",
   initials: "AM",
@@ -17,6 +37,7 @@ export const currentUser = {
   streak: 12,
 };
 
+// Sample roster for a demo discussion room.
 export const participants: Participant[] = [
   {
     id: "p1",
@@ -48,6 +69,7 @@ export const participants: Participant[] = [
   },
 ];
 
+// Sample GD discussion prompts used across fixture screens.
 export const topics = [
   "Is AI making engineers less employable?",
   "Remote work vs. office culture for freshers",
@@ -70,6 +92,7 @@ export type Room = {
   duration: string;
 };
 
+// Sample open/live rooms for the browse-rooms screens.
 export const liveRooms: Room[] = [
   {
     code: "GD-4821",
@@ -122,6 +145,7 @@ export type TranscriptLine = {
   tag?: "Strong point" | "Interruption" | "Filler words";
 };
 
+// Sample session transcript with strong-point/interruption/filler-word tags.
 export const transcript: TranscriptLine[] = [
   {
     id: "t1",
@@ -178,6 +202,7 @@ export const transcript: TranscriptLine[] = [
   },
 ];
 
+// Sample per-dimension feedback scores shown on the feedback screen.
 export const feedbackScores = [
   { label: "Content depth", score: 86, note: "Backed claims with concrete 2025 hiring data." },
   { label: "Clarity", score: 78, note: "Clear structure, occasional long sentences." },
@@ -186,12 +211,14 @@ export const feedbackScores = [
   { label: "Fluency", score: 69, note: "18 filler words detected across 8 minutes." },
 ];
 
+// Sample list of feedback "strengths" bullets.
 export const feedbackStrengths = [
   "Opened with a crisp framing that the group reused for the rest of the session.",
   "Used two verifiable data points instead of generic opinion.",
   "Closed with an actionable takeaway — evaluators score this highly.",
 ];
 
+// Sample list of feedback "areas to improve" bullets.
 export const feedbackImprovements = [
   'Reduce filler words ("um", "you know") — 18 detected, target under 8.',
   "Invite quieter participants in; Sana spoke for only 7% of the session.",
@@ -212,6 +239,7 @@ export type Session = {
   status: "Analyzed" | "Processing";
 };
 
+// Sample past-session rows for the history screen.
 export const history: Session[] = [
   {
     id: "s1",
@@ -265,6 +293,7 @@ export const history: Session[] = [
   },
 ];
 
+// Sample profile/dashboard stat tiles (sessions count, avg score, etc.).
 export const stats = [
   { label: "Sessions", value: "24", delta: "+4 this week" },
   { label: "Avg. score", value: "74", delta: "+6 vs last month" },
@@ -272,6 +301,8 @@ export const stats = [
   { label: "Streak", value: "12 days", delta: "Personal best" },
 ];
 
+// Sample week-over-week score series; the default `series` for ProgressChart
+// when a caller hasn't wired it up to real history data (see BE-8 above).
 export const progressSeries = [
   { label: "Wk 1", score: 58 },
   { label: "Wk 2", score: 63 },

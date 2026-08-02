@@ -1,3 +1,11 @@
+/**
+ * Screen for joining a group discussion room — either by entering a room
+ * code directly, or by browsing and searching a list of currently open
+ * rooms fetched from the server.
+ *
+ * - toRoomCard(): adapts a server OpenRoom into the demo Room shape used by RoomCard.
+ * - JoinPage(): main route component — room-code entry form plus the open-rooms browser.
+ */
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search, Ticket } from "lucide-react";
@@ -18,6 +26,7 @@ import type { Room } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { joinRoomByCode, listOpenRooms, type OpenRoom } from "@/lib/api";
 
+// Converts a server OpenRoom into the Room shape the RoomCard UI expects.
 // BE-4 (level) doesn't exist yet -- an honest "any level" rather than
 // fabricating one of the fixture data's three tiers.
 function toRoomCard(r: OpenRoom): Room {
@@ -50,6 +59,8 @@ export const Route = createFileRoute("/join")({
   ),
 });
 
+// Main join-room route component: code-entry form to join directly, plus a
+// searchable/browsable list of open rooms fetched from the server.
 function JoinPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -64,6 +75,7 @@ function JoinPage() {
       .catch(() => setOpenRooms([]));
   }, [session]);
 
+  // Submits the room code, joins the room via the API, and navigates to its lobby on success.
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!code.trim()) return;

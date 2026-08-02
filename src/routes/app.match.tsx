@@ -1,3 +1,10 @@
+/**
+ * Renders the PlaceMe mobile app's random-match screen: a searching-state UI
+ * with matched participant avatars, match preference selectors, and actions
+ * to enter the lobby or cancel the search.
+ *
+ * - NativeMatch(): main route component; renders the mobile match screen.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shuffle } from "lucide-react";
 
@@ -17,6 +24,8 @@ export const Route = createFileRoute("/app/match")({
   component: NativeMatch,
 });
 
+// Main route component: renders the mobile match screen showing search
+// progress, matched participants, and match preference selectors.
 function NativeMatch() {
   return (
     <NativeTabScreen title="Match">

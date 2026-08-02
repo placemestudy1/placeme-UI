@@ -5,8 +5,35 @@ import { AlertTriangle, Check, Info, Loader2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
+// Generic, app-wide UI component kit (buttons, inputs, cards, badges,
+// avatars, dialogs, skeletons, transcript/feedback widgets) used to build
+// the higher-level blocks in blocks.tsx and the page-level screens.
+//
+// Exports:
+// - pmButtonVariants, PmButton: the styled button (variant/size/block) and
+//   its cva class-variance definition.
+// - Field, PmInput, PmTextarea, PmSelect: labeled form field wrapper and
+//   styled input/textarea/select controls.
+// - PmCard: generic bordered card container.
+// - SectionTitle: a title/subtitle/action header for a page section.
+// - PmBadge: small colored status/label pill.
+// - StatusDot: a colored dot + label indicating live/speaking/muted/etc.
+// - PmAvatar, AvatarStack: initials avatar, and an overlapping stack of them
+//   with a "+N" overflow indicator.
+// - Banner: a dismissible inline alert banner.
+// - PmDialog: a centered/bottom-sheet modal dialog.
+// - EmptyState, ErrorState: placeholder panels for empty and error states.
+// - Skel, CardSkeleton: loading-skeleton primitives.
+// - TranscriptLineItem, LiveCaption: a single transcript line, and a live
+//   captions banner.
+// - ScoreRing, ScoreBar, FeedbackList: a circular score gauge, a labeled
+//   score progress bar, and a titled list of feedback bullets.
+
 /* ---------------------------------- Button --------------------------------- */
 
+// cva class list for PmButton: variant (primary/secondary/outline/ghost/
+// danger/live/accent), size (sm/md/lg/icon/iconSm/pill), and block (full
+// width).
 export const pmButtonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold cursor-pointer select-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98] [&_svg]:size-4 [&_svg]:shrink-0",
   {
@@ -42,6 +69,9 @@ export interface PmButtonProps
   loading?: boolean;
 }
 
+// Styled button supporting variant/size/block styling, an `asChild` mode
+// (renders via Radix Slot onto its child instead of a <button>), and a
+// `loading` state that swaps in a spinner before the children.
 export const PmButton = React.forwardRef<HTMLButtonElement, PmButtonProps>(
   ({ className, variant, size, block, asChild, loading, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
@@ -66,6 +96,8 @@ PmButton.displayName = "PmButton";
 
 /* ---------------------------------- Input ---------------------------------- */
 
+// Labeled form field wrapper: renders an optional uppercase label above
+// `children`, and an error message (or hint text) below it.
 export function Field({
   label,
   hint,
@@ -96,6 +128,7 @@ export function Field({
   );
 }
 
+// Styled text input, with an optional leading icon.
 export const PmInput = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement> & { icon?: React.ReactNode }
@@ -119,6 +152,7 @@ export const PmInput = React.forwardRef<
 ));
 PmInput.displayName = "PmInput";
 
+// Styled textarea.
 export const PmTextarea = React.forwardRef<
   HTMLTextAreaElement,
   React.TextareaHTMLAttributes<HTMLTextAreaElement>
@@ -134,6 +168,7 @@ export const PmTextarea = React.forwardRef<
 ));
 PmTextarea.displayName = "PmTextarea";
 
+// Styled native <select>.
 export function PmSelect({
   className,
   children,
@@ -154,6 +189,8 @@ export function PmSelect({
 
 /* ----------------------------------- Card ---------------------------------- */
 
+// Generic bordered card container; `glass` swaps to a translucent glass
+// background, `interactive` adds hover lift/glow styling for clickable cards.
 export function PmCard({
   className,
   interactive,
@@ -174,6 +211,8 @@ export function PmCard({
   );
 }
 
+// Section header: a title (with optional subtitle) and an optional
+// right-aligned action element (e.g. a button or link).
 export function SectionTitle({
   title,
   action,
@@ -196,6 +235,8 @@ export function SectionTitle({
 
 /* ---------------------------------- Badge ---------------------------------- */
 
+// cva class list for PmBadge's color tones (neutral/primary/accent/success/
+// warning/danger/live).
 const badgeVariants = cva(
   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none",
   {
@@ -214,6 +255,7 @@ const badgeVariants = cva(
   },
 );
 
+// Small pill-shaped status/label badge, colored by `tone`.
 export function PmBadge({
   className,
   tone,
@@ -224,6 +266,8 @@ export function PmBadge({
 
 /* ------------------------------ Status indicator --------------------------- */
 
+// Small colored dot (live/speaking/muted/idle/connecting) with an optional
+// text label, used as a compact status indicator.
 export function StatusDot({
   status = "idle",
   label,
@@ -258,6 +302,8 @@ const avatarSizes = {
   xl: "size-20 text-xl",
 } as const;
 
+// Circular initials avatar; `size` controls diameter/font-size and `ring`
+// adds a speaking (green ring) or muted (dimmed) treatment.
 export function PmAvatar({
   initials,
   size = "md",
@@ -284,6 +330,8 @@ export function PmAvatar({
   );
 }
 
+// Overlapping stack of small PmAvatars for a list of initials, showing at
+// most `max` and a "+N" badge for any remainder.
 export function AvatarStack({ items, max = 4 }: { items: string[]; max?: number }) {
   const shown = items.slice(0, max);
   const rest = items.length - shown.length;
@@ -308,6 +356,8 @@ export function AvatarStack({ items, max = 4 }: { items: string[]; max?: number 
 
 /* ---------------------------------- Banner --------------------------------- */
 
+// Inline alert banner (info/success/warning/danger) with a title, optional
+// description and action, and an optional dismiss button.
 export function Banner({
   tone = "info",
   title,
@@ -349,6 +399,10 @@ export function Banner({
 
 /* --------------------------------- Dialog ---------------------------------- */
 
+// Modal dialog: centered on desktop or, with `sheetOnMobile`, a bottom sheet
+// on small screens. Renders nothing when `open` is false. Backdrop click and
+// `onClose` both dismiss it (dismissal is the caller's responsibility via
+// the `open` prop).
 export function PmDialog({
   open,
   onClose,
@@ -398,6 +452,8 @@ export function PmDialog({
 
 /* ------------------------------- Empty / Error ------------------------------ */
 
+// Placeholder panel for an empty list/section: icon, title, optional
+// description and action.
 export function EmptyState({
   icon,
   title,
@@ -430,6 +486,8 @@ export function EmptyState({
   );
 }
 
+// Placeholder panel for a failed load: title, description, and an optional
+// "Try again" button wired to `onRetry`.
 export function ErrorState({
   title = "Something went wrong",
   description = "We couldn't load this right now. Check your connection and try again.",
@@ -464,10 +522,14 @@ export function ErrorState({
 
 /* -------------------------------- Skeletons -------------------------------- */
 
+// Single pulsing skeleton block; size/shape controlled entirely by
+// `className`.
 export function Skel({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-lg bg-secondary/80", className)} />;
 }
 
+// Loading placeholder shaped like a typical card (avatar + two lines of
+// header text, plus two body lines), for use while real content loads.
 export function CardSkeleton() {
   return (
     <PmCard className="space-y-4 p-5">
@@ -486,6 +548,9 @@ export function CardSkeleton() {
 
 /* -------------------------------- Transcript ------------------------------- */
 
+// A single transcript entry: speaker avatar, name, timestamp, optional tag
+// badge (Strong point/Interruption/filler), and the spoken text bubble.
+// `self` highlights the current user's own lines.
 export function TranscriptLineItem({
   speaker,
   initials,
@@ -525,6 +590,7 @@ export function TranscriptLineItem({
   );
 }
 
+// Glass-styled banner showing the latest live caption text during a session.
 export function LiveCaption({ text }: { text: string }) {
   return (
     <div className="glass rounded-2xl px-4 py-3">
@@ -538,6 +604,8 @@ export function LiveCaption({ text }: { text: string }) {
 
 /* -------------------------------- Feedback --------------------------------- */
 
+// Circular gauge showing a 0-100 score as a proportionally-filled ring, with
+// the numeric score in the center.
 export function ScoreRing({ score, size = 132 }: { score: number; size?: number }) {
   const r = size / 2 - 9;
   const c = 2 * Math.PI * r;
@@ -569,6 +637,8 @@ export function ScoreRing({ score, size = 132 }: { score: number; size?: number 
   );
 }
 
+// Labeled horizontal progress bar for a single 0-100 feedback dimension
+// score, with an optional note underneath.
 export function ScoreBar({ label, score, note }: { label: string; score: number; note?: string }) {
   return (
     <div>
@@ -587,6 +657,8 @@ export function ScoreBar({ label, score, note }: { label: string; score: number;
   );
 }
 
+// Card listing feedback bullets (e.g. strengths or improvements) under a
+// titled header with a colored dot (`tone`: success/warning).
 export function FeedbackList({
   title,
   items,

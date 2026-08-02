@@ -1,3 +1,12 @@
+/**
+ * Renders the login screen where a student signs in with college email/password
+ * (or Google OAuth), then routes them to the one-time consent gate or straight
+ * home depending on whether they've already agreed to the current consent version.
+ *
+ * - LoginPage(): main route component; renders the login form and OAuth button.
+ * - onSubmit(): handles the email/password sign-in submit, then checks consent
+ *   status to decide whether to navigate home or to /consent.
+ */
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { KeyRound, Mail } from "lucide-react";
@@ -20,6 +29,8 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+// Main route component: renders the login form (email/password + Google
+// OAuth) and wires up submission handling.
 function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +39,8 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Handles the login form submit: signs in with email/password, then
+  // checks consent status to route home or to the consent gate.
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -98,6 +111,7 @@ function LoginPage() {
           Wired for real (supabase.auth.signInWithOAuth) but will error until
           a Google provider is enabled in the Supabase dashboard — that's
           config, not code. See docs/BACKEND_REQUIREMENTS.md#BE-12.
+          Button: starts the Google OAuth sign-in flow via Supabase.
         */}
         <PmButton
           variant="outline"

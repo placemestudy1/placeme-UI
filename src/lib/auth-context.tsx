@@ -16,8 +16,17 @@ type AuthContextValue = {
   signOut: () => ReturnType<typeof supabase.auth.signOut>;
 };
 
+// Supabase-backed auth context for the app.
+//
+// Exports:
+// - AuthProvider: wraps the app, tracks the Supabase session/user, and
+//   exposes signUp/signIn/signOut.
+// - useAuth: hook to read the current session/user/loading state and call
+//   the sign in/up/out actions.
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Tracks the current Supabase session (via getSession + onAuthStateChange)
+// and provides signUp/signIn/signOut to descendants through AuthContext.
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Reads the AuthContext value; throws if used outside an AuthProvider.
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

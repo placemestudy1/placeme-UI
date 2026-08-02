@@ -141,37 +141,65 @@ both feedback lists only render when real data exists (empty for a pre-migration
 the transcription-failed stub, never a placeholder list of nothing).
 **Not live yet** — same migration `0017` dependency as BE-6.
 
-### BE-8 — Score trend over time (P1, depends on BE-6)
+### BE-8 — Score trend over time (P1) — done, not yet live
 
 **Where**: `/history`'s and `/`'s score trend chart (`ProgressChart`/`progressSeries`).
-**Why it's blocked**: no numeric score exists yet at all (BE-6), so there's nothing to
+**Status (2026-08-01)**: resolved, entirely client-side, no `gd-proto` change — per this
+item's own suggested shape, a dedicated trend endpoint is only worth it "if history grows
+large," which isn't the case at pilot scale. `ProgressChart` (`components/pm/blocks.tsx`)
+gained an optional `series` prop (defaults to the fixture `progressSeries`, so the untouched
+legacy `/app/history` page keeps working unchanged). `history.tsx` and `index.tsx` each
+compute a `buildScoreTrend` from their already-fetched `GET /api/history/mine` response:
+scored sessions only, chronological, capped at the last 8 — a plain "your last N scored
+sessions" line rather than fake weekly buckets, since a student may have very few sessions
+at pilot scale (the mock's "Last 6 weeks" framing implied a cadence real usage won't
+necessarily have). Both pages show an honest "No scored sessions yet" empty state instead
+of an empty chart. **Depends on `gd-proto`'s migration `0017` (BE-6/BE-7) being live** —
+until then `GET /api/history/mine` returns `score: null` for every row and the empty state
+is all that's ever seen.
+**Why it was blocked**: no numeric score existed yet at all (BE-6), so there was nothing to
 trend.
-**Suggested shape**: once BE-6 ships, a simple aggregation either client-side (this app
-already fetches full history via `GET /api/history/mine`, could compute the trend from
-that response directly) or, if history grows large, a dedicated
-`GET /api/history/mine/trend` endpoint.
 
-### BE-9 — Aggregate stats: streak, avg score, speak-time % (P1)
+### BE-9 — Aggregate stats: streak, avg score, speak-time % (P1) — done, not yet live
 
 **Where**: `/` home and `/history` stat tiles.
-**Why it's blocked**: "avg score" depends on BE-6. "Speak-time %" depends on BE-10.
-"Streak" (consecutive days practiced) has no computation anywhere — `GET /api/history/mine`
-returns raw session rows only, no derived stats.
-**Suggested shape**: once BE-6/BE-10 exist, either compute streak/avg/speak-time
-client-side from the full history response, or add a `GET /api/me/stats` endpoint if the
-history list is ever paginated (which would make client-side aggregation incomplete).
+**Status (2026-08-01)**: implemented on `gd-proto` branch `feat/be-9-aggregate-stats`
+(`SPEC-0009`). "Speak-time %" needed a real backend addition (BE-10 only put `talkShare` on
+`GET /api/rooms/:id/participants`, one room's participants — not the caller's own share
+across many history rooms): `GET /api/history/mine` now also returns each session's
+`talkShare` for the caller, computed server-side via one batched transcript fetch across
+the whole history (not one query per room) reusing BE-10's aggregation function. "Avg.
+score" and "Streak" needed no backend change — both computed client-side from data already
+in the response. `place-me-UI`'s Sessions/Avg. score/Speak time/Streak tiles on both `/`
+and `/` are now real (no `delta` comparison text — that's a separate, larger feature this
+item doesn't ask for). The home page's streak-related copy is also now real; its
+"level-matched rooms" clause was dropped rather than kept fake, since no backend item
+computes that count. **Not yet merged to `dev`/`main`.**
+**Why it was blocked**: "avg score" depended on BE-6. "Speak-time %" needed a backend
+addition BE-10 alone didn't cover. "Streak" had no computation anywhere —
+`GET /api/history/mine` returned raw session rows only.
 
-### BE-10 — Per-participant talk-time share (P1)
+### BE-10 — Per-participant talk-time share (P1) — post-session half done, not yet live
 
-**Where**: every `ParticipantTile`'s `talkShare` %, `/ended`'s "Talk-time split" bars,
-`/session`'s "Your speak time" card.
-**Why it's blocked**: `transcript_lines` rows have a `started_at_ms` per line but no
-computed "share of total session time" anywhere. `GET /api/rooms/:id/transcript` returns
-raw lines only.
-**Suggested shape**: a derived field, either computed client-side from transcript line
-timestamps + the room's known duration, or precomputed server-side and added to the
-`/transcript` or `/participants` response. Live (mid-session) speak-time (BE-17) is a
-separate, harder real-time version of this same computation.
+**Where**: `/ended`'s "Talk-time split" bars (done). `ParticipantTile`'s live `talkShare` %
+and `/session`'s live "Your speak time" card are **not** this item — see below.
+**Status (2026-08-01)**: implemented on `gd-proto` branch `feat/be-10-talk-time-share`
+(`SPEC-0007`) — `GET /api/rooms/:id/participants` now returns each participant's `talkShare`
+(integer 0–100), computed server-side from `transcript_lines`'
+`started_at_ms`/`ended_at_ms` (`domain/talkTime.js`). `/ended`'s Talk-time split card now
+fetches real participants (`getRoomParticipants`, wired into that page for the first time —
+it was still 100% fixture data before this) instead of `demo.ts`'s mock. **Not yet merged
+to `dev`/`main`. No migration needed** — `transcript_lines` already had both timestamp
+columns.
+**Scope correction**: this item's own "Where" line listed the *live/mid-session* UI
+(`ParticipantTile`'s live badge, `/session`'s live speak-time card) alongside the
+post-session one, but the item's own "Suggested shape" text already separates them —
+"Live (mid-session) speak-time (BE-17) is a separate, harder real-time version of this same
+computation." Only the post-session half (`/ended`) was built here; live/mid-session
+wiring is BE-17's job, unstarted.
+**Why it was blocked**: `transcript_lines` rows had `started_at_ms`/`ended_at_ms` per line
+but nothing aggregated that into a "share of total session time" anywhere, and neither
+`/transcript` nor `/participants` exposed one.
 
 ### BE-11 — Transcript line tagging (P2)
 
@@ -204,16 +232,21 @@ screen), but a real product needs one.
 `/reset-password` page (new password → `updateUser`), with the redirect URL allowlisted
 in Supabase auth settings. No new `gd-proto` endpoints needed.
 
-### BE-14 — Extra signup profile fields: college, graduating year (P1)
+### BE-14 — Extra signup profile fields: college, graduating year (P1) — code complete, not yet live
 
 **Where**: `/signup`'s "College" and "Graduating year" fields.
-**Why it's blocked**: `profiles` table (`supabase/migrations/0001_profiles.sql`) only has
-`id` and `display_name`. The signup trigger (`handle_new_user`) only reads
+**Status (2026-08-01)**: implemented on `gd-proto` branch
+`feat/be-14-signup-profile-fields` (`SPEC-0008`) — migration `0018` adds `profiles.college`
+and `profiles.graduation_year` (both nullable) and extends the `handle_new_user()` signup
+trigger to read them from signup metadata, same pattern already used for `display_name`.
+`/signup`'s College and Graduating year fields are now controlled inputs and actually sent.
+**Unlike every other item, omitting the migration doesn't break anything already
+working** — the trigger simply won't read the two new metadata keys until it's applied,
+and signup keeps functioning exactly as before either way. **Not yet merged to
+`dev`/`main`.**
+**Why it was blocked**: `profiles` table (`supabase/migrations/0001_profiles.sql`) only had
+`id` and `display_name`. The signup trigger only read
 `raw_user_meta_data->>'display_name'`.
-**Suggested shape**: a new migration adding `college text` and `graduation_year int`
-columns to `profiles`, and updating `handle_new_user` to also read
-`raw_user_meta_data->>'college'` / `->>'graduation_year'`. Frontend already collects both
-at signup — this is purely a schema + trigger change once approved.
 
 ### BE-15 — Room "context"/moderator instructions field (P2)
 

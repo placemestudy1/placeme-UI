@@ -1,3 +1,17 @@
+/**
+ * Renders the microphone consent screen: requests browser mic permission,
+ * records account-level consent through the backend, and shows the
+ * appropriate state (idle/requesting/granted/denied) before letting the
+ * user continue to the dashboard.
+ *
+ * - Bars(): small helper component that renders an animated audio-level bar
+ *   visualization.
+ * - ConsentPage(): main route component; shows consent status, drives the
+ *   mic-permission flow, and gates navigation based on consent state.
+ * - handleAllow(): defined inside ConsentPage; requests browser mic
+ *   permission via getUserMedia, then records consent through
+ *   grantConsent(), updating local state along the way.
+ */
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Headphones, Loader2, Mic, MicOff, ShieldCheck } from "lucide-react";
@@ -25,6 +39,8 @@ export const Route = createFileRoute("/consent")({
   ),
 });
 
+// Renders an animated bar-graph visualization used as a stand-in mic-input
+// level indicator.
 function Bars({ active }: { active: boolean }) {
   const levels = [22, 48, 76, 96, 64, 38, 20];
   return (
@@ -42,6 +58,9 @@ function Bars({ active }: { active: boolean }) {
 
 type MicState = "idle" | "requesting" | "granted" | "denied";
 
+// Main route component: shows the mic-consent status/loading state, then
+// either confirms already-granted consent or walks the user through
+// requesting mic permission and recording consent.
 function ConsentPage() {
   const { session } = useAuth();
   const { canEnableMic, loading, grantConsent } = useConsentStatus(session);
@@ -57,6 +76,8 @@ function ConsentPage() {
     );
   }
 
+  // Requests browser mic permission, then records account-level consent via
+  // grantConsent(); tracks denied vs. other-error states separately.
   async function handleAllow() {
     setError(null);
     setMicState("requesting");

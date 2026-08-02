@@ -5,10 +5,45 @@ import { CalendarClock, Filter } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { EmptyState, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
-import { ProgressChart, SessionRow, StatCard } from "@/components/pm/blocks";
-import { stats, type Session } from "@/lib/demo";
+import { ProgressChart, SessionRow, StatCard, type ProgressPoint } from "@/components/pm/blocks";
+import { type Session } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, type HistorySession } from "@/lib/api";
+
+// BE-9: no `delta` text (the mock's "+4 this week" etc.) -- that's a
+// period-over-period comparison this item doesn't ask for; StatCard's
+// delta prop is optional, so real tiles simply omit it.
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
+}
+
+// "Current streak" = consecutive calendar days with at least one ended
+// session, still counted as active through the end of the day after the
+// most recent practiced day (standard habit-tracker semantics) -- doesn't
+// reset to 0 just because today hasn't happened yet.
+function computeStreak(sessions: HistorySession[]): number {
+  const practicedDays = new Set(
+    sessions
+      .filter((s) => s.status === "ended" && s.startedAt)
+      .map((s) => new Date(s.startedAt as string).toDateString()),
+  );
+  function streakFrom(start: Date): number {
+    let count = 0;
+    const cursor = new Date(start);
+    while (practicedDays.has(cursor.toDateString())) {
+      count++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return count;
+  }
+  const today = new Date();
+  const fromToday = streakFrom(today);
+  if (fromToday > 0) return fromToday;
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return streakFrom(yesterday);
+}
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -35,6 +70,24 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   minute: "2-digit",
 });
 const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" });
+const trendLabelFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric" });
+
+// BE-8: real trend from actually-scored sessions, chronological, capped so
+// the chart stays readable rather than trying to bucket by week -- at
+// pilot scale a student may have very few sessions, and fake weekly gaps
+// would be more misleading than a plain "last N scored sessions" line.
+const MAX_TREND_POINTS = 8;
+
+function buildScoreTrend(sessions: HistorySession[]): ProgressPoint[] {
+  return sessions
+    .filter(
+      (s): s is HistorySession & { score: number; startedAt: string } =>
+        s.score != null && s.startedAt != null,
+    )
+    .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
+    .slice(-MAX_TREND_POINTS)
+    .map((s) => ({ label: trendLabelFormatter.format(new Date(s.startedAt)), score: s.score }));
+}
 
 function toSessionRow(s: HistorySession): Session {
   return {
@@ -95,6 +148,18 @@ function HistoryPage() {
       .slice(0, 3);
   }, [sessions]);
 
+  const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
+
+  const avgScore = useMemo(
+    () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
+    [sessions],
+  );
+  const avgTalkShare = useMemo(
+    () => average((sessions ?? []).flatMap((s) => (s.talkShare != null ? [s.talkShare] : []))),
+    [sessions],
+  );
+  const streak = useMemo(() => computeStreak(sessions ?? []), [sessions]);
+
   const totalMinutes = (sessions ?? []).reduce(
     (sum, s) => sum + Math.round(s.durationSeconds / 60),
     0,
@@ -121,10 +186,12 @@ function HistoryPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard label="Sessions" value={sessions ? String(sessions.length) : "…"} />
-            {/* MOCK — avg score / speak time / streak have no backend source yet, see docs/BACKEND_REQUIREMENTS.md#BE-9 */}
-            {stats.slice(1).map((s) => (
-              <StatCard key={s.label} {...s} />
-            ))}
+            <StatCard label="Avg. score" value={avgScore != null ? String(avgScore) : "—"} />
+            <StatCard label="Speak time" value={avgTalkShare != null ? `${avgTalkShare}%` : "—"} />
+            <StatCard
+              label="Streak"
+              value={streak > 0 ? `${streak} day${streak === 1 ? "" : "s"}` : "—"}
+            />
           </div>
 
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}
@@ -157,10 +224,15 @@ function HistoryPage() {
           )}
         </div>
         <aside className="space-y-4">
-          {/* MOCK — score trend needs a real score first, see BE-8 */}
           <PmCard className="p-5">
-            <SectionTitle title="Score trend" subtitle="Last 6 weeks" />
-            <ProgressChart />
+            <SectionTitle title="Score trend" subtitle="Your last scored sessions" />
+            {scoreTrend.length > 0 ? (
+              <ProgressChart series={scoreTrend} />
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No scored sessions yet.
+              </p>
+            )}
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle title="Most practiced" />

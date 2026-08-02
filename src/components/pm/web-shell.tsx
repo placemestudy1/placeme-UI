@@ -17,6 +17,17 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { PmAvatar, PmBadge, PmButton, PmInput } from "./kit";
 
+// Responsive web app shell: sidebar nav on desktop, top nav on tablet, and
+// bottom tab bar on mobile web, wrapping the "/" (web) routes.
+//
+// Exports:
+// - webNav: the nav route/label/icon definitions shared across layouts.
+// - Logo: the PlaceMe logo/wordmark, linking home.
+// - WebShell: the responsive page shell (nav + optional title/subtitle/
+//   actions header + content).
+
+// Derives a display name/initials/email for the signed-in user, falling back
+// through user_metadata.display_name -> email -> "Signed in".
 function useDisplayName() {
   const { user } = useAuth();
   const name =
@@ -31,6 +42,7 @@ function useDisplayName() {
   return { name, initials, email: user?.email ?? "" };
 }
 
+// Button that signs the user out and redirects to /login.
 function SignOutButton({ className }: { className?: string }) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -48,6 +60,7 @@ function SignOutButton({ className }: { className?: string }) {
   );
 }
 
+// Top-level nav entries shared by the sidebar, top nav, and bottom tab bar.
 export const webNav = [
   { to: "/", label: "Home", icon: Home },
   { to: "/rooms/new", label: "New Room", icon: PlusCircle },
@@ -56,6 +69,8 @@ export const webNav = [
   { to: "/history", label: "History", icon: Clock3 },
 ] as const;
 
+// PlaceMe logo mark, linking to home; `compact` hides the wordmark and shows
+// just the icon.
 export function Logo({ compact }: { compact?: boolean }) {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2.5">
@@ -69,11 +84,15 @@ export function Logo({ compact }: { compact?: boolean }) {
   );
 }
 
+// True when the given nav path matches the current route (exact match for
+// "/", prefix match otherwise).
 function useActive(to: string) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return to === "/" ? pathname === "/" : pathname.startsWith(to);
 }
 
+// Single nav link, styled per layout: "sidebar"/"top" render icon+label
+// inline, "bottom" renders a stacked icon-over-label tab.
 function NavLink({
   to,
   label,
@@ -117,6 +136,10 @@ function NavLink({
   );
 }
 
+// Responsive page shell for the web routes: fixed sidebar + "Pro tip" panel
+// + user footer on desktop, a top nav bar on tablet, and a top bar + bottom
+// tab bar on mobile. Renders an optional title/subtitle/actions header (with
+// a search box on wide screens) above `children`.
 export function WebShell({
   children,
   title,

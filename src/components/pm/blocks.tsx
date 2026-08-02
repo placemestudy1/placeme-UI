@@ -6,6 +6,22 @@ import type { Participant, Room, Session } from "@/lib/demo";
 import { progressSeries } from "@/lib/demo";
 import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 
+// Higher-level, domain-specific UI blocks (room cards, participant tiles,
+// session rows, stat cards, progress chart, timer pill) built on top of the
+// generic `kit.tsx` primitives.
+//
+// Exports:
+// - RoomCard: a browsable/joinable room summary card.
+// - ParticipantTile: a single participant's avatar/name/mic-status tile.
+// - SessionRow: a past-session row for history lists.
+// - StatCard: a small labeled stat tile with an optional delta.
+// - ProgressPoint, ProgressChart: a simple bar chart of score-over-time
+//   points.
+// - TimerPill: a small pill showing an elapsed/remaining time string.
+
+// Card summarizing a room to browse/join: live/level badges, topic, host,
+// duration, room code, and a filled/seats avatar stack. Navigates via `to`,
+// or calls `onSelect(room)` instead when provided (see the BE-1 note below).
 export function RoomCard({
   room,
   to = "/lobby",
@@ -65,6 +81,9 @@ export function RoomCard({
   );
 }
 
+// Tile showing one participant's avatar (with a speaking/muted ring), name,
+// college, mic icon, and talk-share percentage. `compact` shrinks sizing for
+// denser grids.
 export function ParticipantTile({ p, compact }: { p: Participant; compact?: boolean }) {
   return (
     <div
@@ -93,6 +112,9 @@ export function ParticipantTile({ p, compact }: { p: Participant; compact?: bool
   );
 }
 
+// Row for a past session in a history list: topic, date/duration/participant
+// count/code, and a status badge (Processing, or the numeric score/Analyzed).
+// Links to `to` (typically the session's feedback/ended page).
 export function SessionRow({ s, to = "/ended" }: { s: Session; to?: string }) {
   return (
     <PmCard interactive className="p-4">
@@ -118,6 +140,8 @@ export function SessionRow({ s, to = "/ended" }: { s: Session; to?: string }) {
   );
 }
 
+// Small stat tile: uppercase label, large value, and an optional delta line
+// (e.g. "+4 this week").
 export function StatCard({
   label,
   value,
@@ -136,11 +160,27 @@ export function StatCard({
   );
 }
 
-export function ProgressChart({ className }: { className?: string }) {
+export type ProgressPoint = { label: string; score: number };
+
+// Simple bar chart rendering a series of labeled score points (0-100) as
+// vertical bars with the label underneath each bar.
+export function ProgressChart({
+  className,
+  // BE-8 (place-me-UI/docs/BACKEND_REQUIREMENTS.md): real score history,
+  // computed client-side from GET /api/history/mine per that item's own
+  // suggested shape (a dedicated trend endpoint is only worth it "if
+  // history grows large" -- not the case at pilot scale). Defaults to the
+  // fixture series so callers that haven't been wired to real data yet
+  // (e.g. the legacy /app/history page) keep working unchanged.
+  series = progressSeries,
+}: {
+  className?: string;
+  series?: ProgressPoint[];
+}) {
   const max = 100;
   return (
     <div className={cn("flex h-40 items-end gap-3", className)}>
-      {progressSeries.map((p) => (
+      {series.map((p) => (
         <div key={p.label} className="flex h-full flex-1 flex-col items-center gap-2">
           <div className="relative w-full flex-1">
             <div
@@ -155,6 +195,8 @@ export function ProgressChart({ className }: { className?: string }) {
   );
 }
 
+// Small pill showing a monospaced clock icon + time string (defaults to a
+// placeholder "08:14").
 export function TimerPill({ time = "08:14" }: { time?: string | undefined }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 font-mono text-xs font-semibold">
