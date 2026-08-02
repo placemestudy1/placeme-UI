@@ -64,6 +64,7 @@ function SessionPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [leaving, setLeaving] = useState(false);
+  const [handRaised, setHandRaised] = useState(false);
   const [topicText, setTopicText] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [endsAt, setEndsAt] = useState<number | null>(null);
@@ -140,9 +141,11 @@ function SessionPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {live.tiles.map((p) => (
-              <ParticipantTile key={p.id} p={p} />
-            ))}
+            {live.tiles
+              .map((p) => (p.id === session?.user.id ? { ...p, handRaised } : p))
+              .map((p) => (
+                <ParticipantTile key={p.id} p={p} />
+              ))}
           </div>
 
           <LiveCaptionFeed latestCaption={live.latestCaption} nameFor={live.nameFor} />
@@ -156,8 +159,12 @@ function SessionPage() {
             >
               {live.muted ? <MicOff /> : <Mic />}
             </PmButton>
-            {/* MOCK — no LiveKit data-channel signal for raise-hand yet, see docs/BACKEND_REQUIREMENTS.md#BE-20 */}
-            <PmButton variant="secondary" size="pill" aria-label="Raise hand">
+            <PmButton
+              variant={handRaised ? "primary" : "secondary"}
+              size="pill"
+              aria-label="Raise hand"
+              onClick={() => setHandRaised(!handRaised)}
+            >
               <Hand />
             </PmButton>
             <PmButton variant="secondary" size="pill" aria-label="Participants">

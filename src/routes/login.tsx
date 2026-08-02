@@ -112,7 +112,7 @@ function LoginPage() {
           a Google provider is enabled in the Supabase dashboard — that's
           config, not code. See docs/BACKEND_REQUIREMENTS.md#BE-12.
           Button: starts the Google OAuth sign-in flow via Supabase.
-        */}
+        
         <PmButton
           variant="outline"
           block
@@ -122,6 +122,7 @@ function LoginPage() {
         >
           Continue with Google
         </PmButton>
+        */}
       </form>
     </AuthLayout>
   );

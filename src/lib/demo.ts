@@ -26,6 +26,7 @@ export type Participant = {
   muted?: boolean;
   talkShare: number;
   role?: "Moderator" | "Participant";
+  handRaised?: boolean;
 };
 
 // Demo "signed-in" user shown on fixture-data screens.

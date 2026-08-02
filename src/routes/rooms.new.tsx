@@ -53,21 +53,14 @@ export const Route = createFileRoute("/rooms/new")({
 });
 
 const AI_TOPIC_VALUE = "__ai__";
-const durationOptions = [
-  { label: "15 min", seconds: 900 },
-  { label: "20 min", seconds: 1200 },
-  { label: "25 min", seconds: 1500 },
-];
 
 // Main route component: renders the room-creation form (topic, context,
-// seats, duration, level, visibility) and a live preview sidebar, and
-// creates the room on submit.
 function CreateRoomPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [topicChoice, setTopicChoice] = useState<string>(topics[0]);
-  const [durationSeconds, setDurationSeconds] = useState(1200);
-  const [maxParticipants, setMaxParticipants] = useState(8);
+  const [durationSeconds, setDurationSeconds] = useState(900);
+  const [maxParticipants, setMaxParticipants] = useState(5);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
   const [busy, setBusy] = useState(false);
@@ -124,33 +117,29 @@ function CreateRoomPage() {
             {/*
               MOCK — no backend field for free-form room instructions yet, see
               docs/BACKEND_REQUIREMENTS.md#BE-15. Left in the form, not submitted.
-            */}
+            
             <Field label="Context for participants">
               <PmTextarea defaultValue="Panel-style GD. Moderator opens, each speaker gets 90 seconds, then free debate. Cite data where possible." />
             </Field>
+            */}
             <div className="grid gap-5 sm:grid-cols-3">
               <Field label="Seats">
-                <PmSelect
+                <PmInput
+                  type="number"
+                  min="2"
+                  max="5"
                   value={String(maxParticipants)}
                   onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                >
-                  <option value="4">4</option>
-                  <option value="6">6</option>
-                  <option value="8">8</option>
-                  <option value="10">10</option>
-                </PmSelect>
+                />
               </Field>
-              <Field label="Duration">
-                <PmSelect
-                  value={String(durationSeconds)}
-                  onChange={(e) => setDurationSeconds(Number(e.target.value))}
-                >
-                  {durationOptions.map((d) => (
-                    <option key={d.seconds} value={d.seconds}>
-                      {d.label}
-                    </option>
-                  ))}
-                </PmSelect>
+              <Field label="Duration (min)">
+                <PmInput
+                  type="number"
+                  min="1"
+                  max="25"
+                  value={String(Math.floor(durationSeconds / 60))}
+                  onChange={(e) => setDurationSeconds(Number(e.target.value) * 60)}
+                />
               </Field>
               <Field label="Level">
                 <PmSelect

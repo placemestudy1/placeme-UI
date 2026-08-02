@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clock3, Mic, MicOff, Users } from "lucide-react";
+import { Clock3, Hand, Mic, MicOff, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Participant, Room, Session } from "@/lib/demo";
@@ -101,6 +101,7 @@ export function ParticipantTile({ p, compact }: { p: Participant; compact?: bool
       <p className="mt-2.5 w-full truncate text-sm font-semibold">{p.name}</p>
       <p className="w-full truncate text-[11px] text-muted-foreground">{p.college}</p>
       <div className="mt-2 flex items-center gap-1.5">
+        {p.handRaised && <Hand className="size-3.5 text-warning" />}
         {p.muted ? (
           <MicOff className="size-3.5 text-muted-foreground" />
         ) : (

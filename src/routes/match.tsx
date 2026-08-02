@@ -25,6 +25,7 @@ import {
   PmBadge,
   PmButton,
   PmCard,
+  PmInput,
   PmSelect,
   Field,
   SectionTitle,
@@ -65,6 +66,8 @@ function MatchPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState(600);
+  const [groupSize, setGroupSize] = useState(5);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const giveUpRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRef = useRef(session);
@@ -118,7 +121,7 @@ function MatchPage() {
     setState("searching");
     setError(null);
     try {
-      const result = await requestMatch(session, { durationSeconds: DEFAULT_DURATION_SECONDS });
+      const result = await requestMatch(session, { durationSeconds });
       if ("status" in result && result.status === "queued") {
         startQueuePolling();
       } else if ("id" in result) {
@@ -226,26 +229,23 @@ function MatchPage() {
           <PmCard className="p-5">
             <SectionTitle title="Match preferences" />
             <div className="space-y-4">
-              <Field label="Level">
-                <PmSelect defaultValue="Intermediate">
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </PmSelect>
-              </Field>
               <Field label="Group size">
-                <PmSelect defaultValue="6 speakers">
-                  <option>4 speakers</option>
-                  <option>6 speakers</option>
-                  <option>8 speakers</option>
-                </PmSelect>
+                <PmInput
+                  type="number"
+                  min="2"
+                  max="5"
+                  value={String(groupSize)}
+                  onChange={(e) => setGroupSize(Number(e.target.value))}
+                />
               </Field>
-              <Field label="Topic pool">
-                <PmSelect defaultValue="Tech & careers">
-                  <option>Tech &amp; careers</option>
-                  <option>Business &amp; economy</option>
-                  <option>Society &amp; policy</option>
-                </PmSelect>
+              <Field label="Duration (min)">
+                <PmInput
+                  type="number"
+                  min="1"
+                  max="25"
+                  value={String(Math.floor(durationSeconds / 60))}
+                  onChange={(e) => setDurationSeconds(Number(e.target.value) * 60)}
+                />
               </Field>
             </div>
           </PmCard>
