@@ -1,0 +1,27 @@
+{
+  "name": "PlaceMe",
+  "short_name": "PlaceMe",
+  "description": "Live GD practice with AI feedback for engineering students",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#131722",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/favicon/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
