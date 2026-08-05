@@ -25,6 +25,7 @@ import { RoomCard } from "@/components/pm/blocks";
 import type { Room } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { joinRoomByCode, listOpenRooms, type OpenRoom } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 // Converts a server OpenRoom into the Room shape the RoomCard UI expects.
 // BE-4 (level) doesn't exist yet -- an honest "any level" rather than
@@ -83,6 +84,7 @@ function JoinPage() {
     setError(null);
     try {
       const room = await joinRoomByCode(session, code.trim());
+      track({ name: "room_joined", properties: { roomId: room.id, method: "code" } });
       navigate({ to: "/lobby/$roomId", params: { roomId: room.id }, search: { code: room.code } });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -1,7 +1,16 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "./supabase-client";
+import { identifyUser, initAnalytics, resetAnalytics } from "./analytics";
 
 type AuthContextValue = {
   session: Session | null;
@@ -30,6 +39,25 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  // Links analytics events to the signed-in user, and clears that link on
+  // an actual sign-out transition -- guarded by the ref so this doesn't
+  // fire a spurious reset() during the initial loading render, before
+  // getSession() has resolved either way.
+  const wasSignedInRef = useRef(false);
+  useEffect(() => {
+    if (session?.user) {
+      identifyUser(session.user.id);
+      wasSignedInRef.current = true;
+    } else if (wasSignedInRef.current) {
+      resetAnalytics();
+      wasSignedInRef.current = false;
+    }
+  }, [session]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {

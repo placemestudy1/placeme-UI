@@ -36,6 +36,7 @@ import {
   type RoomStatus,
   type RoomParticipant,
 } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 const searchSchema = z.object({
   code: z.string().optional(),
@@ -129,6 +130,7 @@ function LobbyPage() {
 
   useEffect(() => {
     if (status?.status === "live") {
+      track({ name: "session_started", properties: { roomId } });
       navigate({ to: "/session/$roomId", params: { roomId } });
     } else if (status?.status === "ended") {
       navigate({ to: "/ended/$roomId", params: { roomId } });
