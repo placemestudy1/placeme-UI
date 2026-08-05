@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  # Phase 3 (ACTION_PLAN.md, cross-repo contract): openapi/gd-proto.openapi.yaml
+  # is a vendored copy of gd-proto's docs/api/openapi.yaml (see
+  # scripts/sync-contract.mjs and openapi/GD_PROTO_REF for how/when it's
+  # synced), and src/lib/api-types.generated.ts is generated from it. This
+  # job fails the build if that generated file is stale relative to the
+  # vendored spec -- e.g. someone hand-edited it, or updated the vendored
+  # spec without regenerating. It does NOT check whether the vendored spec
+  # itself is still current against gd-proto's real HEAD -- that would need
+  # a cross-repo credential this repo's CI doesn't have (gd-proto is
+  # private); bumping openapi/GD_PROTO_REF via `npm run sync-contract` is a
+  # manual, reviewable step for now.
+  contract-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:contract-drift

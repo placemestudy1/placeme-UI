@@ -17,6 +17,39 @@
 //   rate/annotate it.
 // - getMyHistory: list this user's past sessions.
 import type { Session } from "@supabase/supabase-js";
+import type { components, operations } from "./api-types.generated";
+
+// A successful (2xx) JSON response body for a generated operation -- for
+// the handful of routes below whose response is an inline object literal
+// in the contract rather than a named schema (e.g. POST /api/rooms/join),
+// pulling the type straight from `operations` avoids hand-duplicating it.
+type Ok<
+  Op extends keyof operations,
+  Status extends keyof operations[Op]["responses"],
+> = operations[Op]["responses"][Status] extends {
+  content: { "application/json": infer Body };
+}
+  ? Body
+  : never;
+
+// Named schemas from gd-proto's OpenAPI contract (openapi/gd-proto.openapi.yaml,
+// regenerated via `npm run generate:api-types` -- see that script's header
+// and scripts/sync-contract.mjs for how to pull a newer contract). Response
+// shapes with no named schema (a route's response is an inline object
+// literal in the spec, e.g. POST /api/rooms/join) stay hand-written below;
+// everything else derives from the contract so a schema change is a type
+// error here instead of a silent runtime mismatch.
+type Schemas = components["schemas"];
+export type ConsentStatus = Schemas["ConsentStatus"];
+export type Topic = Schemas["Topic"];
+export type RoomSummary = Schemas["RoomSummary"];
+export type OpenRoom = Schemas["OpenRoom"];
+export type RoomStatus = Schemas["RoomStatus"];
+export type RoomParticipant = Schemas["RoomParticipant"];
+export type TranscriptLine = Schemas["TranscriptLine"];
+export type FeedbackDimension = Schemas["FeedbackDimension"];
+export type FeedbackResult = Schemas["FeedbackResult"];
+export type HistorySession = Schemas["HistorySession"];
 
 const API_URL = import.meta.env["VITE_API_URL"] || "http://localhost:3000";
 
@@ -44,8 +77,6 @@ async function callApi<T = unknown>(
 
 /* ------------------------------- consent -------------------------------- */
 
-export type ConsentStatus = { currentVersion: number; canEnableMic: boolean };
-
 // Fetches whether this user can enable their mic (i.e. has granted the
 // current consent version) and what that current version is.
 export const getConsentStatus = (session: Session | null) =>
@@ -53,13 +84,9 @@ export const getConsentStatus = (session: Session | null) =>
 
 // Records this user's consent grant for the current consent version.
 export const grantConsent = (session: Session | null) =>
-  callApi<{ consentVersion: number; grantedAt: string }>(session, "/api/consent", {
-    method: "POST",
-  });
+  callApi<Ok<"grantConsent", 201>>(session, "/api/consent", { method: "POST" });
 
 /* -------------------------------- topics --------------------------------- */
-
-export type Topic = { id: string; text: string; category?: string; difficulty?: string };
 
 // Requests an AI-generated discussion topic, optionally scoped to a category
 // and/or difficulty.
@@ -80,17 +107,6 @@ export const submitCustomTopic = (
   });
 
 /* --------------------------------- rooms ---------------------------------- */
-
-export type RoomSummary = {
-  id: string;
-  code: string;
-  status: string;
-  topicId?: string;
-  durationSeconds?: number;
-  maxParticipants?: number;
-  visibility?: "public" | "private";
-  level?: "beginner" | "intermediate" | "advanced";
-};
 
 // Creates a new discussion room for the given topic and settings.
 export const createRoom = (
@@ -116,7 +132,7 @@ export const createRoom = (
 
 // Joins an existing room by its short room code.
 export const joinRoomByCode = (session: Session | null, code: string) =>
-  callApi<RoomSummary>(session, "/api/rooms/join", {
+  callApi<Ok<"joinRoomByCode", 200>>(session, "/api/rooms/join", {
     method: "POST",
     body: JSON.stringify({ code }),
   });
@@ -128,92 +144,46 @@ export const requestMatch = (
   session: Session | null,
   { durationSeconds }: { durationSeconds: number },
 ) =>
-  callApi<{ status: "queued" } | (RoomSummary & { members: string[] })>(
-    session,
-    "/api/rooms/match",
-    {
-      method: "POST",
-      body: JSON.stringify({ durationSeconds }),
-    },
-  );
+  callApi<Ok<"requestMatch", 200> | Ok<"requestMatch", 201>>(session, "/api/rooms/match", {
+    method: "POST",
+    body: JSON.stringify({ durationSeconds }),
+  });
 
 // Leaves the random-match queue this user is currently waiting in.
 export const leaveMatchQueue = (session: Session | null) =>
-  callApi<{ status: "left" }>(session, "/api/rooms/match", { method: "DELETE" });
+  callApi<Ok<"leaveMatchQueue", 200>>(session, "/api/rooms/match", { method: "DELETE" });
 
 // Starts a waiting room, transitioning it to "live".
 export const startRoom = (session: Session | null, roomId: string) =>
-  callApi<{ id: string; status: string; endsAt?: number }>(session, `/api/rooms/${roomId}/start`, {
-    method: "POST",
-  });
-
-export type RoomStatus = {
-  id: string;
-  status: "waiting" | "live" | "ended";
-  code: string;
-  topicText: string | null;
-  durationSeconds: number;
-  isCreator: boolean;
-  endsAt?: number;
-};
+  callApi<Ok<"startRoom", 200>>(session, `/api/rooms/${roomId}/start`, { method: "POST" });
 
 // Polls a room's current status (waiting/live/ended), topic, and timing info.
 export const getRoomStatus = (session: Session | null, roomId: string) =>
   callApi<RoomStatus>(session, `/api/rooms/${roomId}/status`, { method: "GET" });
 
-export type OpenRoom = {
-  id: string;
-  code: string;
-  topicText: string | null;
-  durationSeconds: number;
-  maxParticipants: number;
-  participantCount: number;
-  hostDisplayName: string;
-  createdAt: string;
-};
-
 // Lists rooms open for anyone to browse/join.
 export const listOpenRooms = (session: Session | null) =>
-  callApi<{ rooms: OpenRoom[] }>(session, "/api/rooms/open", { method: "GET" });
+  callApi<Ok<"listOpenRooms", 200>>(session, "/api/rooms/open", { method: "GET" });
 
 // Checks whether this user already has an active (waiting/live) room, so the
 // UI can offer to rejoin it instead of starting a new one.
 export const getActiveRoom = (session: Session | null) =>
-  callApi<{ room: { id: string; code: string; status: string } | null }>(
-    session,
-    "/api/rooms/mine/active",
-    { method: "GET" },
-  );
+  callApi<Ok<"getActiveRoom", 200>>(session, "/api/rooms/mine/active", { method: "GET" });
 
 // Mints a LiveKit access token/connection URL for this user to join the
 // room's audio.
 export const getRoomToken = (session: Session | null, roomId: string) =>
-  callApi<{ token: string; url: string; identity: string; roomName: string }>(
-    session,
-    `/api/rooms/${roomId}/token`,
-    {
-      method: "POST",
-    },
-  );
-
-export type RoomParticipant = { userId: string; displayName: string; talkShare: number };
+  callApi<Ok<"getRoomToken", 200>>(session, `/api/rooms/${roomId}/token`, { method: "POST" });
 
 // Lists the seated participants in a room (id, display name, talk share).
 export const getRoomParticipants = (session: Session | null, roomId: string) =>
-  callApi<{ participants: RoomParticipant[] }>(session, `/api/rooms/${roomId}/participants`, {
+  callApi<Ok<"getRoomParticipants", 200>>(session, `/api/rooms/${roomId}/participants`, {
     method: "GET",
   });
 
-export type TranscriptLine = {
-  userId: string;
-  displayName: string;
-  text: string;
-  startedAtMs: number;
-};
-
 // Fetches the full transcript recorded so far for a room.
 export const getRoomTranscript = (session: Session | null, roomId: string) =>
-  callApi<{ lines: TranscriptLine[] }>(session, `/api/rooms/${roomId}/transcript`, {
+  callApi<Ok<"getRoomTranscript", 200>>(session, `/api/rooms/${roomId}/transcript`, {
     method: "GET",
   });
 
@@ -224,25 +194,10 @@ export const getRoomTranscript = (session: Session | null, roomId: string) =>
 // truthy. score can still be null even once feedback exists (a
 // pre-migration row, or the transcription-failed stub) -- never render
 // that as a real 0.
-export type FeedbackDimension = { label: string; score: number; note: string };
-
-// Fetches this user's own generated feedback for a room, if it exists yet
-// (see the BE-6/BE-7 comment above for the null/pending shape).
+//
+// Fetches this user's own generated feedback for a room, if it exists yet.
 export const getMyFeedback = (session: Session | null, roomId: string) =>
-  callApi<
-    | { feedback: null }
-    | {
-        feedback: string;
-        score: number | null;
-        dimensions: FeedbackDimension[];
-        strengths: string[];
-        improvements: string[];
-        rating?: boolean;
-        ratingReason?: string;
-      }
-  >(session, `/api/rooms/${roomId}/feedback/mine`, {
-    method: "GET",
-  });
+  callApi<FeedbackResult>(session, `/api/rooms/${roomId}/feedback/mine`, { method: "GET" });
 
 // Submits a thumbs up/down rating (with optional reason) for this user's
 // feedback on a room.
@@ -251,29 +206,12 @@ export const rateFeedback = (
   roomId: string,
   { rating, reason }: { rating: boolean; reason?: string | undefined },
 ) =>
-  callApi<{ rating: boolean; ratingReason: string | null }>(
-    session,
-    `/api/rooms/${roomId}/feedback/mine/rating`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ rating, reason }),
-    },
-  );
+  callApi<Ok<"rateFeedback", 200>>(session, `/api/rooms/${roomId}/feedback/mine/rating`, {
+    method: "PATCH",
+    body: JSON.stringify({ rating, reason }),
+  });
 
 /* -------------------------------- history --------------------------------- */
-
-export type HistorySession = {
-  id: string;
-  code: string;
-  status: "waiting" | "live" | "ended";
-  durationSeconds: number;
-  topicText: string | null;
-  startedAt: string | null;
-  endedAt: string | null;
-  feedback: string | null;
-  score: number | null;
-  talkShare: number | null;
-};
 
 // Lists this user's past sessions (for the history screen and, per the BE-8
 // comment on ProgressChart, as the client-side source for score-history
