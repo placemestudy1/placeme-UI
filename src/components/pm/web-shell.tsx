@@ -8,7 +8,6 @@ import {
   PlusCircle,
   Search,
   Shuffle,
-  Smartphone,
   Sparkles,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -171,12 +170,6 @@ export function WebShell({
               Sessions with 6 speakers give the sharpest AI feedback signal.
             </p>
           </div>
-          <Link
-            to="/app"
-            className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            <Smartphone className="size-4" /> Open mobile app
-          </Link>
           <div className="flex min-w-0 items-center gap-3 border-t border-border pt-4">
             <PmAvatar initials={me.initials} size="sm" />
             <div className="min-w-0 flex-1">

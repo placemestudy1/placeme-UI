@@ -3,7 +3,6 @@ import { Clock3, Hand, Mic, MicOff, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Participant, Room, Session } from "@/lib/demo";
-import { progressSeries } from "@/lib/demo";
 import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 
 // Higher-level, domain-specific UI blocks (room cards, participant tiles,
@@ -170,13 +169,11 @@ export function ProgressChart({
   // BE-8 (place-me-UI/docs/BACKEND_REQUIREMENTS.md): real score history,
   // computed client-side from GET /api/history/mine per that item's own
   // suggested shape (a dedicated trend endpoint is only worth it "if
-  // history grows large" -- not the case at pilot scale). Defaults to the
-  // fixture series so callers that haven't been wired to real data yet
-  // (e.g. the legacy /app/history page) keep working unchanged.
-  series = progressSeries,
+  // history grows large" -- not the case at pilot scale).
+  series,
 }: {
   className?: string;
-  series?: ProgressPoint[];
+  series: ProgressPoint[];
 }) {
   const max = 100;
   return (
