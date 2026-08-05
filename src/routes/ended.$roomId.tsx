@@ -15,8 +15,8 @@ import {
   SectionTitle,
   TranscriptLineItem,
 } from "@/components/pm/kit";
-import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
+import { track } from "@/lib/analytics";
 import {
   getMyFeedback,
   getRoomParticipants,
@@ -48,6 +48,13 @@ export const Route = createFileRoute("/ended/$roomId")({
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_FEEDBACK_POLLS = 40;
+
+// Picks the lowest-scoring real feedback dimension, so the "suggested next
+// topic" card targets an actual weak spot instead of a fixed placeholder.
+function weakestDimension(dims: FeedbackDimension[]): FeedbackDimension | null {
+  if (dims.length === 0) return null;
+  return dims.reduce((min, d) => (d.score < min.score ? d : min));
+}
 
 function initialsFor(name: string) {
   return name
@@ -99,6 +106,7 @@ function EndedPage() {
       getMyFeedback(session, roomId)
         .then((r) => {
           if (cancelled || !r.feedback) return;
+          track({ name: "feedback_viewed", properties: { roomId, hasScore: r.score != null } });
           setFeedback(r.feedback);
           setScore(r.score);
           setDimensions(r.dimensions);
@@ -140,6 +148,7 @@ function EndedPage() {
         reason: ratingReason || undefined,
       });
       setRating(nextRating);
+      track({ name: "feedback_rated", properties: { roomId, rating: nextRating } });
     } catch {
       /* surfaced implicitly by rating not updating */
     } finally {
@@ -197,6 +206,7 @@ function EndedPage() {
                 <PmButton
                   variant={rating === true ? "primary" : "outline"}
                   size="iconSm"
+                  aria-label="Feedback was useful"
                   aria-pressed={rating === true}
                   disabled={savingRating}
                   onClick={() => submitRating(true)}
@@ -206,6 +216,7 @@ function EndedPage() {
                 <PmButton
                   variant={rating === false ? "primary" : "outline"}
                   size="iconSm"
+                  aria-label="Feedback was not useful"
                   aria-pressed={rating === false}
                   disabled={savingRating}
                   onClick={() => submitRating(false)}
@@ -319,13 +330,25 @@ function EndedPage() {
               ))}
             </div>
           </PmCard>
-          {/* MOCK — "next topic" recommendation isn't computed from anything real yet */}
           <PmCard className="p-5">
             <SectionTitle title="Suggested next topic" />
-            <p className="text-sm font-semibold">{topics[3]}</p>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Targets your lowest sub-score: fluency under pressure.
-            </p>
+            {(() => {
+              const weak = weakestDimension(dimensions);
+              return weak ? (
+                <>
+                  <p className="text-sm font-semibold">
+                    Practice a topic that stretches your {weak.label.toLowerCase()}
+                  </p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    Targets your lowest sub-score: {weak.label.toLowerCase()} ({weak.score}).
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Complete more sessions to get a personalized suggestion.
+                </p>
+              );
+            })()}
             <PmButton asChild block className="mt-4">
               <Link to="/rooms/new">Create this room</Link>
             </PmButton>

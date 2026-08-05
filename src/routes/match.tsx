@@ -21,7 +21,6 @@ import { RefreshCw, Shuffle, Users, X } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
-  PmAvatar,
   PmBadge,
   PmButton,
   PmCard,
@@ -32,9 +31,9 @@ import {
   Skel,
   StatusDot,
 } from "@/components/pm/kit";
-import { participants } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { getActiveRoom, leaveMatchQueue, requestMatch } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/match")({
   head: () => ({
@@ -89,6 +88,7 @@ function MatchPage() {
   // Stops waiting and navigates the student into the matched lobby room.
   function enterRoom(room: { id: string; code: string }) {
     stopWaiting();
+    track({ name: "room_joined", properties: { roomId: room.id, method: "match" } });
     navigate({
       to: "/lobby/$roomId",
       params: { roomId: room.id },
@@ -179,15 +179,11 @@ function MatchPage() {
                 label="Waiting for enough students"
                 className="mt-5 justify-center"
               />
-              {/* MOCK — no live queue telemetry endpoint yet, see docs/BACKEND_REQUIREMENTS.md#BE-16 */}
+              {/* MOCK — no live queue telemetry endpoint yet, see docs/BACKEND_REQUIREMENTS.md#BE-16.
+                  Anonymous placeholders, not fixture people -- who's actually waiting isn't
+                  known until the match resolves. */}
               <div className="mx-auto mt-8 flex max-w-md flex-wrap items-center justify-center gap-4">
-                {participants.slice(0, 4).map((p) => (
-                  <div key={p.id} className="flex flex-col items-center gap-2">
-                    <PmAvatar initials={p.initials} size="lg" />
-                    <span className="text-xs text-muted-foreground">{p.name.split(" ")[0]}</span>
-                  </div>
-                ))}
-                {[0, 1].map((i) => (
+                {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex flex-col items-center gap-2">
                     <Skel className="size-14 rounded-full" />
                     <Skel className="h-3 w-10" />
