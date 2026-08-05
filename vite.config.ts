@@ -67,7 +67,9 @@ export default defineConfig(({ command, mode }) => {
       // `command === "build"` gating -- and keeps the same Cloudflare
       // Workers deploy target this app already builds/deploys to
       // (wrangler.json/.output are generated from this preset).
-      ...(command === "build" ? [nitro({ defaultPreset: "cloudflare-module" })] : []),
+      // NITRO_PRESET lets a specific deploy (e.g. Vercel's build) override
+      // the target without changing the Cloudflare default used elsewhere.
+      ...(command === "build" ? [nitro({ defaultPreset: process.env.NITRO_PRESET || "cloudflare-module" })] : []),
       viteReact(),
     ],
     // Debounces the dev-server file watcher so a burst of writes (e.g. an
