@@ -116,10 +116,25 @@ export function ParticipantTile({ p, compact }: { p: Participant; compact?: bool
 // Row for a past session in a history list: topic, date/duration/participant
 // count/code, and a status badge (Processing, or the numeric score/Analyzed).
 // Links to `to` (typically the session's feedback/ended page).
-export function SessionRow({ s, to = "/ended" }: { s: Session; to?: string }) {
+export function SessionRow({
+  s,
+  to = "/ended",
+  search,
+}: {
+  s: Session;
+  to?: string;
+  // Native's `/app/ended` is a flat route (no `$roomId` path segment like
+  // the real web `/ended/$roomId`), so its callers identify the session via
+  // a search param instead of baking the id into `to`.
+  search?: Record<string, string>;
+}) {
   return (
     <PmCard interactive className="p-4">
-      <Link to={to} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+      <Link
+        to={to}
+        {...(search ? { search } : {})}
+        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4"
+      >
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{s.topic}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">

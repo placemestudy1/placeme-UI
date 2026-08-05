@@ -67,6 +67,30 @@ function ConsentPage() {
   const [micState, setMicState] = useState<MicState>("idle");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testingSound, setTestingSound] = useState(false);
+
+  // Plays a short tone through the system speakers so the user can confirm
+  // audio output works before joining a live session. Client-side only —
+  // no backend involved.
+  function testSound() {
+    if (testingSound) return;
+    setTestingSound(true);
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.frequency.value = 440;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.6);
+    oscillator.onended = () => {
+      ctx.close();
+      setTestingSound(false);
+    };
+  }
 
   if (loading) {
     return (
@@ -159,9 +183,14 @@ function ConsentPage() {
               <span className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Headphones className="size-4" /> System speakers
               </span>
-              {/* MOCK — real device test/selection is a frontend-only follow-up (navigator.mediaDevices.enumerateDevices), not a backend gap */}
-              <PmButton variant="outline" size="sm" type="button">
-                Test sound
+              <PmButton
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={testSound}
+                disabled={testingSound}
+              >
+                {testingSound ? "Playing…" : "Test sound"}
               </PmButton>
             </div>
           </div>

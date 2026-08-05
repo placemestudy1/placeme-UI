@@ -63,8 +63,7 @@ export const pmButtonVariants = cva(
 );
 
 export interface PmButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof pmButtonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof pmButtonVariants> {
   asChild?: boolean;
   loading?: boolean;
 }
@@ -338,12 +337,7 @@ export function AvatarStack({ items, max = 4 }: { items: string[]; max?: number 
   return (
     <div className="flex items-center -space-x-2">
       {shown.map((i) => (
-        <PmAvatar
-          key={i}
-          initials={i}
-          size="sm"
-          className="ring-2 ring-background"
-        />
+        <PmAvatar key={i} initials={i} size="sm" className="ring-2 ring-background" />
       ))}
       {rest > 0 ? (
         <span className="grid size-9 place-items-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground ring-2 ring-background">
@@ -383,9 +377,7 @@ export function Banner({
       <Icon className="mt-0.5 size-4 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{title}</p>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        ) : null}
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
         {action ? <div className="mt-3">{action}</div> : null}
       </div>
       {onDismiss ? (
@@ -440,9 +432,7 @@ export function PmDialog({
           <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border sm:hidden" />
         ) : null}
         <h3 className="text-lg font-bold">{title}</h3>
-        {description ? (
-          <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
-        ) : null}
+        {description ? <p className="mt-1.5 text-sm text-muted-foreground">{description}</p> : null}
         {children ? <div className="mt-5">{children}</div> : null}
         {footer ? <div className="mt-6 flex gap-3">{footer}</div> : null}
       </div>
@@ -566,8 +556,7 @@ export function TranscriptLineItem({
   tag?: string;
   self?: boolean;
 }) {
-  const tone =
-    tag === "Strong point" ? "success" : tag === "Interruption" ? "warning" : "danger";
+  const tone = tag === "Strong point" ? "success" : tag === "Interruption" ? "warning" : "danger";
   return (
     <div className="flex gap-3">
       <PmAvatar initials={initials} size="sm" className={self ? "" : "opacity-90"} />
@@ -672,10 +661,7 @@ export function FeedbackList({
     <PmCard className="p-5">
       <p className="mb-3 flex items-center gap-2 text-sm font-bold">
         <span
-          className={cn(
-            "size-2 rounded-full",
-            tone === "success" ? "bg-success" : "bg-warning",
-          )}
+          className={cn("size-2 rounded-full", tone === "success" ? "bg-success" : "bg-warning")}
         />
         {title}
       </p>

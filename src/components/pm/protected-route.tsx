@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 //
 // Exports:
 // - ProtectedRoute: renders children once signed in, a loading state while
-//   auth is resolving, and redirects to /login otherwise.
+//   auth is resolving, and redirects to `redirectTo` otherwise.
 //
 // Mirrors gd-proto/apps/web/src/auth/ProtectedRoute.jsx. Client-side only —
 // this app server-renders, and Supabase's browser client only knows the
@@ -18,16 +18,23 @@ import { useAuth } from "@/lib/auth-context";
 //
 // Renders `children` once a signed-in user is confirmed; shows a "Checking
 // your session…" placeholder while auth is loading or the user is absent,
-// and redirects to /login once loading finishes with no user.
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// and redirects to `redirectTo` (defaults to "/login") once loading finishes
+// with no user.
+export function ProtectedRoute({
+  children,
+  redirectTo = "/login",
+}: {
+  children: React.ReactNode;
+  redirectTo?: string;
+}) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate({ to: "/login" });
+      navigate({ to: redirectTo });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, navigate, redirectTo]);
 
   if (loading || !user) {
     return (

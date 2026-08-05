@@ -235,7 +235,7 @@ export type Session = {
   // have a participant count (docs/BACKEND_REQUIREMENTS.md notes this as a
   // small history-endpoint gap) or a numeric score (BE-6/BE-7) yet.
   participants?: number;
-  score?: number;
+  score?: number | undefined;
   code: string;
   status: "Analyzed" | "Processing";
 };

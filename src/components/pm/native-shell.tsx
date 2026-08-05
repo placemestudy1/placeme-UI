@@ -39,12 +39,13 @@ export function DeviceFrame({ children }: { children: ReactNode }) {
 }
 
 // Renders the fake iOS status bar (clock, notch, signal/battery glyphs) at
-// the top of the device frame.
+// the top of the device frame. Hidden on real phones (only visible in the
+// desktop device-frame mockup at md: breakpoint and above).
 function StatusBar({ dark }: { dark?: boolean }) {
   return (
     <div
       className={cn(
-        "relative z-20 flex h-12 shrink-0 items-center justify-between px-7 pt-2 text-[13px] font-semibold",
+        "relative z-20 hidden h-12 shrink-0 items-center justify-between px-7 pt-2 text-[13px] font-semibold md:flex",
         dark ? "text-foreground" : "text-foreground",
       )}
     >

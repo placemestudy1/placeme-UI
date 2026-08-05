@@ -1,30 +1,38 @@
 /**
- * Renders the mobile "live session" screen: mic/hand/transcript/leave
- * controls in a footer, a switchable room/transcript tab view of
- * participants and captions, and a leave-confirmation dialog. Uses static
- * demo data rather than a live LiveKit connection.
+ * Renders the mobile "live session" screen: connects to the live LiveKit
+ * audio room (via the same `useLiveRoom` hook the real web `/session`
+ * route uses), and provides mic/raise-hand/transcript/leave controls plus a
+ * room/transcript tab view.
  *
- * - NativeSession(): main route component; manages mute/tab/leaving UI
- *   state and renders the room/transcript tabs plus the leave dialog.
+ * Unlike the real web `/session/$roomId`, this is a flat route — the room
+ * is identified by a `roomId` search param instead (see app.lobby.tsx).
+ *
+ * - NativeSession(): main route component; manages the tab/leaving UI state
+ *   and renders the room/transcript tabs plus the leave dialog.
  */
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import { Hand, Mic, MicOff, PhoneOff, ScrollText } from "lucide-react";
 
 import { NativeStackScreen } from "@/components/pm/native-shell";
-import {
-  LiveCaption,
-  PmBadge,
-  PmButton,
-  PmDialog,
-  StatusDot,
-  TranscriptLineItem,
-} from "@/components/pm/kit";
+import { ProtectedRoute } from "@/components/pm/protected-route";
+import { PmBadge, PmButton, PmDialog, StatusDot } from "@/components/pm/kit";
 import { ParticipantTile, TimerPill } from "@/components/pm/blocks";
-import { participants, topics, transcript } from "@/lib/demo";
+import { useAuth } from "@/lib/auth-context";
+import { getRoomStatus } from "@/lib/api";
+import {
+  useLiveRoom,
+  LiveRoomError,
+  LiveCaptionFeed,
+  LiveTranscriptPanel,
+} from "@/components/session/live-room";
 import { cn } from "@/lib/utils";
 
+const searchSchema = z.object({ roomId: z.string().optional() });
+
 export const Route = createFileRoute("/app/session")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
       { title: "Live session · PlaceMe Mobile" },
@@ -33,16 +41,68 @@ export const Route = createFileRoute("/app/session")({
       { property: "og:description", content: "Speak, listen and get scored in real time." },
     ],
   }),
-  component: NativeSession,
+  component: () => (
+    <ProtectedRoute redirectTo="/app/login">
+      <NativeSession />
+    </ProtectedRoute>
+  ),
 });
 
-// Main route component: renders the mobile live-session screen, including
-// the room/transcript tabs, participant tiles, live caption, footer
-// controls, and the leave-confirmation dialog.
+function formatCountdown(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+// Main route component: connects to the real live room, polls server room
+// status for the topic/code/end time, and renders the room/transcript tabs,
+// footer controls, and leave-confirmation dialog.
 function NativeSession() {
-  const [muted, setMuted] = useState(false);
+  const { roomId: rawRoomId } = Route.useSearch();
+  const roomId = rawRoomId ?? "";
+  const { session } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"room" | "transcript">("room");
   const [leaving, setLeaving] = useState(false);
+  const [topicText, setTopicText] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(null);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  const live = useLiveRoom(roomId);
+
+  useEffect(() => {
+    if (!roomId) return undefined;
+    let cancelled = false;
+    function refresh() {
+      getRoomStatus(session, roomId)
+        .then((r) => {
+          if (cancelled) return;
+          if (r.topicText) setTopicText(r.topicText);
+          if (r.code) setCode(r.code);
+          if (r.endsAt) setEndsAt(r.endsAt);
+          if (r.status === "ended") navigate({ to: "/app/ended", search: { roomId } });
+        })
+        .catch(() => {});
+    }
+    refresh();
+    const interval = setInterval(refresh, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [session, roomId, navigate]);
+
+  useEffect(() => {
+    if (!endsAt) return undefined;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [endsAt]);
+
+  function confirmLeave() {
+    live.leave();
+    navigate({ to: "/app/lobby", search: { roomId } });
+  }
 
   return (
     <NativeStackScreen
@@ -50,18 +110,23 @@ function NativeSession() {
       footer={
         <div className="flex items-center justify-between gap-2">
           <PmButton
-            variant={muted ? "secondary" : "primary"}
+            variant={live.muted ? "secondary" : "primary"}
             size="pill"
-            aria-label="Toggle mic"
-            onClick={() => setMuted((m) => !m)}
+            aria-label={live.muted ? "Unmute" : "Mute"}
+            onClick={live.toggleMute}
           >
-            {muted ? <MicOff /> : <Mic />}
+            {live.muted ? <MicOff /> : <Mic />}
           </PmButton>
-          <PmButton variant="secondary" size="pill" aria-label="Raise hand">
+          <PmButton
+            variant={live.handRaised ? "primary" : "secondary"}
+            size="pill"
+            aria-label="Raise hand"
+            onClick={live.toggleHand}
+          >
             <Hand />
           </PmButton>
           <PmButton
-            variant="secondary"
+            variant={tab === "transcript" ? "primary" : "secondary"}
             size="pill"
             aria-label="Transcript"
             onClick={() => setTab(tab === "room" ? "transcript" : "room")}
@@ -81,12 +146,21 @@ function NativeSession() {
     >
       <div className="flex items-center justify-between px-5 pb-3">
         <PmBadge tone="live">
-          <StatusDot status="live" /> Live · GD-4821
+          <StatusDot status="live" /> Live{code ? ` · ${code}` : ""}
         </PmBadge>
-        <TimerPill />
+        <TimerPill
+          time={
+            endsAt ? formatCountdown(Math.max(0, Math.round((endsAt - now) / 1000))) : undefined
+          }
+        />
       </div>
       <div className="px-5">
-        <h1 className="text-base font-bold leading-snug">{topics[0]}</h1>
+        <h1 className="text-base font-bold leading-snug">{topicText ?? "Group discussion"}</h1>
+        {live.error && (
+          <div className="mt-3">
+            <LiveRoomError error={live.error} needsConsent={live.needsConsent} />
+          </div>
+        )}
         <div className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
           {(["room", "transcript"] as const).map((t) => (
             <button
@@ -107,18 +181,14 @@ function NativeSession() {
         {tab === "room" ? (
           <>
             <div className="grid grid-cols-2 gap-3">
-              {participants.map((p) => (
+              {live.tiles.map((p) => (
                 <ParticipantTile key={p.id} p={p} compact />
               ))}
             </div>
-            <LiveCaption text="Aarav: …a third of postings mention AI tooling explicitly, so pair fundamentals with delivery." />
+            <LiveCaptionFeed latestCaption={live.latestCaption} nameFor={live.nameFor} />
           </>
         ) : (
-          <div className="space-y-5">
-            {transcript.map((t) => (
-              <TranscriptLineItem key={t.id} {...t} self={t.speaker === "Aarav Menon"} />
-            ))}
-          </div>
+          <LiveTranscriptPanel captions={live.captions} nameFor={live.nameFor} />
         )}
       </div>
 
@@ -133,8 +203,8 @@ function NativeSession() {
             <PmButton variant="ghost" block onClick={() => setLeaving(false)}>
               Stay
             </PmButton>
-            <PmButton asChild variant="danger" block>
-              <Link to="/app/ended">Leave</Link>
+            <PmButton variant="danger" block onClick={confirmLeave}>
+              Leave
             </PmButton>
           </>
         }

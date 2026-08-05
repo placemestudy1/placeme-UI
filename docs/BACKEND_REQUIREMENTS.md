@@ -302,16 +302,25 @@ Supabase project (tracked there, not here).
 plain "Analyzed" badge instead of a number for real rows, which was honest but not what the
 mock originally showed (a number).
 
-### BE-20 — Raise-hand signal (P2)
+### BE-20 — Raise-hand signal (P2) — done, not yet live
 
-**Where**: `/session`'s "Raise hand" pill button (currently a no-op).
-**Why it's blocked**: no LiveKit data-channel message type for this exists (only the
-`transcript` topic used for captions, per `agent/roomAgent.js`/`LiveRoomAudio.jsx`).
-**Suggested shape**: a new data-channel message type (e.g. `{type: 'hand_raised',
-identity, raised: boolean}`) published directly student-to-room (would need
-`canPublishData` reconsidered for student tokens, currently deliberately `false` — see
-`M1` comment in `api/routes/rooms.js` — so this needs a scoped exception, not a blanket
-grant).
+**Where**: `/session`'s "Raise hand" pill button.
+**Status (2026-08-02)**: resolved on `gd-proto` branch `feat/be-20-raise-hand-signal`
+(`SPEC-0010`) — student tokens now mint with `canPublishData: true` (`api/routes/
+rooms.js`), re-examining and narrowing the original M1 audit finding: every caption
+consumer already trusts `participant.identity` (LiveKit-verified from the sender's own
+token), never a payload-declared field, so a student's token was never actually the
+thing preventing a forged `transcript` message — a student's identity can never be
+`'transcriber'` regardless of this flag. `place-me-UI`'s `useLiveRoom` (`components/
+session/live-room.tsx`) publishes/subscribes a new `hand_raised` data-channel topic
+(`{type: 'hand_raised', raised: boolean}`, no identity in the payload — the receiving
+end's `participant.identity` is the only thing trusted) and exposes real
+`toggleHand`/`handRaised` per participant; `session.$roomId.tsx`'s pill and participants
+sheet are wired to it, dropping the old own-tile-only local state. **Not yet merged to
+`dev`/`main`. No migration needed** — nothing here is persisted.
+**Why it was blocked**: no LiveKit data-channel message type for this existed (only the
+`transcript` topic used for captions, per `agent/roomAgent.js`/`LiveRoomAudio.jsx`), and
+every student token was minted with `canPublishData: false` (M1, audit 2026-07-28).
 
 ---
 

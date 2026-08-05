@@ -30,10 +30,23 @@ export default defineConfig(({ command, mode }) => {
       alias: { "@": `${process.cwd()}/src` },
       // Keeps a single copy of these across the app + its dependencies --
       // duplicate React/TanStack Query instances break hooks and caching.
-      dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
+      dedupe: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "@tanstack/react-query",
+        "@tanstack/query-core",
+      ],
     },
     optimizeDeps: {
-      include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      include: [
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+      ],
       ignoreOutdatedRequests: true,
     },
     server: { host: "::", port: 8080 },
