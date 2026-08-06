@@ -244,24 +244,6 @@ function LobbyPage() {
             title="Ground rules"
             description="Don't interrupt mid-sentence, back claims with data, and give quieter members room."
           />
-          {/*
-            MOCK — device status here is decorative; real device selection would
-            need navigator.mediaDevices.enumerateDevices() wiring (frontend-only
-            follow-up, not a backend gap).
-          */}
-          <PmCard className="p-5">
-            <SectionTitle title="Your setup" />
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Microphone</span>
-                <StatusDot status="speaking" label="Ready" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Transcript</span>
-                <PmBadge tone="primary">Enabled</PmBadge>
-              </div>
-            </div>
-          </PmCard>
         </aside>
       </div>
 

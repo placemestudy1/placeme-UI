@@ -28,7 +28,11 @@ describe("ProtectedRoute", () => {
   });
 
   it("renders children once a signed-in, consented user is confirmed", () => {
-    useAuthMock.mockReturnValue({ user: { id: "u1" }, session: { user: { id: "u1" } }, loading: false });
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
     render(
       <ProtectedRoute>
         <p>secret content</p>
@@ -62,7 +66,11 @@ describe("ProtectedRoute", () => {
   });
 
   it("shows a loading placeholder instead of children while consent is resolving", () => {
-    useAuthMock.mockReturnValue({ user: { id: "u1" }, session: { user: { id: "u1" } }, loading: false });
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
     useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: true });
     render(
       <ProtectedRoute>
@@ -75,7 +83,11 @@ describe("ProtectedRoute", () => {
   });
 
   it("redirects to /consent once consent finishes with canEnableMic false", async () => {
-    useAuthMock.mockReturnValue({ user: { id: "u1" }, session: { user: { id: "u1" } }, loading: false });
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
     useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
     render(
       <ProtectedRoute>
@@ -88,7 +100,11 @@ describe("ProtectedRoute", () => {
 
   it("does not redirect away from /consent even when canEnableMic is false", () => {
     pathname = "/consent";
-    useAuthMock.mockReturnValue({ user: { id: "u1" }, session: { user: { id: "u1" } }, loading: false });
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
     useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
     render(
       <ProtectedRoute>

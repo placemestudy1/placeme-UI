@@ -273,10 +273,10 @@ function EndedPage() {
 
           {/*
             BE-6/BE-7 (SPEC-0006): score is real (gd-proto's structured
-            Gemini feedback). The "+6 vs last session" delta badge stays
-            mock -- a separate, unrelated gap (BE-8 score history), not part
-            of this change. The talk-time headline below is now derived from
-            BE-10's live participants/talkShare data.
+            Gemini feedback). No delta-vs-last-session badge -- that needs
+            BE-8 score history, which doesn't exist yet; showing a fabricated
+            number would be worse than showing none. The talk-time headline
+            below is derived from BE-10's live participants/talkShare data.
           */}
           <PmCard glass className="grid gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] md:p-8">
             {score != null ? (
@@ -287,8 +287,7 @@ function EndedPage() {
               </div>
             )}
             <div className="min-w-0">
-              <PmBadge tone="success">+6 vs your last session</PmBadge>
-              <h2 className="mt-3 text-xl font-bold">{status?.topicText ?? "This discussion"}</h2>
+              <h2 className="text-xl font-bold">{status?.topicText ?? "This discussion"}</h2>
               {(() => {
                 const summary = talkTimeSummary(participants, user?.id);
                 return (
