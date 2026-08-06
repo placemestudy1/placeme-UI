@@ -66,9 +66,44 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
+const ORDINAL_WORDS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
+function ordinalWord(rank: number) {
+  return ORDINAL_WORDS[rank - 1] ?? `${rank}th`;
+}
+
+// Builds the talk-time headline from real BE-10 participant shares instead
+// of a fixed mock sentence -- ranks the caller among the room's speakers by
+// talkShare and describes their position relative to the most active one.
+function talkTimeSummary(participants: RoomParticipant[], selfUserId: string | undefined) {
+  if (!selfUserId || participants.length === 0) return null;
+  const sorted = [...participants].sort((a, b) => b.talkShare - a.talkShare);
+  const rank = sorted.findIndex((p) => p.userId === selfUserId);
+  if (rank === -1) return null;
+
+  const self = sorted[rank]!;
+  if (sorted.length === 1) {
+    return {
+      talkShare: self.talkShare,
+      headline: `You were the only tracked speaker, at ${self.talkShare}% talk time.`,
+    };
+  }
+  if (rank === 0) {
+    const runnerUp = sorted[1]!;
+    return {
+      talkShare: self.talkShare,
+      headline: `You led the discussion at ${self.talkShare}% talk time, ahead of ${runnerUp.displayName} at ${runnerUp.talkShare}%.`,
+    };
+  }
+  const leader = sorted[0]!;
+  return {
+    talkShare: self.talkShare,
+    headline: `You were the ${ordinalWord(rank + 1)}-most active speaker at ${self.talkShare}% talk time, behind ${leader.displayName} at ${leader.talkShare}%.`,
+  };
+}
+
 function EndedPage() {
   const { roomId } = Route.useParams();
-  const { session } = useAuth();
+  const { session, user } = useAuth();
 
   const [status, setStatus] = useState<RoomStatus | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -238,10 +273,10 @@ function EndedPage() {
 
           {/*
             BE-6/BE-7 (SPEC-0006): score is real (gd-proto's structured
-            Gemini feedback). The "+6 vs last session" delta badge and the
-            talk-time/filler-word/citation badges + summary paragraph stay
-            mock -- separate, unrelated gaps (BE-8 score history, BE-10
-            talk-time share), not part of this change.
+            Gemini feedback). The "+6 vs last session" delta badge stays
+            mock -- a separate, unrelated gap (BE-8 score history), not part
+            of this change. The talk-time headline below is now derived from
+            BE-10's live participants/talkShare data.
           */}
           <PmCard glass className="grid gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] md:p-8">
             {score != null ? (
@@ -254,16 +289,23 @@ function EndedPage() {
             <div className="min-w-0">
               <PmBadge tone="success">+6 vs your last session</PmBadge>
               <h2 className="mt-3 text-xl font-bold">{status?.topicText ?? "This discussion"}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                You were the second-most active speaker at 26% talk time, opened the framing the
-                group adopted, and cited two verifiable data points. Filler words are the single
-                biggest score leak.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <PmBadge tone="primary">26% talk time</PmBadge>
-                <PmBadge tone="warning">18 filler words</PmBadge>
-                <PmBadge tone="accent">2 data citations</PmBadge>
-              </div>
+              {(() => {
+                const summary = talkTimeSummary(participants, user?.id);
+                return (
+                  <>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {summary
+                        ? summary.headline
+                        : "Talk-time breakdown will appear here once it's ready."}
+                    </p>
+                    {summary && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <PmBadge tone="primary">{summary.talkShare}% talk time</PmBadge>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </PmCard>
           {dimensions.length > 0 && (
