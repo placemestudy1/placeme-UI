@@ -5,6 +5,7 @@ import {
   Home,
   LogIn,
   LogOut,
+  Mic,
   PlusCircle,
   Search,
   Shuffle,
@@ -14,6 +15,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { useConsentStatus } from "@/lib/use-consent-status";
 import { PmAvatar, PmBadge, PmButton, PmInput } from "./kit";
 
 // Responsive web app shell: sidebar nav on desktop, top nav on tablet, and
@@ -67,6 +69,20 @@ export const webNav = [
   { to: "/match", label: "Random", icon: Shuffle },
   { to: "/history", label: "History", icon: Clock3 },
 ] as const;
+
+// webNav plus a "Consent" entry, shown only while the signed-in user hasn't
+// granted the current consent version yet. Previously /consent had no nav
+// entry at all -- reachable only by typing the URL directly -- and relied
+// entirely on ProtectedRoute's post-login redirect to be seen. Surfacing it
+// here gives users a visible way back to it (e.g. after dismissing the
+// redirect via "Not now") without permanently occupying nav space for the
+// common case of an already-consented user.
+function useNavItems() {
+  const { session } = useAuth();
+  const { canEnableMic, loading } = useConsentStatus(session);
+  if (!session || loading || canEnableMic) return webNav;
+  return [...webNav, { to: "/consent", label: "Consent", icon: Mic }] as const;
+}
 
 // PlaceMe logo mark, linking to home; `compact` hides the wordmark and shows
 // just the icon.
@@ -151,13 +167,14 @@ export function WebShell({
   actions?: ReactNode;
 }) {
   const me = useDisplayName();
+  const navItems = useNavItems();
   return (
     <div className="aurora min-h-screen bg-background">
       {/* Desktop / laptop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-sidebar px-4 py-6 lg:flex">
         <Logo />
         <nav className="mt-8 space-y-1">
-          {webNav.map((i) => (
+          {navItems.map((i) => (
             <NavLink key={i.to} {...i} variant="sidebar" />
           ))}
         </nav>
@@ -187,7 +204,7 @@ export function WebShell({
         <div className="flex items-center gap-4 px-6 py-3">
           <Logo />
           <nav className="flex flex-1 items-center justify-center gap-1">
-            {webNav.map((i) => (
+            {navItems.map((i) => (
               <NavLink key={i.to} {...i} variant="top" />
             ))}
           </nav>
@@ -241,7 +258,7 @@ export function WebShell({
 
       {/* Mobile web bottom navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
-        {webNav.map((i) => (
+        {navItems.map((i) => (
           <NavLink key={i.to} {...i} variant="bottom" />
         ))}
       </nav>
