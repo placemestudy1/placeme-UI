@@ -22,6 +22,7 @@ import type { Participant } from "@/lib/demo";
 //   a placeholder when there are none yet.
 
 const decoder = new TextDecoder();
+const encoder = new TextEncoder();
 const MAX_CAPTIONS = 20;
 
 // Must match the identity gd-proto/apps/server/src/agent/roomAgent.js mints
@@ -29,6 +30,11 @@ const MAX_CAPTIONS = 20;
 // captions are trusted — see gd-proto/apps/web/src/rooms/LiveRoomAudio.jsx
 // for the full reasoning (N13/BUG-SPEC-0006 audit comments), ported as-is.
 const TRANSCRIBER_IDENTITY = "transcriber";
+
+// SPEC-0010 (BE-20): raise-hand rides the same LiveKit data channel as
+// captions, on its own topic, so any participant can publish it (unlike
+// `transcript`, which only the transcriber's identity is ever trusted for).
+const HAND_RAISED_TOPIC = "hand_raised";
 
 type Caption = { id: number; identity: string; displayName: string; text: string };
 
@@ -57,6 +63,7 @@ export function useLiveRoom(roomId: string) {
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);
   const [activeSpeakerIds, setActiveSpeakerIds] = useState<Set<string>>(() => new Set());
   const [muted, setMuted] = useState(false);
+  const [raisedHandIds, setRaisedHandIds] = useState<Set<string>>(() => new Set());
   const roomRef = useRef<Room | null>(null);
   const captionIdRef = useRef(0);
   // Supabase hands out a new session object on every token refresh — read
@@ -99,20 +106,38 @@ export function useLiveRoom(roomId: string) {
       setActiveSpeakerIds(new Set(speakers.map((s) => s.identity)));
     });
 
-    room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: RemoteParticipant) => {
-      if (participant?.identity !== TRANSCRIBER_IDENTITY) return;
-      try {
-        const msg = JSON.parse(decoder.decode(payload));
-        if (msg.type !== "transcript") return;
-        const id = captionIdRef.current++;
-        setCaptions((prev) => [
-          ...prev.slice(-(MAX_CAPTIONS - 1)),
-          { id, identity: msg.identity, displayName: msg.identity, text: msg.text },
-        ]);
-      } catch {
-        /* ignore malformed payloads */
-      }
-    });
+    room.on(
+      RoomEvent.DataReceived,
+      (payload: Uint8Array, participant?: RemoteParticipant, _kind?: unknown, topic?: string) => {
+        try {
+          // SPEC-0010 (BE-20): hand-raise is trusted by the LiveKit-verified
+          // sender identity on this event, never a payload-declared field —
+          // any participant may publish it (unlike `transcript` below, which
+          // only the transcriber's own identity is ever trusted for).
+          if (topic === HAND_RAISED_TOPIC) {
+            if (!participant?.identity) return;
+            const msg = JSON.parse(decoder.decode(payload));
+            setRaisedHandIds((prev) => {
+              const next = new Set(prev);
+              if (msg.raised) next.add(participant.identity);
+              else next.delete(participant.identity);
+              return next;
+            });
+            return;
+          }
+          if (participant?.identity !== TRANSCRIBER_IDENTITY) return;
+          const msg = JSON.parse(decoder.decode(payload));
+          if (msg.type !== "transcript") return;
+          const id = captionIdRef.current++;
+          setCaptions((prev) => [
+            ...prev.slice(-(MAX_CAPTIONS - 1)),
+            { id, identity: msg.identity, displayName: msg.identity, text: msg.text },
+          ]);
+        } catch {
+          /* ignore malformed payloads */
+        }
+      },
+    );
 
     room.on(RoomEvent.Disconnected, () => {
       if (!cancelled) setStatus("disconnected");
@@ -154,6 +179,26 @@ export function useLiveRoom(roomId: string) {
     roomRef.current?.disconnect();
   }
 
+  // SPEC-0010 (BE-20): toggles this user's own raised-hand state and
+  // broadcasts it to every other participant over the room's data channel.
+  // LiveKit never loops a participant's own published data back to itself,
+  // so the local raisedHandIds update below is optimistic, not derived from
+  // the DataReceived listener above.
+  async function toggleHand() {
+    const room = roomRef.current;
+    const identity = user?.id;
+    if (!room || !identity) return;
+    const nextRaised = !raisedHandIds.has(identity);
+    setRaisedHandIds((prev) => {
+      const next = new Set(prev);
+      if (nextRaised) next.add(identity);
+      else next.delete(identity);
+      return next;
+    });
+    const payload = encoder.encode(JSON.stringify({ type: "hand_raised", raised: nextRaised }));
+    await room.localParticipant.publishData(payload, { reliable: true, topic: HAND_RAISED_TOPIC });
+  }
+
   const nameById = useMemo(
     () => new Map(participants.map((p) => [p.userId, p.displayName])),
     [participants],
@@ -178,10 +223,12 @@ export function useLiveRoom(roomId: string) {
     speaking: activeSpeakerIds.has(p.userId),
     muted: p.userId === user?.id ? muted : false,
     talkShare: 0,
+    handRaised: raisedHandIds.has(p.userId),
   }));
 
   const needsConsent = error != null && /consent/i.test(error);
   const latestCaption = captions.at(-1);
+  const handRaised = user?.id != null && raisedHandIds.has(user.id);
 
   return {
     status,
@@ -191,6 +238,8 @@ export function useLiveRoom(roomId: string) {
     tiles,
     muted,
     toggleMute,
+    handRaised,
+    toggleHand,
     leave,
     nameFor,
     latestCaption,

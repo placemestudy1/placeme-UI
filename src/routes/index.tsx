@@ -5,31 +5,13 @@ import { ArrowRight, PlusCircle, Shuffle, Sparkles } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { PmButton, PmCard, SectionTitle, PmBadge, EmptyState } from "@/components/pm/kit";
-import {
-  ProgressChart,
-  RoomCard,
-  SessionRow,
-  StatCard,
-  type ProgressPoint,
-} from "@/components/pm/blocks";
-import { type Session, type Room } from "@/lib/demo";
+import { ProgressChart, RoomCard, SessionRow, StatCard } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, listOpenRooms, type HistorySession, type OpenRoom } from "@/lib/api";
-
-// BE-4 (level) doesn't exist yet -- an honest "any level" rather than
-// fabricating one of the fixture data's three tiers.
-function toRoomCard(r: OpenRoom): Room {
-  return {
-    code: r.code,
-    topic: r.topicText ?? "Untitled discussion",
-    host: r.hostDisplayName,
-    seats: r.maxParticipants,
-    filled: r.participantCount,
-    level: "Any level",
-    startsIn: "Waiting to start",
-    duration: `${Math.round(r.durationSeconds / 60)} min`,
-  };
-}
+import { average, computeStreak } from "@/lib/session/stats";
+import { dateFormatter } from "@/lib/session/formatting";
+import { buildScoreTrend, toSessionRow } from "@/lib/session/history";
+import { toRoomCard } from "@/lib/session/rooms";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,78 +30,6 @@ export const Route = createFileRoute("/")({
     </ProtectedRoute>
   ),
 });
-
-const dateFormatter = new Intl.DateTimeFormat("en-IN", {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-const trendLabelFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric" });
-
-// BE-8: same approach as history.tsx's buildScoreTrend -- a plain
-// last-N-scored-sessions line rather than fake weekly buckets, since a
-// student may have very few sessions at pilot scale.
-const MAX_TREND_POINTS = 8;
-
-function buildScoreTrend(sessions: HistorySession[]): ProgressPoint[] {
-  return sessions
-    .filter(
-      (s): s is HistorySession & { score: number; startedAt: string } =>
-        s.score != null && s.startedAt != null,
-    )
-    .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
-    .slice(-MAX_TREND_POINTS)
-    .map((s) => ({ label: trendLabelFormatter.format(new Date(s.startedAt)), score: s.score }));
-}
-
-// BE-9: same helpers as history.tsx -- no `delta` text (that's a
-// period-over-period comparison this item doesn't ask for).
-function average(values: number[]): number | null {
-  if (values.length === 0) return null;
-  return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
-}
-
-// "Current streak" = consecutive calendar days with at least one ended
-// session, still counted as active through the end of the day after the
-// most recent practiced day (standard habit-tracker semantics).
-function computeStreak(sessions: HistorySession[]): number {
-  const practicedDays = new Set(
-    sessions
-      .filter((s) => s.status === "ended" && s.startedAt)
-      .map((s) => new Date(s.startedAt as string).toDateString()),
-  );
-  function streakFrom(start: Date): number {
-    let count = 0;
-    const cursor = new Date(start);
-    while (practicedDays.has(cursor.toDateString())) {
-      count++;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return count;
-  }
-  const today = new Date();
-  const fromToday = streakFrom(today);
-  if (fromToday > 0) return fromToday;
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  return streakFrom(yesterday);
-}
-
-function toSessionRow(s: HistorySession): Session {
-  return {
-    id: s.id,
-    topic: s.topicText ?? "Untitled discussion",
-    date: s.startedAt ? dateFormatter.format(new Date(s.startedAt)) : "Not started yet",
-    duration: `${Math.round(s.durationSeconds / 60)} min`,
-    code: s.code,
-    // BE-19: real score once BE-6/BE-7 has produced one -- "Analyzed" is
-    // now only a genuine fallback (feedback generated, score not, e.g. a
-    // pre-migration row), not the everyday case.
-    score: s.score ?? undefined,
-    status: s.status === "ended" && s.feedback ? "Analyzed" : "Processing",
-  };
-}
 
 function Index() {
   const { user, session } = useAuth();
@@ -264,7 +174,7 @@ function Index() {
                 <p className="text-sm text-muted-foreground">No sessions yet.</p>
               )}
               {recent?.map((s) => (
-                <SessionRow key={s.id} s={toSessionRow(s)} to={`/ended/${s.id}`} />
+                <SessionRow key={s.id} s={toSessionRow(s, dateFormatter)} to={`/ended/${s.id}`} />
               ))}
             </div>
           </PmCard>

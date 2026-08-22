@@ -16,7 +16,9 @@ import {
   Field,
   PmButton,
   PmCard,
+  PmDialog,
   PmInput,
+  PmSelect,
   SectionTitle,
   CardSkeleton,
   EmptyState,
@@ -69,12 +71,27 @@ function JoinPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openRooms, setOpenRooms] = useState<OpenRoom[] | null>(null);
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [durationFilter, setDurationFilter] = useState<"any" | "short" | "long">("any");
+  const [seatsFilter, setSeatsFilter] = useState<"any" | "small" | "large">("any");
+  const filtersActive = durationFilter !== "any" || seatsFilter !== "any";
 
   useEffect(() => {
     listOpenRooms(session)
       .then((r) => setOpenRooms(r.rooms))
       .catch(() => setOpenRooms([]));
   }, [session]);
+
+  const visibleRooms = (openRooms ?? []).filter((r) => {
+    const q = search.trim().toLowerCase();
+    if (q && !`${r.topicText ?? ""} ${r.hostDisplayName}`.toLowerCase().includes(q)) return false;
+    if (durationFilter === "short" && r.durationSeconds > 600) return false;
+    if (durationFilter === "long" && r.durationSeconds <= 600) return false;
+    if (seatsFilter === "small" && r.maxParticipants > 6) return false;
+    if (seatsFilter === "large" && r.maxParticipants <= 6) return false;
+    return true;
+  });
 
   // Submits the room code, joins the room via the API, and navigates to its lobby on success.
   async function onSubmit(e: React.FormEvent) {
@@ -122,8 +139,15 @@ function JoinPage() {
 
         <div>
           <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-            <PmInput placeholder="Search topics, hosts or colleges…" icon={<Search />} />
-            <PmButton variant="outline">Filters</PmButton>
+            <PmInput
+              placeholder="Search topics or hosts…"
+              icon={<Search />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <PmButton variant="outline" onClick={() => setFiltersOpen(true)}>
+              Filters{filtersActive ? " •" : ""}
+            </PmButton>
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
             {openRooms === null && (
@@ -132,9 +156,10 @@ function JoinPage() {
                 <CardSkeleton />
               </>
             )}
-            {openRooms?.map((r) => (
-              <RoomCard key={r.code} room={toRoomCard(r)} onSelect={() => setCode(r.code)} />
-            ))}
+            {openRooms &&
+              visibleRooms.map((r) => (
+                <RoomCard key={r.code} room={toRoomCard(r)} onSelect={() => setCode(r.code)} />
+              ))}
           </div>
           {openRooms?.length === 0 && (
             <EmptyState
@@ -143,8 +168,63 @@ function JoinPage() {
               description="Every public room is either full or already in session — check back soon, or start your own."
             />
           )}
+          {openRooms && openRooms.length > 0 && visibleRooms.length === 0 && (
+            <EmptyState
+              icon={<Search />}
+              title="No rooms match your search"
+              description="Try a different search term, or clear your filters."
+            />
+          )}
         </div>
       </div>
+
+      <PmDialog
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filters"
+        description="Narrow down the rooms open right now"
+        sheetOnMobile
+        footer={
+          <>
+            <PmButton
+              variant="ghost"
+              block
+              onClick={() => {
+                setDurationFilter("any");
+                setSeatsFilter("any");
+              }}
+            >
+              Reset
+            </PmButton>
+            <PmButton block onClick={() => setFiltersOpen(false)}>
+              Done
+            </PmButton>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Duration">
+            <PmSelect
+              value={durationFilter}
+              onChange={(e) => setDurationFilter(e.target.value as typeof durationFilter)}
+            >
+              <option value="any">Any duration</option>
+              <option value="short">10 min or less</option>
+              <option value="long">More than 10 min</option>
+            </PmSelect>
+          </Field>
+          <Field label="Seats">
+            <PmSelect
+              value={seatsFilter}
+              onChange={(e) => setSeatsFilter(e.target.value as typeof seatsFilter)}
+            >
+              <option value="any">Any group size</option>
+              <option value="small">6 seats or fewer</option>
+              <option value="large">More than 6 seats</option>
+            </PmSelect>
+          </Field>
+        </div>
+      </PmDialog>
     </WebShell>
   );
 }

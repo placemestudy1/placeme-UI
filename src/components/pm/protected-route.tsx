@@ -8,8 +8,8 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 //
 // Exports:
 // - ProtectedRoute: renders children once signed in and consented, a
-//   loading state while either is resolving, and redirects to /login or
-//   /consent otherwise.
+//   loading state while either is resolving, and redirects to the configured
+//   authentication or consent route otherwise.
 //
 // Mirrors gd-proto/apps/web/src/auth/ProtectedRoute.jsx, extended with a
 // consent check: that legacy component (and this one, until now) only
@@ -28,29 +28,46 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 //
 // Renders `children` once a signed-in, consented user is confirmed; shows a
 // loading placeholder while auth or consent is resolving; redirects to
-// /login once auth finishes with no user, and to /consent once consent
-// finishes with `canEnableMic` false. The consent check itself is skipped on
-// /consent — that page is the redirect target and manages its own consent
-// state, so re-checking here would just double-fetch and, if consent is
-// still missing, create a redirect loop back to itself.
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// `redirectTo` once auth finishes with no user, and to `consentRedirectTo`
+// once consent finishes with `canEnableMic` false. The consent check itself
+// is skipped on the configured consent page — that page manages its own
+// consent state, so re-checking here would double-fetch and create a redirect
+// loop while consent is still missing.
+export function ProtectedRoute({
+  children,
+  redirectTo = "/login",
+  consentRedirectTo = "/consent",
+}: {
+  children: React.ReactNode;
+  redirectTo?: string;
+  consentRedirectTo?: string;
+}) {
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isConsentPage = pathname === "/consent";
+  const isConsentPage = pathname === consentRedirectTo;
   const { canEnableMic, loading: consentLoading } = useConsentStatus(
     isConsentPage ? null : session,
   );
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate({ to: "/login" });
+      navigate({ to: redirectTo });
       return;
     }
     if (!loading && user && !isConsentPage && !consentLoading && !canEnableMic) {
-      navigate({ to: "/consent" });
+      navigate({ to: consentRedirectTo });
     }
-  }, [loading, user, isConsentPage, consentLoading, canEnableMic, navigate]);
+  }, [
+    loading,
+    user,
+    isConsentPage,
+    consentLoading,
+    canEnableMic,
+    navigate,
+    redirectTo,
+    consentRedirectTo,
+  ]);
 
   if (loading || !user) {
     return (

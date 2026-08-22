@@ -5,45 +5,12 @@ import { CalendarClock, Filter } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { EmptyState, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
-import { ProgressChart, SessionRow, StatCard, type ProgressPoint } from "@/components/pm/blocks";
-import { type Session } from "@/lib/demo";
+import { ProgressChart, SessionRow, StatCard } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, type HistorySession } from "@/lib/api";
-
-// BE-9: no `delta` text (the mock's "+4 this week" etc.) -- that's a
-// period-over-period comparison this item doesn't ask for; StatCard's
-// delta prop is optional, so real tiles simply omit it.
-function average(values: number[]): number | null {
-  if (values.length === 0) return null;
-  return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
-}
-
-// "Current streak" = consecutive calendar days with at least one ended
-// session, still counted as active through the end of the day after the
-// most recent practiced day (standard habit-tracker semantics) -- doesn't
-// reset to 0 just because today hasn't happened yet.
-function computeStreak(sessions: HistorySession[]): number {
-  const practicedDays = new Set(
-    sessions
-      .filter((s) => s.status === "ended" && s.startedAt)
-      .map((s) => new Date(s.startedAt as string).toDateString()),
-  );
-  function streakFrom(start: Date): number {
-    let count = 0;
-    const cursor = new Date(start);
-    while (practicedDays.has(cursor.toDateString())) {
-      count++;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return count;
-  }
-  const today = new Date();
-  const fromToday = streakFrom(today);
-  if (fromToday > 0) return fromToday;
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  return streakFrom(yesterday);
-}
+import { average, computeStreak } from "@/lib/session/stats";
+import { dateFormatterWithYear, monthFormatter } from "@/lib/session/formatting";
+import { buildScoreTrend, toSessionRow } from "@/lib/session/history";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -61,48 +28,6 @@ export const Route = createFileRoute("/history")({
     </ProtectedRoute>
   ),
 });
-
-const dateFormatter = new Intl.DateTimeFormat("en-IN", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
-const monthFormatter = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" });
-const trendLabelFormatter = new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric" });
-
-// BE-8: real trend from actually-scored sessions, chronological, capped so
-// the chart stays readable rather than trying to bucket by week -- at
-// pilot scale a student may have very few sessions, and fake weekly gaps
-// would be more misleading than a plain "last N scored sessions" line.
-const MAX_TREND_POINTS = 8;
-
-function buildScoreTrend(sessions: HistorySession[]): ProgressPoint[] {
-  return sessions
-    .filter(
-      (s): s is HistorySession & { score: number; startedAt: string } =>
-        s.score != null && s.startedAt != null,
-    )
-    .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
-    .slice(-MAX_TREND_POINTS)
-    .map((s) => ({ label: trendLabelFormatter.format(new Date(s.startedAt)), score: s.score }));
-}
-
-function toSessionRow(s: HistorySession): Session {
-  return {
-    id: s.id,
-    topic: s.topicText ?? "Untitled discussion",
-    date: s.startedAt ? dateFormatter.format(new Date(s.startedAt)) : "Not started yet",
-    duration: `${Math.round(s.durationSeconds / 60)} min`,
-    code: s.code,
-    // BE-19: real score once BE-6/BE-7 has produced one -- "Analyzed" is
-    // now only a genuine fallback (feedback generated, score not, e.g. a
-    // pre-migration row), not the everyday case.
-    score: s.score ?? undefined,
-    status: s.status === "ended" && s.feedback ? "Analyzed" : "Processing",
-  };
-}
 
 function HistoryPage() {
   const { session } = useAuth();
@@ -204,7 +129,11 @@ function HistoryPage() {
               />
               <div className="space-y-3">
                 {monthSessions.map((s) => (
-                  <SessionRow key={s.id} s={toSessionRow(s)} to={`/ended/${s.id}`} />
+                  <SessionRow
+                    key={s.id}
+                    s={toSessionRow(s, dateFormatterWithYear)}
+                    to={`/ended/${s.id}`}
+                  />
                 ))}
               </div>
             </div>

@@ -89,11 +89,66 @@ function useNavItems() {
 export function Logo({ compact }: { compact?: boolean }) {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2.5">
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[image:var(--gradient-primary)] font-display text-sm font-bold text-primary-foreground shadow-glow">
-        P
+      {/* Graduation cap icon — matches the PlaceMe brand mark */}
+      <span className="shrink-0">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 64 64"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          {/* Cap board (top flat diamond) */}
+          <polygon points="32,8 62,22 32,36 2,22" fill="#2563EB" />
+          {/* Cap skull / base */}
+          <path d="M16 28v13c0 5 7.2 9 16 9s16-4 16-9V28L32 36 16 28Z" fill="#2563EB" />
+          {/* Tassel cord */}
+          <line
+            x1="62"
+            y1="22"
+            x2="62"
+            y2="37"
+            stroke="#2563EB"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          {/* Tassel knot */}
+          <circle cx="62" cy="38" r="3" fill="#2563EB" />
+          {/* Tassel fringe */}
+          <line
+            x1="62"
+            y1="41"
+            x2="59"
+            y2="50"
+            stroke="#2563EB"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <line
+            x1="62"
+            y1="41"
+            x2="62"
+            y2="51"
+            stroke="#2563EB"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <line
+            x1="62"
+            y1="41"
+            x2="65"
+            y2="50"
+            stroke="#2563EB"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
       </span>
       {!compact ? (
-        <span className="font-display text-lg font-bold tracking-tight">PlaceMe</span>
+        <span className="font-display text-lg font-bold tracking-tight text-[#1a3fa8]">
+          PlaceMe
+        </span>
       ) : null}
     </Link>
   );

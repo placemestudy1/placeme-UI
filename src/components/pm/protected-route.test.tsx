@@ -65,6 +65,16 @@ describe("ProtectedRoute", () => {
     expect(screen.queryByText("secret content")).not.toBeInTheDocument();
   });
 
+  it("uses a custom authentication redirect for the mobile route family", async () => {
+    useAuthMock.mockReturnValue({ user: null, session: null, loading: false });
+    render(
+      <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: "/app/login" }));
+  });
+
   it("shows a loading placeholder instead of children while consent is resolving", () => {
     useAuthMock.mockReturnValue({
       user: { id: "u1" },
@@ -98,6 +108,21 @@ describe("ProtectedRoute", () => {
     expect(screen.queryByText("secret content")).not.toBeInTheDocument();
   });
 
+  it("keeps consent redirects inside the mobile route family", async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
+    render(
+      <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: "/app/consent" }));
+  });
+
   it("does not redirect away from /consent even when canEnableMic is false", () => {
     pathname = "/consent";
     useAuthMock.mockReturnValue({
@@ -108,6 +133,23 @@ describe("ProtectedRoute", () => {
     useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
     render(
       <ProtectedRoute>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    expect(screen.getByText("secret content")).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("does not redirect away from the configured mobile consent route", () => {
+    pathname = "/app/consent";
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
+    render(
+      <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
         <p>secret content</p>
       </ProtectedRoute>,
     );

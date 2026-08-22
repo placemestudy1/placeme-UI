@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, RotateCcw, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
+import { RotateCcw, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
@@ -331,11 +331,6 @@ function EndedPage() {
             <SectionTitle
               title="Full transcript"
               subtitle={transcript ? `${transcript.length} lines` : "Loading…"}
-              action={
-                <PmButton variant="ghost" size="sm">
-                  <Download /> Export
-                </PmButton>
-              }
             />
             <div className="space-y-5">
               {(transcript ?? []).map((t, i) => (

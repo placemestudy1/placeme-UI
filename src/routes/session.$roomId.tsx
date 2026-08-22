@@ -17,11 +17,19 @@
  */
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Hand, Mic, MicOff, PhoneOff, ScrollText, Users } from "lucide-react";
+import { Check, Copy, Hand, Mic, MicOff, PhoneOff, ScrollText, Users } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
-import { PmBadge, PmButton, PmCard, PmDialog, SectionTitle, StatusDot } from "@/components/pm/kit";
+import {
+  PmAvatar,
+  PmBadge,
+  PmButton,
+  PmCard,
+  PmDialog,
+  SectionTitle,
+  StatusDot,
+} from "@/components/pm/kit";
 import { ParticipantTile, TimerPill } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getRoomStatus } from "@/lib/api";
@@ -65,13 +73,24 @@ function SessionPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [leaving, setLeaving] = useState(false);
-  const [handRaised, setHandRaised] = useState(false);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [topicText, setTopicText] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
   const live = useLiveRoom(roomId);
+
+  // Copies the room code to clipboard and briefly shows a checkmark.
+  function copyCode() {
+    if (!code) return;
+    navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    });
+  }
 
   // The server is the sole authority on room status/end time — poll it
   // alongside the LiveKit connection instead of relying on a local timer.
@@ -146,11 +165,9 @@ function SessionPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {live.tiles
-              .map((p) => (p.id === session?.user.id ? { ...p, handRaised } : p))
-              .map((p) => (
-                <ParticipantTile key={p.id} p={p} />
-              ))}
+            {live.tiles.map((p) => (
+              <ParticipantTile key={p.id} p={p} />
+            ))}
           </div>
 
           <LiveCaptionFeed latestCaption={live.latestCaption} nameFor={live.nameFor} />
@@ -165,18 +182,39 @@ function SessionPage() {
               {live.muted ? <MicOff /> : <Mic />}
             </PmButton>
             <PmButton
-              variant={handRaised ? "primary" : "secondary"}
+              variant={live.handRaised ? "primary" : "secondary"}
               size="pill"
               aria-label="Raise hand"
-              onClick={() => setHandRaised(!handRaised)}
+              onClick={live.toggleHand}
             >
               <Hand />
             </PmButton>
-            <PmButton variant="secondary" size="pill" aria-label="Participants">
+            <PmButton
+              variant={participantsOpen ? "primary" : "secondary"}
+              size="pill"
+              aria-label="Participants"
+              onClick={() => setParticipantsOpen(true)}
+            >
               <Users />
             </PmButton>
-            <PmButton variant="secondary" size="pill" aria-label="Transcript">
+            {/* Transcript button is only useful on mobile — the aside panel
+                already shows it on larger screens */}
+            <PmButton
+              variant={transcriptOpen ? "primary" : "secondary"}
+              size="pill"
+              aria-label="Transcript"
+              className="lg:hidden"
+              onClick={() => setTranscriptOpen(true)}
+            >
               <ScrollText />
+            </PmButton>
+            <PmButton
+              variant="secondary"
+              size="pill"
+              aria-label={copied ? "Copied" : "Copy room code"}
+              onClick={copyCode}
+            >
+              {copied ? <Check /> : <Copy />}
             </PmButton>
             <PmButton
               variant="danger"
@@ -202,6 +240,65 @@ function SessionPage() {
         </aside>
       </div>
 
+      {/* ── Participants sheet ── */}
+      <PmDialog
+        open={participantsOpen}
+        onClose={() => setParticipantsOpen(false)}
+        title="Participants"
+        description={`${live.tiles.length} in this session`}
+        sheetOnMobile
+        footer={
+          <PmButton block onClick={() => setParticipantsOpen(false)}>
+            Done
+          </PmButton>
+        }
+      >
+        <div className="space-y-3">
+          {live.tiles.map((p) => (
+            <div key={p.id} className="flex items-center gap-3">
+              <PmAvatar
+                initials={p.initials}
+                size="sm"
+                ring={p.speaking ? "speaking" : p.muted ? "muted" : "none"}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">
+                  {p.name}
+                  {p.id === session?.user.id && (
+                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>
+                  )}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {p.speaking && <StatusDot status="speaking" label="Speaking" />}
+                {p.muted && !p.speaking && <StatusDot status="muted" label="Muted" />}
+                {p.handRaised && <span title="Hand raised">✋</span>}
+              </div>
+            </div>
+          ))}
+          {live.tiles.length === 0 && (
+            <p className="text-sm text-muted-foreground">Waiting for participants to connect…</p>
+          )}
+        </div>
+      </PmDialog>
+
+      {/* ── Live transcript sheet (mobile only) ── */}
+      <PmDialog
+        open={transcriptOpen}
+        onClose={() => setTranscriptOpen(false)}
+        title="Live transcript"
+        description="Attributed in real time"
+        sheetOnMobile
+        footer={
+          <PmButton block onClick={() => setTranscriptOpen(false)}>
+            Done
+          </PmButton>
+        }
+      >
+        <LiveTranscriptPanel captions={live.captions} nameFor={live.nameFor} />
+      </PmDialog>
+
+      {/* ── Leave confirmation ── */}
       <PmDialog
         open={leaving}
         onClose={() => setLeaving(false)}
