@@ -28,7 +28,7 @@ export const Route = createFileRoute("/app/consent")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login">
+    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
       <NativeConsent />
     </ProtectedRoute>
   ),

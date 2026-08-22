@@ -21,8 +21,6 @@ import { RefreshCw, Shuffle, Users, X } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
-  PmAvatar,
-  PmBadge,
   PmButton,
   PmCard,
   PmInput,
@@ -32,9 +30,9 @@ import {
   Skel,
   StatusDot,
 } from "@/components/pm/kit";
-import { participants } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { getActiveRoom, leaveMatchQueue, requestMatch } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/match")({
   head: () => ({
@@ -67,7 +65,6 @@ function MatchPage() {
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(600);
-  const [groupSize, setGroupSize] = useState(5);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const giveUpRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRef = useRef(session);
@@ -89,6 +86,7 @@ function MatchPage() {
   // Stops waiting and navigates the student into the matched lobby room.
   function enterRoom(room: { id: string; code: string }) {
     stopWaiting();
+    track({ name: "room_joined", properties: { roomId: room.id, method: "match" } });
     navigate({
       to: "/lobby/$roomId",
       params: { roomId: room.id },
@@ -141,8 +139,7 @@ function MatchPage() {
   }
 
   return (
-    // MOCK subtitle — no live wait-time telemetry yet, see docs/BACKEND_REQUIREMENTS.md#BE-16
-    <WebShell title="Random match" subtitle="Average wait time today: 24 seconds">
+    <WebShell title="Random match">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <PmCard glass className="p-8 text-center md:p-12">
           {state === "idle" && (
@@ -179,15 +176,11 @@ function MatchPage() {
                 label="Waiting for enough students"
                 className="mt-5 justify-center"
               />
-              {/* MOCK — no live queue telemetry endpoint yet, see docs/BACKEND_REQUIREMENTS.md#BE-16 */}
+              {/* MOCK — no live queue telemetry endpoint yet, see docs/BACKEND_REQUIREMENTS.md#BE-16.
+                  Anonymous placeholders, not fixture people -- who's actually waiting isn't
+                  known until the match resolves. */}
               <div className="mx-auto mt-8 flex max-w-md flex-wrap items-center justify-center gap-4">
-                {participants.slice(0, 4).map((p) => (
-                  <div key={p.id} className="flex flex-col items-center gap-2">
-                    <PmAvatar initials={p.initials} size="lg" />
-                    <span className="text-xs text-muted-foreground">{p.name.split(" ")[0]}</span>
-                  </div>
-                ))}
-                {[0, 1].map((i) => (
+                {[0, 1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex flex-col items-center gap-2">
                     <Skel className="size-14 rounded-full" />
                     <Skel className="h-3 w-10" />
@@ -225,19 +218,12 @@ function MatchPage() {
         </PmCard>
 
         <aside className="space-y-4">
-          {/* MOCK — no level/group-size/topic-pool filter on POST /api/rooms/match yet, see BE-4/BE-5 */}
+          {/* Group size isn't wired here -- POST /api/rooms/match has no
+              group-size/topic-pool filter yet (BE-4/BE-5), so only the field
+              that's actually sent (duration) is shown. */}
           <PmCard className="p-5">
             <SectionTitle title="Match preferences" />
             <div className="space-y-4">
-              <Field label="Group size">
-                <PmInput
-                  type="number"
-                  min="2"
-                  max="5"
-                  value={String(groupSize)}
-                  onChange={(e) => setGroupSize(Number(e.target.value))}
-                />
-              </Field>
               <Field label="Duration (min)">
                 <PmInput
                   type="number"
@@ -248,15 +234,6 @@ function MatchPage() {
                 />
               </Field>
             </div>
-          </PmCard>
-          {/* MOCK — no live online-user count endpoint yet, see BE-16 */}
-          <PmCard className="p-5">
-            <PmBadge tone="accent">
-              <Users className="size-3" /> 23 online
-            </PmBadge>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Peak hours are 6–9 PM IST. Matches at this hour usually fill in under a minute.
-            </p>
           </PmCard>
         </aside>
       </div>

@@ -147,6 +147,10 @@ export function useLiveRoom(roomId: string) {
       try {
         const { token, url } = await getRoomToken(sessionRef.current, roomId);
         if (cancelled) return;
+        // url is only null if the server's own LIVEKIT_URL is unset -- /ready
+        // already gates deploys on that, so this is a defensive check, not an
+        // expected runtime path.
+        if (!url) throw new Error("LiveKit URL is not configured on the server");
         await room.connect(url, token);
         await room.localParticipant.setMicrophoneEnabled(true);
         if (!cancelled) setStatus("connected");

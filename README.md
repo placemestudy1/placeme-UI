@@ -1,218 +1,79 @@
-# PlaceMe Connect
-
-Build a complete production-quality UI/UX for a SaaS application called PlaceMe.
-
-PlaceMe is a platform where engineering students join live voice Group Discussions (GDs), collaborate in real time, and receive AI-powered individual feedback after each session.
-
-IMPORTANT:
-
-This project must include BOTH:
-
-1. A responsive web application
-
-   - Desktop (1440px)
-
-   - Laptop (1280px)
-
-   - Tablet (1024px)
-
-   - Mobile Web (390px)
-
-2. A native mobile application
-
-   - iOS & Android
-
-   - iPhone 16 Pro viewport (393×852)
-
-   - Android-friendly layouts
-
-   - Native navigation patterns
-
-Do not only build the desktop version.
-
-Generate dedicated mobile screens instead of simply shrinking the desktop layout.
-
-------------------------------------------------
-
-Design Style
-
-• Premium SaaS
-
-• Modern
-
-• Dark theme
-
-• Inspired by Linear, Notion, Discord, Spotify, Slack and Vercel
-
-• Rounded corners
-
-• Glassmorphism where appropriate
-
-• Soft shadows
-
-• Excellent spacing
-
-• Premium typography
-
-• Accessible contrast
-
-------------------------------------------------
-
-Create a reusable design system with:
-
-• Buttons
-
-• Inputs
-
-• Cards
-
-• Badges
-
-• Dialogs
-
-• Banners
-
-• Empty States
-
-• Error States
-
-• Loading Skeletons
-
-• Avatars
-
-• Navigation
-
-• Transcript Components
-
-• Feedback Components
-
-• Status Indicators
-
-------------------------------------------------
-
-Responsive Web Navigation
-
-Desktop
-
-- Left Sidebar
-
-Tablet
-
-- Top Navigation
-
-Mobile Web
-
-- Bottom Navigation
-
-------------------------------------------------
-
-Native Mobile Navigation
-
-Use native mobile UX.
-
-Main screens should have a persistent Bottom Tab Bar:
-
-- Home
-
-- New Room
-
-- Join
-
-- Random Match
-
-- History
-
-Secondary flows should use full-screen stacked navigation:
-
-- Login
-
-- Signup
-
-- Consent
-
-- Create Room
-
-- Join Room
-
-- Live Session
-
-- Feedback
-
-Do NOT use desktop sidebars inside the mobile application.
-
-------------------------------------------------
-
-Generate both Web and Native versions for these screens:
-
-• Login
-
-• Sign Up
-
-• Home
-
-• Mic Consent
-
-• Create Room
-
-• Join Room
-
-• Random Match
-
-• Room Lobby
-
-• Live Session
-
-• Session Ended
-
-• History
-
-• Not Found
-
-For every screen include:
-
-Desktop Layout
-
-Tablet Layout
-
-Mobile Web Layout
-
-Native Mobile Layout
-
-------------------------------------------------
-
-Populate the application with realistic demo data including:
-
-Room codes
-
-Participants
-
-Topics
-
-Transcripts
-
-AI Feedback
-
-Statistics
-
-Dates
-
-Durations
-
-------------------------------------------------
-
-The mobile application should look like a real App Store application while the web version should look like a premium SaaS dashboard.
-
-Maintain one shared design system but adapt layouts according to platform conventions instead of simply resizing components.
-
-Generate reusable components and production-ready React code.
+# PlaceMe UI
+
+The canonical web frontend for **PlaceMe** — a platform where engineering
+students join live voice Group Discussions (GDs), collaborate in real time,
+and receive AI-powered individual feedback after each session.
+
+This app is the web client for [`gd-proto`](../gd-proto)'s backend (REST API
++ LiveKit audio + Supabase auth/data). It does not include a server of its
+own beyond the SSR/static hosting layer.
+
+## Stack
+
+- [TanStack Start](https://tanstack.com/start) (React 19) + [TanStack
+  Router](https://tanstack.com/router) — file-based routes under
+  `src/routes/`.
+- [Supabase](https://supabase.com) — auth (`src/lib/auth-context.tsx`,
+  `src/lib/supabase-client.ts`).
+- [LiveKit](https://livekit.io) client — live session audio
+  (`src/components/session/live-room.tsx`).
+- Tailwind CSS v4 + a small custom design-system layer
+  (`src/components/pm/`: `kit.tsx` primitives, `blocks.tsx` domain
+  components, `web-shell.tsx` page chrome).
+- Vite + Nitro, deployed as a Cloudflare Worker by default (`vite.config.ts`
+  sets `nitro({ defaultPreset: "cloudflare-module" })`); override with the
+  `NITRO_PRESET` env var for other targets (e.g. Vercel).
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js (see `engines.node` in `package.json`).
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm install
+cp .env.example .env.local   # fill in the values below
 npm run dev
 ```
+
+### Environment variables
+
+See `.env.example`. In short:
+
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — from the Supabase
+  project's dashboard under Project Settings → API. The anon/publishable
+  key is safe to expose client-side.
+- `VITE_API_URL` — the `gd-proto/apps/server` origin this app talks to
+  (defaults to `http://localhost:3000` for local dev against a locally
+  running backend).
+
+### Other scripts
+
+```sh
+npm run build      # production build (writes .output/)
+npm run preview    # preview a production build locally
+npm run lint        # ESLint
+npm run format      # Prettier --write
+```
+
+## Project structure
+
+```
+src/
+  routes/       # file-based routes (TanStack Router) — the real, canonical app
+  components/
+    pm/         # design-system primitives (kit.tsx), domain blocks
+                # (blocks.tsx), and page chrome (web-shell.tsx)
+    session/    # LiveKit live-session integration
+    ui/         # shadcn/ui-derived primitives used by components/pm
+  lib/          # API client (api.ts), auth context, Supabase client, demo
+                # fixture types/data still used by a couple of screens
+docs/
+  BACKEND_REQUIREMENTS.md   # tracked gaps between this UI and gd-proto's
+                             # API, referenced from route comments as "BE-N"
+```
+
+## Status
+
+Actively being migrated off its original AI-scaffolded demo data onto
+`gd-proto`'s real API — see `../ACTION_PLAN.md` (Phase 2) for the live
+checklist. Known gaps are tracked in `docs/BACKEND_REQUIREMENTS.md` and
+referenced inline in route comments (e.g. `BE-8`, `BE-16`).

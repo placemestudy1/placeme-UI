@@ -1,10 +1,10 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "placeme-ui",
   "private": true,
   "sideEffects": false,
   "type": "module",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.1 <23"
   },
   "scripts": {
     "dev": "vite dev",
@@ -12,7 +12,13 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "sync-contract": "node scripts/sync-contract.mjs",
+    "generate:api-types": "openapi-typescript openapi/gd-proto.openapi.yaml -o src/lib/api-types.generated.ts",
+    "check:contract-drift": "node scripts/check-contract-drift.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -56,6 +62,7 @@
     "input-otp": "^1.4.2",
     "livekit-client": "^2.21.0",
     "lucide-react": "^0.575.0",
+    "posthog-js": "^1.412.0",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -72,7 +79,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.62.1",
     "@tanstack/devtools-vite": "^0.8.3",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
@@ -83,11 +94,14 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jsdom": "^25.0.1",
     "lightningcss": "^1.33.0",
     "nitro": "3.0.260603-beta",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "vitest": "^3.2.4"
   }
 }

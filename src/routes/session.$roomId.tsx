@@ -33,6 +33,7 @@ import {
 import { ParticipantTile, TimerPill } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getRoomStatus } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import {
   useLiveRoom,
   LiveRoomError,
@@ -106,7 +107,10 @@ function SessionPage() {
           if (r.topicText) setTopicText(r.topicText);
           if (r.code) setCode(r.code);
           if (r.endsAt) setEndsAt(r.endsAt);
-          if (r.status === "ended") navigate({ to: "/ended/$roomId", params: { roomId } });
+          if (r.status === "ended") {
+            track({ name: "session_completed", properties: { roomId } });
+            navigate({ to: "/ended/$roomId", params: { roomId } });
+          }
         })
         .catch(() => {});
     }
@@ -127,6 +131,7 @@ function SessionPage() {
   // Leaves the live room and navigates back to the room's lobby.
   function confirmLeave() {
     live.leave();
+    track({ name: "session_left_early", properties: { roomId } });
     navigate({ to: "/lobby/$roomId", params: { roomId } });
   }
 

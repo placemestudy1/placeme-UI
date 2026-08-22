@@ -29,6 +29,7 @@ import {
 import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { createRoom, generateTopic, submitCustomTopic } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/rooms/new")({
   head: () => ({
@@ -84,6 +85,7 @@ function CreateRoomPage() {
         visibility,
         level,
       });
+      track({ name: "room_created", properties: { roomId: room.id, durationSeconds, visibility } });
       navigate({
         to: "/lobby/$roomId",
         params: { roomId: room.id },

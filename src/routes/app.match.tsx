@@ -13,7 +13,6 @@ import { RefreshCw, Shuffle, Users } from "lucide-react";
 import { NativeTabScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
-  PmAvatar,
   PmButton,
   PmCard,
   PmInput,
@@ -22,7 +21,6 @@ import {
   StatusDot,
   SectionTitle,
 } from "@/components/pm/kit";
-import { participants } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { getActiveRoom, leaveMatchQueue, requestMatch } from "@/lib/api";
 
@@ -36,7 +34,7 @@ export const Route = createFileRoute("/app/match")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login">
+    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
       <NativeMatch />
     </ProtectedRoute>
   ),
@@ -153,15 +151,7 @@ function NativeMatch() {
                   className="mt-2 justify-center"
                 />
                 <div className="mt-5 grid grid-cols-3 gap-3">
-                  {participants.slice(0, 4).map((p) => (
-                    <div key={p.id} className="flex flex-col items-center gap-1.5">
-                      <PmAvatar initials={p.initials} size="md" />
-                      <span className="text-[10px] text-muted-foreground">
-                        {p.name.split(" ")[0]}
-                      </span>
-                    </div>
-                  ))}
-                  {[0, 1].map((i) => (
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="flex flex-col items-center gap-1.5">
                       <Skel className="size-11 rounded-full" />
                       <Skel className="h-2.5 w-8" />

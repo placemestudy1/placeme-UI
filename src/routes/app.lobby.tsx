@@ -57,7 +57,7 @@ export const Route = createFileRoute("/app/lobby")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login">
+    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
       <NativeLobby />
     </ProtectedRoute>
   ),

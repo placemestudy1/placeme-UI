@@ -38,7 +38,7 @@ export const Route = createFileRoute("/app/join")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login">
+    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
       <NativeJoin />
     </ProtectedRoute>
   ),

@@ -32,7 +32,7 @@ export const Route = createFileRoute("/app/new")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login">
+    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
       <NativeNewRoom />
     </ProtectedRoute>
   ),

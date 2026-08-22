@@ -21,6 +21,7 @@ import { ProtectedRoute } from "@/components/pm/protected-route";
 import { Banner, PmBadge, PmButton, PmCard, StatusDot } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
+import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/consent")({
   head: () => ({
@@ -114,6 +115,7 @@ function ConsentPage() {
       setMicState("granted");
       setSubmitting(true);
       await grantConsent();
+      track({ name: "consent_granted" });
     } catch (e) {
       if (
         e instanceof DOMException &&

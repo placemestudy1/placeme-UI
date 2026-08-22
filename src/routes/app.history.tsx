@@ -30,7 +30,7 @@ export const Route = createFileRoute("/app/history")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login">
+    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/consent">
       <NativeHistory />
     </ProtectedRoute>
   ),
