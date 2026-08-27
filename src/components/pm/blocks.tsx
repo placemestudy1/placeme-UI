@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clock3, Hand, Mic, MicOff, Users } from "lucide-react";
+import { ChevronRight, Clock3, Hand, Mic, MicOff, Users, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { Participant, Room, Session } from "@/lib/demo";
@@ -10,6 +10,8 @@ import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 // generic `kit.tsx` primitives.
 //
 // Exports:
+// - ActionRow: an icon/title/subtitle link row, e.g. Home's Create Room /
+//   Random Match / Join by Code entries.
 // - RoomCard: a browsable/joinable room summary card.
 // - ParticipantTile: a single participant's avatar/name/mic-status tile.
 // - SessionRow: a past-session row for history lists.
@@ -17,6 +19,37 @@ import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 // - ProgressPoint, ProgressChart: a simple bar chart of score-over-time
 //   points.
 // - TimerPill: a small pill showing an elapsed/remaining time string.
+
+// Icon/title/subtitle link row used for a small set of top-level actions
+// (e.g. Home's Create Room / Random Match / Join by Code entries).
+export function ActionRow({
+  icon: Icon,
+  title,
+  subtitle,
+  to,
+}: {
+  icon: LucideIcon;
+  title: string;
+  subtitle?: string;
+  to: string;
+}) {
+  return (
+    <PmCard interactive className="p-4">
+      <Link to={to} className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{title}</span>
+          {subtitle ? (
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">{subtitle}</span>
+          ) : null}
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      </Link>
+    </PmCard>
+  );
+}
 
 // Card summarizing a room to browse/join: live/level badges, topic, host,
 // duration, room code, and a filled/seats avatar stack. Navigates via `to`,
@@ -41,7 +74,7 @@ export function RoomCard({
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <PmBadge tone={live ? "live" : "primary"}>
+            <PmBadge tone={live ? "live" : "neutral"}>
               {live ? <StatusDot status="live" /> : null}
               {room.startsIn}
             </PmBadge>
@@ -83,12 +116,23 @@ export function RoomCard({
 // Tile showing one participant's avatar (with a speaking/muted ring), name,
 // college, mic icon, and talk-share percentage. `compact` shrinks sizing for
 // denser grids.
-export function ParticipantTile({ p, compact }: { p: Participant; compact?: boolean }) {
+export function ParticipantTile({
+  p,
+  compact,
+  dark,
+}: {
+  p: Participant;
+  compact?: boolean;
+  // Dark-background variant for the Live Session focus-mode screen — same
+  // data/behavior, just legible on a navy background instead of a card.
+  dark?: boolean;
+}) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center rounded-2xl border border-border bg-surface p-4 text-center transition-colors",
-        p.speaking && "border-success/50 bg-success/5",
+        "flex flex-col items-center rounded-2xl border p-4 text-center transition-colors",
+        dark ? "border-white/10 bg-white/5" : "border-border bg-surface",
+        p.speaking && (dark ? "border-success/60 bg-success/10" : "border-success/50 bg-success/5"),
         compact && "p-3",
       )}
     >
@@ -97,16 +141,32 @@ export function ParticipantTile({ p, compact }: { p: Participant; compact?: bool
         size={compact ? "md" : "lg"}
         ring={p.speaking ? "speaking" : p.muted ? "muted" : "none"}
       />
-      <p className="mt-2.5 w-full truncate text-sm font-semibold">{p.name}</p>
-      <p className="w-full truncate text-[11px] text-muted-foreground">{p.college}</p>
+      <p className={cn("mt-2.5 w-full truncate text-sm font-semibold", dark && "text-white")}>
+        {p.name}
+      </p>
+      <p
+        className={cn(
+          "w-full truncate text-[11px]",
+          dark ? "text-white/50" : "text-muted-foreground",
+        )}
+      >
+        {p.college}
+      </p>
       <div className="mt-2 flex items-center gap-1.5">
         {p.handRaised && <Hand className="size-3.5 text-warning" />}
         {p.muted ? (
-          <MicOff className="size-3.5 text-muted-foreground" />
+          <MicOff className={cn("size-3.5", dark ? "text-white/40" : "text-muted-foreground")} />
         ) : (
-          <Mic className={cn("size-3.5", p.speaking ? "text-success" : "text-muted-foreground")} />
+          <Mic
+            className={cn(
+              "size-3.5",
+              p.speaking ? "text-success" : dark ? "text-white/40" : "text-muted-foreground",
+            )}
+          />
         )}
-        <span className="text-[11px] text-muted-foreground">{p.talkShare}%</span>
+        <span className={cn("text-[11px]", dark ? "text-white/50" : "text-muted-foreground")}>
+          {p.talkShare}%
+        </span>
       </div>
     </div>
   );
@@ -129,27 +189,33 @@ export function SessionRow({
 }) {
   return (
     <PmCard interactive className="p-4">
-      <Link
-        to={to}
-        {...(search ? { search } : {})}
-        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4"
-      >
-        <div className="min-w-0">
+      <Link to={to} {...(search ? { search } : {})} className="flex items-center gap-4">
+        <span
+          className={cn(
+            "grid size-11 shrink-0 place-items-center rounded-full border-2 font-display text-sm font-extrabold",
+            s.score != null ? "border-primary text-primary" : "border-border text-muted-foreground",
+          )}
+        >
+          {s.score ?? "—"}
+        </span>
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{s.topic}</p>
           <p className="mt-1 truncate text-xs text-muted-foreground">
             {s.date} · {s.duration}
             {s.participants != null ? ` · ${s.participants} participants` : ""} · {s.code}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          {s.status === "Processing" ? (
-            <PmBadge tone="warning">Processing</PmBadge>
-          ) : s.score != null ? (
-            <PmBadge tone="success">{s.score}</PmBadge>
-          ) : (
-            <PmBadge tone="success">Analyzed</PmBadge>
-          )}
-        </div>
+        {s.status === "Processing" ? (
+          <PmBadge tone="warning" className="shrink-0">
+            Processing
+          </PmBadge>
+        ) : s.score == null ? (
+          <PmBadge tone="success" className="shrink-0">
+            Analyzed
+          </PmBadge>
+        ) : (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        )}
       </Link>
     </PmCard>
   );

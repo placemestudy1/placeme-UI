@@ -97,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "PlaceMe lets engineering students join live voice group discussions and get individual AI feedback.",
       },
       { name: "author", content: "PlaceMe" },
-      { name: "theme-color", content: "#131722" },
+      { name: "theme-color", content: "#2563eb" },
       { property: "og:title", content: "PlaceMe — Live GD practice with AI feedback" },
       {
         property: "og:description",
@@ -111,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
       },
       {
         rel: "stylesheet",

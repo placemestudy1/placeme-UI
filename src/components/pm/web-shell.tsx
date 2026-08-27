@@ -1,16 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  Bell,
-  Clock3,
-  Home,
-  LogIn,
-  LogOut,
-  Mic,
-  PlusCircle,
-  Search,
-  Shuffle,
-  Sparkles,
-} from "lucide-react";
+import { Bell, Clock3, LayoutDashboard, LogOut, Mic, Search, Sparkles, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -62,11 +51,11 @@ function SignOutButton({ className }: { className?: string }) {
 }
 
 // Top-level nav entries shared by the sidebar, top nav, and bottom tab bar.
+// Create Room / Random Match / Join by Code live as action rows inside the
+// Practice tab's content instead of occupying top-level nav space.
 export const webNav = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/rooms/new", label: "New Room", icon: PlusCircle },
-  { to: "/join", label: "Join", icon: LogIn },
-  { to: "/match", label: "Random", icon: Shuffle },
+  { to: "/", label: "Practice", icon: LayoutDashboard },
+  { to: "/join", label: "Browse Rooms", icon: Users },
   { to: "/history", label: "History", icon: Clock3 },
 ] as const;
 
@@ -146,7 +135,7 @@ export function Logo({ compact }: { compact?: boolean }) {
         </svg>
       </span>
       {!compact ? (
-        <span className="font-display text-lg font-bold tracking-tight text-[#1a3fa8]">
+        <span className="font-display text-lg font-bold tracking-tight text-foreground">
           PlaceMe
         </span>
       ) : null}
@@ -171,7 +160,7 @@ function NavLink({
 }: {
   to: string;
   label: string;
-  icon: typeof Home;
+  icon: typeof LayoutDashboard;
   variant: "sidebar" | "top" | "bottom";
 }) {
   const active = useActive(to);

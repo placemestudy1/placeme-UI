@@ -13,12 +13,12 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Hand, Mic, MicOff, PhoneOff, ScrollText } from "lucide-react";
+import { Hand, Lightbulb, Mic, MicOff, PhoneOff, ScrollText } from "lucide-react";
 
 import { NativeStackScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
-import { PmBadge, PmButton, PmDialog, StatusDot } from "@/components/pm/kit";
-import { ParticipantTile, TimerPill } from "@/components/pm/blocks";
+import { PmBadge, PmButton, PmDialog, ScoreRing, StatusDot } from "@/components/pm/kit";
+import { ParticipantTile } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getRoomStatus } from "@/lib/api";
 import {
@@ -66,6 +66,7 @@ function NativeSession() {
   const [leaving, setLeaving] = useState(false);
   const [topicText, setTopicText] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -80,6 +81,7 @@ function NativeSession() {
           if (cancelled) return;
           if (r.topicText) setTopicText(r.topicText);
           if (r.code) setCode(r.code);
+          if (r.durationSeconds) setDurationSeconds(r.durationSeconds);
           if (r.endsAt) setEndsAt(r.endsAt);
           if (r.status === "ended") navigate({ to: "/app/ended", search: { roomId } });
         })
@@ -107,6 +109,7 @@ function NativeSession() {
   return (
     <NativeStackScreen
       bare
+      footerDark
       footer={
         <div className="flex items-center justify-between gap-2">
           <PmButton
@@ -144,52 +147,66 @@ function NativeSession() {
         </div>
       }
     >
-      <div className="flex items-center justify-between px-5 pb-3">
-        <PmBadge tone="live">
-          <StatusDot status="live" /> Live{code ? ` · ${code}` : ""}
-        </PmBadge>
-        <TimerPill
-          time={
-            endsAt ? formatCountdown(Math.max(0, Math.round((endsAt - now) / 1000))) : undefined
-          }
-        />
-      </div>
-      <div className="px-5">
-        <h1 className="text-base font-bold leading-snug">{topicText ?? "Group discussion"}</h1>
-        {live.error && (
-          <div className="mt-3">
-            <LiveRoomError error={live.error} needsConsent={live.needsConsent} />
-          </div>
-        )}
-        <div className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
-          {(["room", "transcript"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "rounded-lg py-2 text-xs font-semibold capitalize transition-colors",
-                tab === t ? "bg-card text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {t}
-            </button>
-          ))}
+      <div className="min-h-full bg-[#0f172a] text-white">
+        <div className="flex items-center gap-3 px-5 pb-3">
+          <ScoreRing
+            score={endsAt ? Math.max(0, Math.round((endsAt - now) / 1000)) : 0}
+            max={durationSeconds ?? 1}
+            size={40}
+            strokeWidth={4}
+            label=""
+            valueLabel={
+              endsAt ? formatCountdown(Math.max(0, Math.round((endsAt - now) / 1000))) : "--:--"
+            }
+            tone="light"
+          />
+          <PmBadge tone="live">
+            <StatusDot status="live" /> Live{code ? ` · ${code}` : ""}
+          </PmBadge>
         </div>
-      </div>
-
-      <div className="space-y-4 px-5 py-4">
-        {tab === "room" ? (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              {live.tiles.map((p) => (
-                <ParticipantTile key={p.id} p={p} compact />
-              ))}
+        <div className="px-5">
+          <h1 className="text-base font-bold leading-snug">{topicText ?? "Group discussion"}</h1>
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2">
+            <Lightbulb className="size-3.5 shrink-0 text-primary-glow" />
+            <span className="text-[11px] font-semibold text-primary-glow/90">
+              Give quieter voices room — balanced airtime scores best.
+            </span>
+          </div>
+          {live.error && (
+            <div className="mt-3">
+              <LiveRoomError error={live.error} needsConsent={live.needsConsent} />
             </div>
-            <LiveCaptionFeed latestCaption={live.latestCaption} nameFor={live.nameFor} />
-          </>
-        ) : (
-          <LiveTranscriptPanel captions={live.captions} nameFor={live.nameFor} />
-        )}
+          )}
+          <div className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-white/10 p-1">
+            {(["room", "transcript"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "rounded-lg py-2 text-xs font-semibold capitalize transition-colors",
+                  tab === t ? "bg-white text-[#0f172a]" : "text-white/60",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4 px-5 py-4">
+          {tab === "room" ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {live.tiles.map((p) => (
+                  <ParticipantTile key={p.id} p={p} compact dark />
+                ))}
+              </div>
+              <LiveCaptionFeed latestCaption={live.latestCaption} nameFor={live.nameFor} />
+            </>
+          ) : (
+            <LiveTranscriptPanel captions={live.captions} nameFor={live.nameFor} />
+          )}
+        </div>
       </div>
 
       <PmDialog

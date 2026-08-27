@@ -17,17 +17,15 @@ import { Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { NativeStackScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
+  DimensionCard,
   FeedbackList,
-  PmBadge,
   PmButton,
   PmCard,
   PmInput,
-  ScoreBar,
   ScoreRing,
   SectionTitle,
   TranscriptLineItem,
 } from "@/components/pm/kit";
-import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMyFeedback,
@@ -72,6 +70,14 @@ function initialsFor(name: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+// Picks the lowest-scoring real feedback dimension, so the "suggested next
+// topic" card targets an actual weak spot instead of a fixed placeholder
+// (mirrors ended.$roomId.tsx's weakestDimension()).
+function weakestDimension(dims: FeedbackDimension[]): FeedbackDimension | null {
+  if (dims.length === 0) return null;
+  return dims.reduce((min, d) => (d.score < min.score ? d : min));
 }
 
 // Main "session ended" screen: polls for real feedback, shows the score
@@ -191,18 +197,18 @@ function NativeEnded() {
       }
     >
       <div className="space-y-5 px-5 py-5">
-        <PmCard glass className="flex flex-col items-center p-5 text-center">
+        <PmCard className="flex flex-col items-center bg-[linear-gradient(180deg,var(--primary),var(--primary))] p-5 text-center text-white">
           {score != null ? (
-            <ScoreRing score={score} size={116} />
+            <ScoreRing score={score} size={116} tone="light" />
           ) : (
-            <div className="grid size-[116px] place-items-center rounded-full border border-dashed border-border text-center text-xs text-muted-foreground">
+            <div className="grid size-[116px] place-items-center rounded-full border border-dashed border-white/40 text-center text-xs text-white/70">
               Score not available
             </div>
           )}
-          <p className="mt-3 text-sm font-semibold leading-snug">
+          <p className="mt-3 text-sm font-semibold leading-snug text-white">
             {status?.topicText ?? "This discussion"}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-white/70">
             {status
               ? `${status.code} · ${Math.round(status.durationSeconds / 60)} min`
               : "Loading…"}
@@ -272,12 +278,14 @@ function NativeEnded() {
         {tab === "feedback" ? (
           <>
             {dimensions.length > 0 && (
-              <PmCard className="space-y-4 p-4">
+              <div>
                 <SectionTitle title="Score breakdown" />
-                {dimensions.map((d) => (
-                  <ScoreBar key={d.label} {...d} />
-                ))}
-              </PmCard>
+                <div className="grid grid-cols-2 gap-3">
+                  {dimensions.map((d) => (
+                    <DimensionCard key={d.label} {...d} />
+                  ))}
+                </div>
+              </div>
             )}
             {strengths.length > 0 && <FeedbackList title="What worked" items={strengths} />}
             {improvements.length > 0 && (
@@ -306,10 +314,23 @@ function NativeEnded() {
 
             <PmCard className="p-4">
               <SectionTitle title="Suggested next topic" />
-              <p className="text-sm font-semibold">{topics[3]}</p>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Targets your lowest sub-score: fluency under pressure.
-              </p>
+              {(() => {
+                const weak = weakestDimension(dimensions);
+                return weak ? (
+                  <>
+                    <p className="text-sm font-semibold">
+                      Practice a topic that stretches your {weak.label.toLowerCase()}
+                    </p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      Targets your lowest sub-score: {weak.label.toLowerCase()} ({weak.score}).
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Complete more sessions to get a personalized suggestion.
+                  </p>
+                );
+              })()}
               <PmButton asChild block className="mt-4">
                 <Link to="/app/new">Create this room</Link>
               </PmButton>

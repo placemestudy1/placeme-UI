@@ -1,23 +1,21 @@
 /**
- * Renders the PlaceMe mobile app's home tab: a greeting with streak, a
- * quick-match call to action, at-a-glance stats, open rooms to join, and
- * recent session history — all fetched from the real backend.
+ * Renders the PlaceMe mobile app's home tab: a greeting with streak/best
+ * score badges, a "start a topic" card, the three room-entry actions, and
+ * open rooms to join — all fetched from the real backend.
  *
  * - NativeHome(): main route component; renders the mobile home screen.
  */
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, ChevronRight, Shuffle, Sparkles } from "lucide-react";
+import { Bell, Dice5, Flame, KeyRound, PenLine, PlusCircle, Shuffle, Trophy } from "lucide-react";
 
 import { NativeTabScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { PmAvatar, PmBadge, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
-import { ProgressChart, RoomCard, SessionRow, StatCard } from "@/components/pm/blocks";
+import { ActionRow, RoomCard } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, listOpenRooms, type HistorySession, type OpenRoom } from "@/lib/api";
-import { average, computeStreak } from "@/lib/session/stats";
-import { dateFormatter } from "@/lib/session/formatting";
-import { buildScoreTrend, toSessionRow } from "@/lib/session/history";
+import { computeStreak } from "@/lib/session/stats";
 import { toRoomCard } from "@/lib/session/rooms";
 
 export const Route = createFileRoute("/app/")({
@@ -39,8 +37,8 @@ export const Route = createFileRoute("/app/")({
   ),
 });
 
-// Main route component: renders the mobile home tab with a greeting, quick
-// match CTA, real stats grid, real open rooms, and real recent history.
+// Main route component: renders the mobile home tab with a greeting, the
+// start-a-topic card, the three room-entry actions, and real open rooms.
 function NativeHome() {
   const { user, session } = useAuth();
   const navigate = useNavigate();
@@ -59,16 +57,10 @@ function NativeHome() {
       .catch(() => setOpenRooms([]));
   }, [session]);
 
-  const recent = sessions?.slice(0, 2) ?? null;
-  const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
-  const avgScore = useMemo(
-    () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
-    [sessions],
-  );
-  const avgTalkShare = useMemo(
-    () => average((sessions ?? []).flatMap((s) => (s.talkShare != null ? [s.talkShare] : []))),
-    [sessions],
-  );
+  const bestScore = useMemo(() => {
+    const scores = (sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []));
+    return scores.length > 0 ? Math.max(...scores) : null;
+  }, [sessions]);
   const streak = useMemo(() => computeStreak(sessions ?? []), [sessions]);
 
   const displayName =
@@ -88,51 +80,53 @@ function NativeHome() {
       }
     >
       <div className="space-y-5">
-        <PmCard glass className="p-5">
-          <PmBadge tone="accent">
-            <Sparkles className="size-3" /> {streak > 0 ? `${streak}-day streak` : "Get started"}
-          </PmBadge>
-          <p className="mt-3 text-lg font-bold leading-snug">Ready for today's discussion round?</p>
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            {streak > 0 ? "Keep your streak going." : "Start your first streak today."}
-          </p>
-          <PmButton asChild block size="lg" className="mt-4">
-            <Link to="/app/match">
-              <Shuffle /> Quick match
-            </Link>
-          </PmButton>
-        </PmCard>
-
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Sessions" value={sessions ? String(sessions.length) : "…"} />
-          <StatCard label="Avg. score" value={avgScore != null ? String(avgScore) : "—"} />
-          <StatCard label="Speak time" value={avgTalkShare != null ? `${avgTalkShare}%` : "—"} />
-          <StatCard
-            label="Streak"
-            value={streak > 0 ? `${streak} day${streak === 1 ? "" : "s"}` : "—"}
-          />
+        <div className="flex flex-wrap gap-2">
+          {streak > 0 && (
+            <PmBadge tone="warning">
+              <Flame className="size-3.5" /> {streak}-session streak
+            </PmBadge>
+          )}
+          {bestScore != null && (
+            <PmBadge tone="primary">
+              <Trophy className="size-3.5" /> Best {bestScore}
+            </PmBadge>
+          )}
         </div>
 
-        <PmCard className="p-5">
-          <SectionTitle title="Score trend" subtitle="Your last scored sessions" />
-          {scoreTrend.length > 0 ? (
-            <ProgressChart series={scoreTrend} />
-          ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No scored sessions yet.
-            </p>
-          )}
+        <PmCard className="p-4">
+          <SectionTitle title="Start a topic" />
+          <div className="flex flex-col gap-2.5">
+            <PmButton asChild block>
+              <Link to="/app/new">
+                <Dice5 /> Generate AI topic
+              </Link>
+            </PmButton>
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              OR
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <Link
+              to="/app/new"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-muted-foreground"
+            >
+              <PenLine className="size-4" /> Write your own topic…
+            </Link>
+          </div>
         </PmCard>
+
+        <div className="space-y-2.5">
+          <ActionRow icon={PlusCircle} title="Create a Room" to="/app/new" />
+          <ActionRow icon={Shuffle} title="Random Match" to="/app/match" />
+          <ActionRow icon={KeyRound} title="Join by Code" to="/app/join" />
+        </div>
 
         <div>
           <SectionTitle
-            title="Open rooms"
+            title="Open rooms nearby"
             action={
-              <Link
-                to="/app/join"
-                className="flex items-center text-xs font-semibold text-primary-glow"
-              >
-                See all <ChevronRight className="size-3.5" />
+              <Link to="/app/join" className="text-xs font-semibold text-primary">
+                See all
               </Link>
             }
           />
@@ -146,24 +140,6 @@ function NativeHome() {
                 key={r.code}
                 room={toRoomCard(r)}
                 onSelect={() => navigate({ to: "/app/join" })}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <SectionTitle title="Recent" />
-          <div className="space-y-3">
-            {recent === null && <p className="text-sm text-muted-foreground">Loading…</p>}
-            {recent?.length === 0 && (
-              <p className="text-sm text-muted-foreground">No sessions yet.</p>
-            )}
-            {recent?.map((s) => (
-              <SessionRow
-                key={s.id}
-                s={toSessionRow(s, dateFormatter)}
-                to="/app/ended"
-                search={{ roomId: s.id }}
               />
             ))}
           </div>

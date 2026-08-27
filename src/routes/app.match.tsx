@@ -8,16 +8,16 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { RefreshCw, Shuffle, Users } from "lucide-react";
+import { RefreshCw, Shuffle, User, Users } from "lucide-react";
 
 import { NativeTabScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
+  PmAvatar,
   PmButton,
   PmCard,
   PmInput,
   Field,
-  Skel,
   StatusDot,
   SectionTitle,
 } from "@/components/pm/kit";
@@ -49,7 +49,18 @@ type State = "idle" | "searching" | "gaveUp";
 // Main route component: requests a real match and renders the idle /
 // searching / gave-up states, same state machine as the real web /match.
 function NativeMatch() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
+  const initials = (
+    (user?.user_metadata?.["display_name"] as string | undefined) ||
+    user?.email ||
+    "You"
+  )
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   const navigate = useNavigate();
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -150,11 +161,17 @@ function NativeMatch() {
                   label="Waiting for enough students"
                   className="mt-2 justify-center"
                 />
-                <div className="mt-5 grid grid-cols-3 gap-3">
-                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div className="mt-5 flex items-center justify-center gap-3">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <PmAvatar initials={initials} size="md" className="pulse-ring" />
+                    <span className="text-[11px] font-semibold">You</span>
+                  </div>
+                  {[0, 1].map((i) => (
                     <div key={i} className="flex flex-col items-center gap-1.5">
-                      <Skel className="size-11 rounded-full" />
-                      <Skel className="h-2.5 w-8" />
+                      <span className="grid size-11 place-items-center rounded-full border-2 border-dashed border-border text-muted-foreground">
+                        <User className="size-4" />
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">Waiting</span>
                     </div>
                   ))}
                 </div>

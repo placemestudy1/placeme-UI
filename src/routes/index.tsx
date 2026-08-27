@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, PlusCircle, Shuffle, Sparkles } from "lucide-react";
+import {
+  Dice5,
+  Flame,
+  KeyRound,
+  PenLine,
+  PlusCircle,
+  Shuffle,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { PmButton, PmCard, SectionTitle, PmBadge, EmptyState } from "@/components/pm/kit";
-import { ProgressChart, RoomCard, SessionRow, StatCard } from "@/components/pm/blocks";
+import { ActionRow, ProgressChart, RoomCard, SessionRow } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, listOpenRooms, type HistorySession, type OpenRoom } from "@/lib/api";
 import { average, computeStreak } from "@/lib/session/stats";
@@ -45,19 +54,15 @@ function Index() {
 
   const recent = sessions?.slice(0, 3) ?? null;
   const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
-  const avgScore = useMemo(
-    () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
-    [sessions],
-  );
-  const avgTalkShare = useMemo(
-    () => average((sessions ?? []).flatMap((s) => (s.talkShare != null ? [s.talkShare] : []))),
-    [sessions],
-  );
+  const bestScore = useMemo(() => {
+    const scores = (sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []));
+    return scores.length > 0 ? Math.max(...scores) : null;
+  }, [sessions]);
   const streak = useMemo(() => computeStreak(sessions ?? []), [sessions]);
 
   useEffect(() => {
     listOpenRooms(session)
-      .then((r) => setOpenRooms(r.rooms.slice(0, 4)))
+      .then((r) => setOpenRooms(r.rooms.slice(0, 3)))
       .catch(() => setOpenRooms([]));
   }, [session]);
 
@@ -66,67 +71,71 @@ function Index() {
   const firstName = (displayName.split(" ")[0] ?? displayName).split("@")[0] ?? displayName;
 
   return (
-    <WebShell
-      title={`Welcome back, ${firstName}`}
-      // BE-9: real streak. The mock's second clause ("Two rooms match your
-      // practice level right now") is dropped rather than kept fake --
-      // there's no backend item that computes a level-matched-room count.
-      subtitle={
-        streak > 0
-          ? `You're on a ${streak}-day streak. Keep it going!`
-          : "Ready to start your first streak?"
-      }
-      actions={
-        <PmButton asChild>
-          <Link to="/rooms/new">
-            <PlusCircle /> New room
-          </Link>
-        </PmButton>
-      }
-    >
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <WebShell title={`Ready to practice, ${firstName}?`}>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
-          <PmCard glass className="overflow-hidden p-6 md:p-8">
-            <PmBadge tone="accent">
-              <Sparkles className="size-3" /> Random match is fastest
-            </PmBadge>
-            <h2 className="mt-4 max-w-lg text-2xl font-bold md:text-3xl">
-              Get placed in a live GD in under 30 seconds
-            </h2>
-            <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-              We pair you with other students, run a timed discussion, then get you individual AI
-              feedback.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
+            {streak > 0 && (
+              <PmBadge tone="warning">
+                <Flame className="size-3.5" /> {streak}-session streak
+              </PmBadge>
+            )}
+            {bestScore != null && (
+              <PmBadge tone="primary">
+                <Trophy className="size-3.5" /> Best {bestScore}
+              </PmBadge>
+            )}
+          </div>
+
+          <PmCard className="p-6 md:p-8">
+            <SectionTitle title="Start a topic" />
+            <div className="flex flex-col gap-3">
               <PmButton asChild size="lg">
-                <Link to="/match">
-                  <Shuffle /> Find a match
+                <Link to="/rooms/new">
+                  <Dice5 /> Generate AI topic
                 </Link>
               </PmButton>
-              <PmButton asChild variant="outline" size="lg">
-                <Link to="/join">Join with code</Link>
-              </PmButton>
+              <div className="flex items-center gap-3 text-xs font-semibold text-muted-foreground">
+                <div className="h-px flex-1 bg-border" />
+                OR
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <Link
+                to="/rooms/new"
+                className="flex items-center gap-2 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground hover:bg-secondary/50"
+              >
+                <PenLine className="size-4" /> Write your own topic…
+              </Link>
             </div>
           </PmCard>
 
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="Sessions" value={sessions ? String(sessions.length) : "…"} />
-            <StatCard label="Avg. score" value={avgScore != null ? String(avgScore) : "—"} />
-            <StatCard label="Speak time" value={avgTalkShare != null ? `${avgTalkShare}%` : "—"} />
-            <StatCard
-              label="Streak"
-              value={streak > 0 ? `${streak} day${streak === 1 ? "" : "s"}` : "—"}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <ActionRow
+              icon={PlusCircle}
+              title="Create a Room"
+              subtitle="Set topic, duration and visibility"
+              to="/rooms/new"
+            />
+            <ActionRow
+              icon={Shuffle}
+              title="Random Match"
+              subtitle="Get grouped with peers instantly"
+              to="/match"
+            />
+            <ActionRow
+              icon={KeyRound}
+              title="Join by Code"
+              subtitle="Enter a private room code"
+              to="/join"
             />
           </div>
 
           <div>
             <SectionTitle
-              title="Rooms open now"
+              title="Open rooms nearby"
               action={
                 <PmButton asChild variant="ghost" size="sm">
-                  <Link to="/join">
-                    Browse all <ArrowRight />
-                  </Link>
+                  <Link to="/join">See all</Link>
                 </PmButton>
               }
             />

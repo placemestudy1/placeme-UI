@@ -10,11 +10,11 @@
  */
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, Lock, Minus, Plus, Users } from "lucide-react";
 
 import { NativeTabScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
-import { Field, PmBadge, PmButton, PmCard, PmSelect } from "@/components/pm/kit";
+import { Field, PmBadge, PmButton, PmCard, PmSegmented, PmSelect } from "@/components/pm/kit";
 import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { createRoom, generateTopic, submitCustomTopic } from "@/lib/api";
@@ -96,56 +96,58 @@ function NativeNewRoom() {
               ))}
             </PmSelect>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Seats">
-              <PmSelect
-                value={String(maxParticipants)}
-                onChange={(e) => setMaxParticipants(Number(e.target.value))}
-              >
-                <option value="4">4</option>
-                <option value="6">6</option>
-                <option value="8">8</option>
-                <option value="10">10</option>
-              </PmSelect>
-            </Field>
-            <Field label="Duration">
-              <PmSelect
-                value={String(durationSeconds)}
-                onChange={(e) => setDurationSeconds(Number(e.target.value))}
-              >
-                <option value="900">15 min</option>
-                <option value="1200">20 min</option>
-                <option value="1500">25 min</option>
-              </PmSelect>
-            </Field>
-          </div>
-          <Field label="Level">
-            <PmSelect
-              value={level}
-              onChange={(e) => setLevel(e.target.value as "beginner" | "intermediate" | "advanced")}
-            >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </PmSelect>
-          </Field>
-          <Field label="Visibility">
-            <div className="grid grid-cols-2 gap-2 rounded-xl bg-secondary p-1">
+          <Field label="Max participants">
+            <div className="flex items-center justify-between rounded-full border border-input px-4 py-1.5">
               <button
                 type="button"
-                onClick={() => setVisibility("public")}
-                className={`rounded-lg py-2 text-xs font-semibold ${visibility === "public" ? "bg-card text-foreground" : "text-muted-foreground"}`}
+                aria-label="Fewer participants"
+                onClick={() => setMaxParticipants((n) => Math.max(4, n - 2))}
+                className="grid size-7 place-items-center rounded-full border border-border text-muted-foreground"
               >
-                Public
+                <Minus className="size-4" />
               </button>
+              <span className="text-sm font-bold">{maxParticipants} people</span>
               <button
                 type="button"
-                onClick={() => setVisibility("private")}
-                className={`rounded-lg py-2 text-xs font-semibold ${visibility === "private" ? "bg-card text-foreground" : "text-muted-foreground"}`}
+                aria-label="More participants"
+                onClick={() => setMaxParticipants((n) => Math.min(10, n + 2))}
+                className="grid size-7 place-items-center rounded-full border border-border text-muted-foreground"
               >
-                Private
+                <Plus className="size-4" />
               </button>
             </div>
+          </Field>
+          <Field label="Duration">
+            <PmSegmented
+              value={String(durationSeconds)}
+              onChange={(v) => setDurationSeconds(Number(v))}
+              options={[
+                { value: "900", label: "15 min" },
+                { value: "1200", label: "20 min" },
+                { value: "1500", label: "25 min" },
+              ]}
+            />
+          </Field>
+          <Field label="Level">
+            <PmSegmented
+              value={level}
+              onChange={(v) => setLevel(v)}
+              options={[
+                { value: "beginner", label: "Beginner" },
+                { value: "intermediate", label: "Intermediate" },
+                { value: "advanced", label: "Advanced" },
+              ]}
+            />
+          </Field>
+          <Field label="Visibility">
+            <PmSegmented
+              value={visibility}
+              onChange={(v) => setVisibility(v)}
+              options={[
+                { value: "public", label: "Public", icon: <Users /> },
+                { value: "private", label: "Private", icon: <Lock /> },
+              ]}
+            />
           </Field>
         </PmCard>
 

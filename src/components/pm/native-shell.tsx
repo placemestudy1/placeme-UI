@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronLeft, Clock3, Home, LogIn, PlusCircle, Shuffle } from "lucide-react";
+import { ChevronLeft, Clock3, LayoutDashboard, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -16,12 +16,12 @@ import { cn } from "@/lib/utils";
 // - NativeStackScreen: a pushed/stacked screen (status bar + optional back
 //   header + content + optional footer) inside the device frame, no tab bar.
 
-// Bottom tab bar entries for the native mobile screens.
+// Bottom tab bar entries for the native mobile screens. Create Room /
+// Random Match / Join by Code live as action rows inside the Practice
+// tab's content instead of occupying tab-bar space.
 export const nativeTabs = [
-  { to: "/app", label: "Home", icon: Home },
-  { to: "/app/new", label: "New Room", icon: PlusCircle },
-  { to: "/app/join", label: "Join", icon: LogIn },
-  { to: "/app/match", label: "Match", icon: Shuffle },
+  { to: "/app", label: "Practice", icon: LayoutDashboard },
+  { to: "/app/join", label: "Browse Rooms", icon: Users },
   { to: "/app/history", label: "History", icon: Clock3 },
 ] as const;
 
@@ -126,6 +126,7 @@ export function NativeStackScreen({
   right,
   footer,
   bare,
+  footerDark,
 }: {
   children: ReactNode;
   title?: string;
@@ -134,6 +135,9 @@ export function NativeStackScreen({
   right?: ReactNode;
   footer?: ReactNode;
   bare?: boolean;
+  // Dark-styled footer bar, for a screen (Live Session) whose content is
+  // itself dark — avoids a light bar clashing at the bottom of the screen.
+  footerDark?: boolean;
 }) {
   return (
     <DeviceFrame>
@@ -158,7 +162,12 @@ export function NativeStackScreen({
         ) : null}
         <main className="no-scrollbar flex-1 overflow-y-auto">{children}</main>
         {footer ? (
-          <div className="shrink-0 border-t border-border bg-background/95 p-4 backdrop-blur-xl">
+          <div
+            className={cn(
+              "shrink-0 border-t p-4 backdrop-blur-xl",
+              footerDark ? "border-white/10 bg-[#0f172a]/95" : "border-border bg-background/95",
+            )}
+          >
             {footer}
           </div>
         ) : null}

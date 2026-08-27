@@ -12,7 +12,7 @@
  */
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Copy, Lock, Loader2, Users } from "lucide-react";
+import { Copy, Lock, Loader2, Minus, Plus, Users } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
@@ -21,9 +21,8 @@ import {
   PmBadge,
   PmButton,
   PmCard,
-  PmInput,
+  PmSegmented,
   PmSelect,
-  PmTextarea,
   SectionTitle,
 } from "@/components/pm/kit";
 import { topics } from "@/lib/demo";
@@ -60,7 +59,7 @@ function CreateRoomPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const [topicChoice, setTopicChoice] = useState<string>(topics[0]);
-  const [durationSeconds, setDurationSeconds] = useState(900);
+  const [durationSeconds, setDurationSeconds] = useState(600);
   const [maxParticipants, setMaxParticipants] = useState(5);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
@@ -116,88 +115,63 @@ function CreateRoomPage() {
                 ))}
               </PmSelect>
             </Field>
-            {/*
-              MOCK — no backend field for free-form room instructions yet, see
-              docs/BACKEND_REQUIREMENTS.md#BE-15. Left in the form, not submitted.
-            
-            <Field label="Context for participants">
-              <PmTextarea defaultValue="Panel-style GD. Moderator opens, each speaker gets 90 seconds, then free debate. Cite data where possible." />
-            </Field>
-            */}
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Field label="Seats">
-                <PmInput
-                  type="number"
-                  min="2"
-                  max="5"
-                  value={String(maxParticipants)}
-                  onChange={(e) => setMaxParticipants(Number(e.target.value))}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Duration">
+                <PmSegmented
+                  value={String(durationSeconds)}
+                  onChange={(v) => setDurationSeconds(Number(v))}
+                  options={[
+                    { value: "300", label: "5 min" },
+                    { value: "600", label: "10 min" },
+                    { value: "900", label: "15 min" },
+                  ]}
                 />
               </Field>
-              <Field label="Duration (min)">
-                <PmInput
-                  type="number"
-                  min="1"
-                  max="25"
-                  value={String(Math.floor(durationSeconds / 60))}
-                  onChange={(e) => setDurationSeconds(Number(e.target.value) * 60)}
-                />
-              </Field>
-              <Field label="Level">
-                <PmSelect
-                  value={level}
-                  onChange={(e) =>
-                    setLevel(e.target.value as "beginner" | "intermediate" | "advanced")
-                  }
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </PmSelect>
+              <Field label="Max participants">
+                <div className="flex items-center justify-between rounded-full border border-input px-4 py-1.5">
+                  <button
+                    type="button"
+                    aria-label="Fewer participants"
+                    onClick={() => setMaxParticipants((n) => Math.max(2, n - 1))}
+                    className="grid size-7 place-items-center rounded-full border border-border text-muted-foreground hover:bg-secondary/60"
+                  >
+                    <Minus className="size-4" />
+                  </button>
+                  <span className="text-sm font-bold">{maxParticipants} people</span>
+                  <button
+                    type="button"
+                    aria-label="More participants"
+                    onClick={() => setMaxParticipants((n) => Math.min(5, n + 1))}
+                    className="grid size-7 place-items-center rounded-full border border-border text-muted-foreground hover:bg-secondary/60"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+                </div>
               </Field>
             </div>
-            <Field label="Visibility">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
-                    visibility === "public" ? "border-primary/50 bg-primary/10" : "border-border"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="vis"
-                    checked={visibility === "public"}
-                    onChange={() => setVisibility("public")}
-                    className="accent-[var(--primary)]"
-                  />
-                  <span>
-                    <span className="flex items-center gap-2 text-sm font-semibold">
-                      <Users className="size-4" /> Public
-                    </span>
-                    <span className="text-xs text-muted-foreground">Listed for matched peers</span>
-                  </span>
-                </label>
-                <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
-                    visibility === "private" ? "border-primary/50 bg-primary/10" : "border-border"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="vis"
-                    checked={visibility === "private"}
-                    onChange={() => setVisibility("private")}
-                    className="accent-[var(--primary)]"
-                  />
-                  <span>
-                    <span className="flex items-center gap-2 text-sm font-semibold">
-                      <Lock className="size-4" /> Private
-                    </span>
-                    <span className="text-xs text-muted-foreground">Code only</span>
-                  </span>
-                </label>
-              </div>
-            </Field>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Level">
+                <PmSegmented
+                  value={level}
+                  onChange={(v) => setLevel(v)}
+                  options={[
+                    { value: "beginner", label: "Beginner" },
+                    { value: "intermediate", label: "Intermediate" },
+                    { value: "advanced", label: "Advanced" },
+                  ]}
+                />
+              </Field>
+              <Field label="Visibility">
+                <PmSegmented
+                  value={visibility}
+                  onChange={(v) => setVisibility(v)}
+                  options={[
+                    { value: "public", label: "Public", icon: <Users /> },
+                    { value: "private", label: "Private", icon: <Lock /> },
+                  ]}
+                />
+              </Field>
+            </div>
             {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             <div className="flex flex-wrap gap-3 pt-2">
               <PmButton type="submit" size="lg" loading={busy} disabled={busy}>

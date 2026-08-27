@@ -153,14 +153,9 @@ function NativeLobby() {
       backTo="/app/join"
       backLabel="Rooms"
       right={
-        <div className="flex gap-4 items-center">
-          <button className="text-muted-foreground" onClick={() => setSettingsOpen(true)}>
-            <Settings2 className="size-5" />
-          </button>
-          <button className="text-primary-glow" onClick={copyCode}>
-            {copied ? <Check className="size-5 text-success" /> : <Copy className="size-5" />}
-          </button>
-        </div>
+        <button className="text-muted-foreground" onClick={() => setSettingsOpen(true)}>
+          <Settings2 className="size-5" />
+        </button>
       }
       footer={
         isCreator ? (
@@ -175,12 +170,31 @@ function NativeLobby() {
       }
     >
       <div className="space-y-5 px-5 py-5">
-        <PmCard glass className="p-4">
-          <PmBadge tone="live">
-            <StatusDot status="live" /> Waiting to start
+        <PmCard className="p-4">
+          <PmBadge tone="neutral">
+            <StatusDot status="idle" /> Waiting to start
           </PmBadge>
           <h2 className="mt-3 text-lg font-bold leading-snug">{topicText}</h2>
           {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
+        </PmCard>
+
+        <PmCard className="p-4">
+          <span className="text-xs font-semibold text-muted-foreground">
+            Share this code to invite people
+          </span>
+          <button
+            onClick={copyCode}
+            className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-secondary px-4 py-3"
+          >
+            <span className="font-display text-xl font-extrabold tracking-[0.15em] text-primary">
+              {code || "····"}
+            </span>
+            {copied ? (
+              <Check className="size-5 text-success" />
+            ) : (
+              <Copy className="size-5 text-primary" />
+            )}
+          </button>
         </PmCard>
 
         <div>

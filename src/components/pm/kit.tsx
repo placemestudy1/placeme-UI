@@ -1,7 +1,20 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "@radix-ui/react-slot";
-import { AlertTriangle, Check, Info, Loader2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  Check,
+  Clock3,
+  GitBranch,
+  Info,
+  Loader2,
+  Mic,
+  Sparkles,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,6 +27,7 @@ import { cn } from "@/lib/utils";
 //   its cva class-variance definition.
 // - Field, PmInput, PmTextarea, PmSelect: labeled form field wrapper and
 //   styled input/textarea/select controls.
+// - PmSegmented: pill-shaped segmented control for a small set of choices.
 // - PmCard: generic bordered card container.
 // - SectionTitle: a title/subtitle/action header for a page section.
 // - PmBadge: small colored status/label pill.
@@ -26,8 +40,10 @@ import { cn } from "@/lib/utils";
 // - Skel, CardSkeleton: loading-skeleton primitives.
 // - TranscriptLineItem, LiveCaption: a single transcript line, and a live
 //   captions banner.
-// - ScoreRing, ScoreBar, FeedbackList: a circular score gauge, a labeled
-//   score progress bar, and a titled list of feedback bullets.
+// - ScoreRing, DimensionCard, ScoreBar, FeedbackList: a circular score
+//   gauge (also reusable as a countdown ring), an icon-labeled dimension
+//   card, a labeled score progress bar, and a titled list of feedback
+//   bullets.
 
 /* ---------------------------------- Button --------------------------------- */
 
@@ -39,8 +55,7 @@ export const pmButtonVariants = cva(
   {
     variants: {
       variant: {
-        primary:
-          "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-glow hover:brightness-110",
+        primary: "bg-primary text-primary-foreground shadow-soft hover:brightness-110",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-soft",
         outline: "border border-border bg-transparent text-foreground hover:bg-secondary/60",
         ghost: "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
@@ -183,6 +198,46 @@ export function PmSelect({
     >
       {children}
     </select>
+  );
+}
+
+// Pill-shaped segmented control for a small set of mutually-exclusive
+// choices (e.g. duration/level/visibility pickers) — the active option is
+// filled, others are outlined.
+export function PmSegmented<T extends string>({
+  value,
+  onChange,
+  options,
+  className,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string; icon?: React.ReactNode }[];
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex gap-2", className)}>
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors [&_svg]:size-3.5",
+              active
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-foreground hover:bg-secondary/60",
+            )}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -593,11 +648,36 @@ export function LiveCaption({ text }: { text: string }) {
 
 /* -------------------------------- Feedback --------------------------------- */
 
-// Circular gauge showing a 0-100 score as a proportionally-filled ring, with
-// the numeric score in the center.
-export function ScoreRing({ score, size = 132 }: { score: number; size?: number }) {
-  const r = size / 2 - 9;
+// Circular gauge showing a score (out of `max`, default 100) as a
+// proportionally-filled ring. Shows the numeric score in the center by
+// default; pass `valueLabel`/`label` to repurpose it (e.g. a countdown
+// ring showing "6:42" instead), and `tone="light"` for use on a dark
+// background (the Live Session screen).
+export function ScoreRing({
+  score,
+  max = 100,
+  size = 132,
+  strokeWidth = 9,
+  label = "score",
+  valueLabel,
+  tone = "primary",
+}: {
+  score: number;
+  max?: number;
+  size?: number;
+  strokeWidth?: number;
+  label?: string;
+  valueLabel?: string;
+  tone?: "primary" | "light";
+}) {
+  const r = size / 2 - strokeWidth;
   const c = 2 * Math.PI * r;
+  const light = tone === "light";
+  // Text scales with the ring's diameter (not a fixed text-3xl) so small
+  // rings — e.g. the Live Session countdown — don't overflow their circle;
+  // a longer valueLabel (like "06:41") gets a further size trim.
+  const displayValue = valueLabel ?? String(score);
+  const fontSize = Math.max(9, size * (displayValue.length > 3 ? 0.19 : 0.24));
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
@@ -605,24 +685,90 @@ export function ScoreRing({ score, size = 132 }: { score: number; size?: number 
           cx={size / 2}
           cy={size / 2}
           r={r}
-          strokeWidth="9"
-          className="fill-none stroke-secondary"
+          strokeWidth={strokeWidth}
+          className={cn("fill-none", light ? "stroke-white/20" : "stroke-secondary")}
         />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          strokeWidth="9"
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray={`${(score / 100) * c} ${c}`}
-          className="fill-none stroke-primary"
+          strokeDasharray={`${Math.max(0, Math.min(1, score / max)) * c} ${c}`}
+          className={cn("fill-none", light ? "stroke-white" : "stroke-primary")}
         />
       </svg>
       <div className="absolute text-center">
-        <p className="font-display text-3xl font-bold">{score}</p>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">score</p>
+        <p
+          className={cn("font-display font-bold leading-none", light && "text-white")}
+          style={{ fontSize }}
+        >
+          {displayValue}
+        </p>
+        {label ? (
+          <p
+            className={cn(
+              "mt-1 text-[10px] uppercase tracking-widest",
+              light ? "text-white/70" : "text-muted-foreground",
+            )}
+          >
+            {label}
+          </p>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+// Maps a feedback dimension's free-form label to a representative icon via
+// keyword lookup (backend labels aren't a closed enum), falling back to a
+// generic sparkle icon for anything unrecognized.
+const DIMENSION_ICONS: { keywords: string[]; icon: typeof Mic }[] = [
+  { keywords: ["clarity", "speech", "articulation"], icon: Mic },
+  { keywords: ["argument", "structure", "logic", "reasoning"], icon: GitBranch },
+  { keywords: ["confidence", "delivery", "presence"], icon: Zap },
+  { keywords: ["engagement", "participation", "collaboration"], icon: Users },
+  { keywords: ["time", "pace", "pacing"], icon: Clock3 },
+  { keywords: ["vocabulary", "language", "word"], icon: BookOpen },
+];
+
+function iconForDimension(label: string) {
+  const l = label.toLowerCase();
+  return DIMENSION_ICONS.find((d) => d.keywords.some((k) => l.includes(k)))?.icon ?? Sparkles;
+}
+
+// Icon-labeled feedback-dimension card: keyword-matched icon, a thin score
+// bar, and the numeric score, for the Feedback screen's dimension grid.
+// `score` is treated as 0-100, matching ScoreBar's existing convention.
+export function DimensionCard({
+  label,
+  score,
+  note,
+}: {
+  label: string;
+  score: number;
+  note?: string;
+}) {
+  const Icon = iconForDimension(label);
+  return (
+    <PmCard className="p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </span>
+        <span className="truncate text-sm font-semibold">{label}</span>
+      </div>
+      <div className="mt-3 flex items-center gap-2.5">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
+          <div
+            className="h-full rounded-full bg-primary"
+            style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
+          />
+        </div>
+        <span className="font-mono text-sm font-bold text-primary">{score}</span>
+      </div>
+      {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
+    </PmCard>
   );
 }
 

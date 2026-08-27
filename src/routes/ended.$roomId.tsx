@@ -5,12 +5,11 @@ import { RotateCcw, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
+  DimensionCard,
   FeedbackList,
-  PmBadge,
   PmButton,
   PmCard,
   PmInput,
-  ScoreBar,
   ScoreRing,
   SectionTitle,
   TranscriptLineItem,
@@ -278,28 +277,32 @@ function EndedPage() {
             number would be worse than showing none. The talk-time headline
             below is derived from BE-10's live participants/talkShare data.
           */}
-          <PmCard glass className="grid gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] md:p-8">
+          <PmCard className="grid gap-6 bg-[linear-gradient(160deg,var(--primary),var(--primary))] p-6 text-white sm:grid-cols-[auto_minmax(0,1fr)] md:p-8">
             {score != null ? (
-              <ScoreRing score={score} />
+              <ScoreRing score={score} tone="light" label="score" />
             ) : (
-              <div className="grid size-[132px] place-items-center rounded-full border border-dashed border-border text-center text-xs text-muted-foreground">
+              <div className="grid size-[132px] place-items-center rounded-full border border-dashed border-white/40 text-center text-xs text-white/70">
                 Score not available
               </div>
             )}
             <div className="min-w-0">
-              <h2 className="text-xl font-bold">{status?.topicText ?? "This discussion"}</h2>
+              <h2 className="text-xl font-bold text-white">
+                {status?.topicText ?? "This discussion"}
+              </h2>
               {(() => {
                 const summary = talkTimeSummary(participants, user?.id);
                 return (
                   <>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <p className="mt-2 text-sm text-white/75">
                       {summary
                         ? summary.headline
                         : "Talk-time breakdown will appear here once it's ready."}
                     </p>
                     {summary && (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <PmBadge tone="primary">{summary.talkShare}% talk time</PmBadge>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                          {summary.talkShare}% talk time
+                        </span>
                       </div>
                     )}
                   </>
@@ -308,15 +311,17 @@ function EndedPage() {
             </div>
           </PmCard>
           {dimensions.length > 0 && (
-            <PmCard className="space-y-5 p-6">
+            <div>
               <SectionTitle
                 title="Score breakdown"
                 subtitle="Weighted like a real placement panel"
               />
-              {dimensions.map((d) => (
-                <ScoreBar key={d.label} {...d} />
-              ))}
-            </PmCard>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {dimensions.map((d) => (
+                  <DimensionCard key={d.label} {...d} />
+                ))}
+              </div>
+            </div>
           )}
           {(strengths.length > 0 || improvements.length > 0) && (
             <div className="grid gap-4 md:grid-cols-2">

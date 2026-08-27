@@ -175,42 +175,13 @@ function LobbyPage() {
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
-          <PmCard glass className="p-6 md:p-8">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-              <div className="min-w-0">
-                <PmBadge tone="neutral">
-                  <StatusDot status="idle" /> Waiting to start
-                </PmBadge>
-                <h2 className="mt-3 text-xl font-bold md:text-2xl">{topicText}</h2>
-              </div>
-              {code && (
-                <button
-                  onClick={copyCode}
-                  className="flex shrink-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2 font-mono text-sm"
-                >
-                  {code}
-                  {copied ? (
-                    <Check className="size-3.5 text-success" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                </button>
-              )}
-            </div>
+          <PmCard className="p-6 md:p-8">
+            <PmBadge tone="neutral">
+              <StatusDot status="idle" /> Waiting to start
+            </PmBadge>
+            <h2 className="mt-3 text-xl font-bold md:text-2xl">{topicText}</h2>
             {error && <p className="mt-4 text-sm font-medium text-destructive">{error}</p>}
             <div className="mt-6 flex flex-wrap gap-3">
-              {isCreator ? (
-                <PmButton size="lg" loading={starting} disabled={starting} onClick={handleStart}>
-                  <Play /> Start discussion
-                </PmButton>
-              ) : (
-                <PmButton size="lg" disabled>
-                  <Mic /> Waiting for host…
-                </PmButton>
-              )}
-              <PmButton variant="outline" size="lg" onClick={copyCode}>
-                <Copy /> Copy invite link
-              </PmButton>
               <PmButton asChild variant="ghost" size="lg">
                 <Link to="/">Leave</Link>
               </PmButton>
@@ -239,6 +210,35 @@ function LobbyPage() {
         </div>
 
         <aside className="space-y-4">
+          <PmCard className="p-5">
+            <span className="text-xs font-semibold text-muted-foreground">
+              Share this code to invite people
+            </span>
+            <button
+              onClick={copyCode}
+              className="mt-2.5 flex w-full items-center justify-between rounded-lg bg-secondary px-4 py-3.5"
+            >
+              <span className="font-display text-2xl font-extrabold tracking-[0.15em] text-primary">
+                {code || "····"}
+              </span>
+              {copied ? (
+                <Check className="size-5 text-success" />
+              ) : (
+                <Copy className="size-5 text-primary" />
+              )}
+            </button>
+            <div className="mt-4 flex flex-col gap-2">
+              {isCreator ? (
+                <PmButton size="lg" loading={starting} disabled={starting} onClick={handleStart}>
+                  <Play /> Start discussion
+                </PmButton>
+              ) : (
+                <PmButton size="lg" disabled>
+                  <Mic /> Waiting for host…
+                </PmButton>
+              )}
+            </div>
+          </PmCard>
           <Banner
             tone="info"
             title="Ground rules"

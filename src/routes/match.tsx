@@ -16,18 +16,17 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { RefreshCw, Shuffle, Users, X } from "lucide-react";
+import { RefreshCw, Shuffle, User, Users, X } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
+  PmAvatar,
   PmButton,
   PmCard,
   PmInput,
-  PmSelect,
   Field,
   SectionTitle,
-  Skel,
   StatusDot,
 } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
@@ -60,7 +59,18 @@ type State = "idle" | "searching" | "gaveUp";
 // Main route component: renders the idle / searching / gave-up states for
 // requesting a random group-discussion match and handles polling for a room.
 function MatchPage() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
+  const initials = (
+    (user?.user_metadata?.["display_name"] as string | undefined) ||
+    user?.email ||
+    "You"
+  )
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   const navigate = useNavigate();
   const [state, setState] = useState<State>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -177,13 +187,19 @@ function MatchPage() {
                 className="mt-5 justify-center"
               />
               {/* MOCK — no live queue telemetry endpoint yet, see docs/BACKEND_REQUIREMENTS.md#BE-16.
-                  Anonymous placeholders, not fixture people -- who's actually waiting isn't
+                  Dashed placeholders, not fixture people -- who's actually waiting isn't
                   known until the match resolves. */}
-              <div className="mx-auto mt-8 flex max-w-md flex-wrap items-center justify-center gap-4">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div className="mx-auto mt-8 flex max-w-md items-center justify-center gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <PmAvatar initials={initials} size="lg" className="pulse-ring" />
+                  <span className="text-xs font-semibold">You</span>
+                </div>
+                {[0, 1, 2].map((i) => (
                   <div key={i} className="flex flex-col items-center gap-2">
-                    <Skel className="size-14 rounded-full" />
-                    <Skel className="h-3 w-10" />
+                    <span className="grid size-14 place-items-center rounded-full border-2 border-dashed border-border text-muted-foreground">
+                      <User className="size-6" />
+                    </span>
+                    <span className="text-xs text-muted-foreground">Waiting</span>
                   </div>
                 ))}
               </div>
