@@ -6,7 +6,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  // expo-mobile is a separate Expo/React Native package (its own
+  // package.json, node_modules, no lint script) -- not covered by this
+  // config's TS/JSX setup.
+  { ignores: ["dist", ".output", ".vinxi", "expo-mobile"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

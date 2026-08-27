@@ -23,7 +23,10 @@ if (!existsSync(specSource)) {
   process.exit(1);
 }
 
-const sha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: gdProtoDir, encoding: "utf8" }).trim();
+const sha = execFileSync("git", ["rev-parse", "HEAD"], {
+  cwd: gdProtoDir,
+  encoding: "utf8",
+}).trim();
 const status = execFileSync("git", ["status", "--porcelain", "--", "docs/api/openapi.yaml"], {
   cwd: gdProtoDir,
   encoding: "utf8",
@@ -38,4 +41,6 @@ if (status.trim()) {
 copyFileSync(specSource, specDest);
 writeFileSync(refDest, `${sha}\n`);
 console.log(`Synced openapi/gd-proto.openapi.yaml from gd-proto@${sha}.`);
-console.log("Next: npm run generate:api-types, then commit openapi/ and src/lib/api-types.generated.ts.");
+console.log(
+  "Next: npm run generate:api-types, then commit openapi/ and src/lib/api-types.generated.ts.",
+);

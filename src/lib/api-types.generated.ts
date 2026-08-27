@@ -4,1279 +4,1275 @@
  */
 
 export interface paths {
-  "/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness check */
+        get: operations["getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Liveness check */
-    get: operations["getHealth"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/ready": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness check (config + DB connectivity) */
+        get: operations["getReady"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Readiness check (config + DB connectivity) */
-    get: operations["getReady"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/health/agent": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/health/agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transcription/feedback dispatch health (internal monitoring) */
+        get: operations["getAgentHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Transcription/feedback dispatch health (internal monitoring) */
-    get: operations["getAgentHealth"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/me": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user's id */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** The signed-in user's id */
-    get: operations["getMe"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/consent/status": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/consent/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** This user's current consent version and mic-enable eligibility */
+        get: operations["getConsentStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** This user's current consent version and mic-enable eligibility */
-    get: operations["getConsentStatus"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/consent": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record this user's consent grant for the current version */
+        post: operations["grantConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Record this user's consent grant for the current version */
-    post: operations["grantConsent"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/topics/custom": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/topics/custom": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a user-authored custom topic */
+        post: operations["submitCustomTopic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Submit a user-authored custom topic */
-    post: operations["submitCustomTopic"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/topics/generate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/topics/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request an AI-generated discussion topic */
+        post: operations["generateTopic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Request an AI-generated discussion topic */
-    post: operations["generateTopic"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a new code-joinable room */
+        post: operations["createRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create a new code-joinable room */
-    post: operations["createRoom"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/open": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse rooms open to join right now (waiting + public + not full) */
+        get: operations["listOpenRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Browse rooms open to join right now (waiting + public + not full) */
-    get: operations["listOpenRooms"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/mine/active": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/mine/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** This user's currently active (waiting/live) room, if any */
+        get: operations["getActiveRoom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** This user's currently active (waiting/live) room, if any */
-    get: operations["getActiveRoom"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/join": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join an existing room by its short code */
+        post: operations["joinRoomByCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Join an existing room by its short code */
-    post: operations["joinRoomByCode"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/match": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request random matchmaking; may queue or return an immediately-formed room */
+        post: operations["requestMatch"];
+        /** Leave the random-match queue (idempotent) */
+        delete: operations["leaveMatchQueue"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Request random matchmaking; may queue or return an immediately-formed room */
-    post: operations["requestMatch"];
-    /** Leave the random-match queue (idempotent) */
-    delete: operations["leaveMatchQueue"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/start": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a waiting room (creator only), transitioning it to live */
+        post: operations["startRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Start a waiting room (creator only), transitioning it to live */
-    post: operations["startRoom"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/status": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Poll a room's lifecycle status, topic, and timing */
+        get: operations["getRoomStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Poll a room's lifecycle status, topic, and timing */
-    get: operations["getRoomStatus"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/token": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mint a LiveKit join token for this room's audio (requires current consent) */
+        post: operations["getRoomToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Mint a LiveKit join token for this room's audio (requires current consent) */
-    post: operations["getRoomToken"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/participants": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List seated participants and their talk-time share */
+        get: operations["getRoomParticipants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List seated participants and their talk-time share */
-    get: operations["getRoomParticipants"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/transcript": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/transcript": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The full attributed transcript recorded so far for this room */
+        get: operations["getRoomTranscript"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** The full attributed transcript recorded so far for this room */
-    get: operations["getRoomTranscript"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/feedback/mine": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/feedback/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** This user's own generated feedback for a room, if ready yet */
+        get: operations["getMyFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** This user's own generated feedback for a room, if ready yet */
-    get: operations["getMyFeedback"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rooms/{id}/feedback/mine/rating": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/rooms/{id}/feedback/mine/rating": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Thumbs up/down (with optional reason) this user's own feedback */
+        patch: operations["rateFeedback"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Thumbs up/down (with optional reason) this user's own feedback */
-    patch: operations["rateFeedback"];
-    trace?: never;
-  };
-  "/api/history/mine": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/history/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** This user's past sessions, most recent first */
+        get: operations["getMyHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** This user's past sessions, most recent first */
-    get: operations["getMyHistory"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    Error: {
-      error: string;
-    };
-    /** @enum {string} */
-    Visibility: "public" | "private";
-    /** @enum {string} */
-    Level: "beginner" | "intermediate" | "advanced";
-    /** @enum {string} */
-    RoomLifecycleStatus: "waiting" | "live" | "ended";
-    ConsentStatus: {
-      currentVersion: number;
-      canEnableMic: boolean;
-    };
-    Topic: {
-      /** Format: uuid */
-      id: string;
-      text: string;
-      category?: string | null;
-      difficulty?: string | null;
-      /** @enum {string} */
-      source: "custom" | "llm";
-      /** Format: date-time */
-      created_at: string;
-    };
-    RoomSummary: {
-      /** Format: uuid */
-      id: string;
-      code: string;
-      status: components["schemas"]["RoomLifecycleStatus"];
-      /** Format: uuid */
-      topicId: string;
-      durationSeconds: number;
-      maxParticipants: number;
-      visibility: components["schemas"]["Visibility"];
-      level: components["schemas"]["Level"];
-    };
-    OpenRoom: {
-      /** Format: uuid */
-      id: string;
-      code: string;
-      topicText: string | null;
-      durationSeconds: number;
-      maxParticipants: number;
-      participantCount: number;
-      hostDisplayName: string;
-      /** Format: date-time */
-      createdAt: string;
-    };
-    RoomStatus: {
-      /** Format: uuid */
-      id: string;
-      status: components["schemas"]["RoomLifecycleStatus"];
-      code: string;
-      topicText: string | null;
-      durationSeconds: number;
-      isCreator: boolean;
-      /** @description Epoch ms. Present once the room has started. */
-      endsAt?: number;
-    };
-    RoomParticipant: {
-      /** Format: uuid */
-      userId: string;
-      displayName: string;
-      /** @description 0-1 share of this room's total attributed speaking time. */
-      talkShare: number;
-    };
-    TranscriptLine: {
-      /** Format: uuid */
-      userId: string;
-      displayName: string;
-      text: string;
-      startedAtMs: number;
-    };
-    FeedbackDimension: {
-      label: string;
-      score: number;
-      note: string;
-    };
-    /** @description `{ "feedback": null }` before generation finishes; the full object once it has. `score` can still be null on a pre-migration row or the transcription-failed stub — never render that as a real 0 (SPEC-0006, BE-6/BE-7). */
-    FeedbackResult:
-      | {
-          feedback: null;
-        }
-      | {
-          feedback: string;
-          score: number | null;
-          dimensions: components["schemas"]["FeedbackDimension"][];
-          strengths: string[];
-          improvements: string[];
-          /** @description Present only once the caller has rated their feedback. */
-          rating?: boolean;
-          ratingReason?: string | null;
+    schemas: {
+        Error: {
+            error: string;
         };
-    HistorySession: {
-      /** Format: uuid */
-      id: string;
-      code: string;
-      status: components["schemas"]["RoomLifecycleStatus"];
-      durationSeconds: number;
-      topicText: string | null;
-      /** Format: date-time */
-      startedAt: string | null;
-      /** Format: date-time */
-      endedAt: string | null;
-      feedback: string | null;
-      score: number | null;
-      dimensions: components["schemas"]["FeedbackDimension"][];
-      strengths: string[];
-      improvements: string[];
-      talkShare: number | null;
-    };
-    AgentStatus: {
-      activeRooms: number;
-      dispatchSuccesses: number;
-      dispatchFailures: number;
-      lastFailure: null | {
-        /** Format: uuid */
-        roomId: string;
-        message: string;
-        /** Format: date-time */
-        at: string;
-      };
-      lastSuccess: null | {
-        /** Format: uuid */
-        roomId: string;
-        /** Format: date-time */
-        at: string;
-      };
-      healthy: boolean;
-      feedbackSuccesses: number;
-      feedbackFailures: number;
-      lastFeedbackFailure: null | {
-        /** Format: uuid */
-        roomId: string;
-        message: string;
-        /** Format: date-time */
-        at: string;
-      };
-      lastFeedbackSuccess: null | {
-        /** Format: uuid */
-        roomId: string;
-        /** Format: date-time */
-        at: string;
-      };
-      feedbackHealthy: boolean;
-    };
-  };
-  responses: {
-    /** @description Missing or invalid bearer token. */
-    Unauthorized: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Invalid request body. */
-    BadRequest: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Resource does not exist. */
-    NotFound: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-    /** @description Rate limit exceeded. */
-    TooManyRequests: {
-      headers: {
-        [name: string]: unknown;
-      };
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
-  };
-  parameters: {
-    RoomId: string;
-  };
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
-}
-export type $defs = Record<string, never>;
-export interface operations {
-  getHealth: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Process is up. */
-      200: {
-        headers: {
-          [name: string]: unknown;
+        /** @enum {string} */
+        Visibility: "public" | "private";
+        /** @enum {string} */
+        Level: "beginner" | "intermediate" | "advanced";
+        /** @enum {string} */
+        RoomLifecycleStatus: "waiting" | "live" | "ended";
+        ConsentStatus: {
+            currentVersion: number;
+            canEnableMic: boolean;
         };
-        content: {
-          "application/json": {
-            /** @enum {string} */
-            status: "ok";
-          };
-        };
-      };
-    };
-  };
-  getReady: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Ready to serve real traffic. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** @enum {string} */
-            status: "ready";
-          };
-        };
-      };
-      /** @description Not ready — missing config or DB unreachable. */
-      503: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json":
-            | {
-                /** @enum {string} */
-                status: "not_ready";
-                /** @enum {string} */
-                reason: "missing_config";
-                missingEnvVars: string[];
-              }
-            | {
-                /** @enum {string} */
-                status: "not_ready";
-                /** @enum {string} */
-                reason: "db_unreachable";
-              };
-        };
-      };
-    };
-  };
-  getAgentHealth: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Current in-process dispatch counters. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AgentStatus"];
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  getMe: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            /** Format: uuid */
-            userId: string;
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  getConsentStatus: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ConsentStatus"];
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  grantConsent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Recorded */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            consentVersion: number;
-            /** Format: date-time */
-            grantedAt: string;
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  submitCustomTopic: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          /** @description Max length enforced server-side (domain/topicText.js). */
-          text: string;
-          category?: string;
-          difficulty?: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Topic"];
-        };
-      };
-      400: components["responses"]["BadRequest"];
-      401: components["responses"]["Unauthorized"];
-      429: components["responses"]["TooManyRequests"];
-    };
-  };
-  generateTopic: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        "application/json": {
-          category?: string;
-          difficulty?: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Topic"];
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-      429: components["responses"]["TooManyRequests"];
-      /** @description Upstream (Gemini) generation failed. */
-      502: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-    };
-  };
-  createRoom: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          /** Format: uuid */
-          topicId: string;
-          durationSeconds: number;
-          maxParticipants?: number;
-          visibility?: components["schemas"]["Visibility"];
-          level?: components["schemas"]["Level"];
-        };
-      };
-    };
-    responses: {
-      /** @description Created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RoomSummary"];
-        };
-      };
-      400: components["responses"]["BadRequest"];
-      401: components["responses"]["Unauthorized"];
-      429: components["responses"]["TooManyRequests"];
-    };
-  };
-  listOpenRooms: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            rooms: components["schemas"]["OpenRoom"][];
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  getActiveRoom: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            room: null | {
-              /** Format: uuid */
-              id: string;
-              code: string;
-              status: components["schemas"]["RoomLifecycleStatus"];
-            };
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  joinRoomByCode: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          code: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Joined (or already seated) */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
+        Topic: {
             /** Format: uuid */
             id: string;
-            code: string;
-            status: components["schemas"]["RoomLifecycleStatus"];
-          };
-        };
-      };
-      400: components["responses"]["BadRequest"];
-      401: components["responses"]["Unauthorized"];
-      404: components["responses"]["NotFound"];
-      /** @description Room already ended/live, or full. */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-      429: components["responses"]["TooManyRequests"];
-    };
-  };
-  requestMatch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          durationSeconds: number;
-        };
-      };
-    };
-    responses: {
-      /** @description Still queued, waiting for enough participants. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
+            text: string;
+            category?: string | null;
+            difficulty?: string | null;
             /** @enum {string} */
-            status: "queued";
-          };
+            source: "custom" | "llm";
+            /** Format: date-time */
+            created_at: string;
         };
-      };
-      /** @description Matched — a new room was formed. */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
+        RoomSummary: {
             /** Format: uuid */
             id: string;
             code: string;
             status: components["schemas"]["RoomLifecycleStatus"];
             /** Format: uuid */
             topicId: string;
-            members: string[];
-          };
+            durationSeconds: number;
+            maxParticipants: number;
+            visibility: components["schemas"]["Visibility"];
+            level: components["schemas"]["Level"];
         };
-      };
-      400: components["responses"]["BadRequest"];
-      401: components["responses"]["Unauthorized"];
-      429: components["responses"]["TooManyRequests"];
-    };
-  };
-  leaveMatchQueue: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
+        OpenRoom: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            topicText: string | null;
+            durationSeconds: number;
+            maxParticipants: number;
+            participantCount: number;
+            hostDisplayName: string;
+            /** Format: date-time */
+            createdAt: string;
         };
-        content: {
-          "application/json": {
-            /** @enum {string} */
-            status: "left";
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  startRoom: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Started */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
+        RoomStatus: {
             /** Format: uuid */
             id: string;
             status: components["schemas"]["RoomLifecycleStatus"];
-            /** @description Epoch ms. */
-            endsAt: number;
-          };
+            code: string;
+            topicText: string | null;
+            durationSeconds: number;
+            isCreator: boolean;
+            /** @description Epoch ms. Present once the room has started. */
+            endsAt?: number;
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      /** @description Not the room's creator. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-      404: components["responses"]["NotFound"];
-      /** @description Already started/ended, or the pilot concurrency cap is hit. */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-    };
-  };
-  getRoomStatus: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RoomStatus"];
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-      /** @description Not a participant of this room. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-      404: components["responses"]["NotFound"];
-    };
-  };
-  getRoomToken: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            token: string;
-            /** Format: uri */
-            url: string | null;
+        RoomParticipant: {
             /** Format: uuid */
-            identity: string;
+            userId: string;
+            displayName: string;
+            /** @description 0-1 share of this room's total attributed speaking time. */
+            talkShare: number;
+        };
+        TranscriptLine: {
             /** Format: uuid */
-            roomName: string;
-          };
+            userId: string;
+            displayName: string;
+            text: string;
+            startedAtMs: number;
         };
-      };
-      401: components["responses"]["Unauthorized"];
-      /** @description Consent not current, or not a participant of this room. */
-      403: {
-        headers: {
-          [name: string]: unknown;
+        FeedbackDimension: {
+            label: string;
+            score: number;
+            note: string;
         };
-        content: {
-          "application/json": components["schemas"]["Error"];
+        /** @description `{ "feedback": null }` before generation finishes; the full object once it has. `score` can still be null on a pre-migration row or the transcription-failed stub — never render that as a real 0 (SPEC-0006, BE-6/BE-7). */
+        FeedbackResult: {
+            feedback: null;
+        } | {
+            feedback: string;
+            score: number | null;
+            dimensions: components["schemas"]["FeedbackDimension"][];
+            strengths: string[];
+            improvements: string[];
+            /** @description Present only once the caller has rated their feedback. */
+            rating?: boolean;
+            ratingReason?: string | null;
         };
-      };
-      404: components["responses"]["NotFound"];
-      /** @description Room has already ended. */
-      409: {
-        headers: {
-          [name: string]: unknown;
+        HistorySession: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            status: components["schemas"]["RoomLifecycleStatus"];
+            durationSeconds: number;
+            topicText: string | null;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            endedAt: string | null;
+            feedback: string | null;
+            score: number | null;
+            dimensions: components["schemas"]["FeedbackDimension"][];
+            strengths: string[];
+            improvements: string[];
+            talkShare: number | null;
         };
-        content: {
-          "application/json": components["schemas"]["Error"];
+        AgentStatus: {
+            activeRooms: number;
+            dispatchSuccesses: number;
+            dispatchFailures: number;
+            lastFailure: null | {
+                /** Format: uuid */
+                roomId: string;
+                message: string;
+                /** Format: date-time */
+                at: string;
+            };
+            lastSuccess: null | {
+                /** Format: uuid */
+                roomId: string;
+                /** Format: date-time */
+                at: string;
+            };
+            healthy: boolean;
+            feedbackSuccesses: number;
+            feedbackFailures: number;
+            lastFeedbackFailure: null | {
+                /** Format: uuid */
+                roomId: string;
+                message: string;
+                /** Format: date-time */
+                at: string;
+            };
+            lastFeedbackSuccess: null | {
+                /** Format: uuid */
+                roomId: string;
+                /** Format: date-time */
+                at: string;
+            };
+            feedbackHealthy: boolean;
         };
-      };
-    };
-  };
-  getRoomParticipants: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            participants: components["schemas"]["RoomParticipant"][];
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-      /** @description Not a participant of this room. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-    };
-  };
-  getRoomTranscript: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            lines: components["schemas"]["TranscriptLine"][];
-          };
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-      /** @description Not a participant of this room. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Error"];
-        };
-      };
-    };
-  };
-  getMyFeedback: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK. `{ "feedback": null }` while generation is still in flight — not an error state, callers should poll. */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["FeedbackResult"];
-        };
-      };
-      401: components["responses"]["Unauthorized"];
-    };
-  };
-  rateFeedback: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: components["parameters"]["RoomId"];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          rating: boolean;
-          reason?: string;
-        };
-      };
     };
     responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
+        /** @description Missing or invalid bearer token. */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
         };
-        content: {
-          "application/json": {
-            rating: boolean;
-            ratingReason: string | null;
-          };
+        /** @description Invalid request body. */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
         };
-      };
-      400: components["responses"]["BadRequest"];
-      401: components["responses"]["Unauthorized"];
-      /** @description No feedback exists yet to rate. */
-      404: {
-        headers: {
-          [name: string]: unknown;
+        /** @description Resource does not exist. */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
         };
-        content: {
-          "application/json": components["schemas"]["Error"];
+        /** @description Rate limit exceeded. */
+        TooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
         };
-      };
     };
-  };
-  getMyHistory: {
     parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+        RoomId: string;
     };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
+}
+export type $defs = Record<string, never>;
+export interface operations {
+    getHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": {
-            sessions: components["schemas"]["HistorySession"][];
-          };
+        requestBody?: never;
+        responses: {
+            /** @description Process is up. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "ok";
+                    };
+                };
+            };
         };
-      };
-      401: components["responses"]["Unauthorized"];
     };
-  };
+    getReady: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ready to serve real traffic. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "ready";
+                    };
+                };
+            };
+            /** @description Not ready — missing config or DB unreachable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "not_ready";
+                        /** @enum {string} */
+                        reason: "missing_config";
+                        missingEnvVars: string[];
+                    } | {
+                        /** @enum {string} */
+                        status: "not_ready";
+                        /** @enum {string} */
+                        reason: "db_unreachable";
+                    };
+                };
+            };
+        };
+    };
+    getAgentHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current in-process dispatch counters. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        userId: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getConsentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    grantConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        consentVersion: number;
+                        /** Format: date-time */
+                        grantedAt: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    submitCustomTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Max length enforced server-side (domain/topicText.js). */
+                    text: string;
+                    category?: string;
+                    difficulty?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Topic"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    generateTopic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    category?: string;
+                    difficulty?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Topic"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+            /** @description Upstream (Gemini) generation failed. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    topicId: string;
+                    durationSeconds: number;
+                    maxParticipants?: number;
+                    visibility?: components["schemas"]["Visibility"];
+                    level?: components["schemas"]["Level"];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSummary"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    listOpenRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        rooms: components["schemas"]["OpenRoom"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getActiveRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        room: null | {
+                            /** Format: uuid */
+                            id: string;
+                            code: string;
+                            status: components["schemas"]["RoomLifecycleStatus"];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    joinRoomByCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Joined (or already seated) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        code: string;
+                        status: components["schemas"]["RoomLifecycleStatus"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description Room already ended/live, or full. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    requestMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    durationSeconds: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Still queued, waiting for enough participants. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "queued";
+                    };
+                };
+            };
+            /** @description Matched — a new room was formed. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        code: string;
+                        status: components["schemas"]["RoomLifecycleStatus"];
+                        /** Format: uuid */
+                        topicId: string;
+                        members: string[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    leaveMatchQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "left";
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    startRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        status: components["schemas"]["RoomLifecycleStatus"];
+                        /** @description Epoch ms. */
+                        endsAt: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not the room's creator. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description Already started/ended, or the pilot concurrency cap is hit. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRoomStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not a participant of this room. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getRoomToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        token: string;
+                        /** Format: uri */
+                        url: string | null;
+                        /** Format: uuid */
+                        identity: string;
+                        /** Format: uuid */
+                        roomName: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Consent not current, or not a participant of this room. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description Room has already ended. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRoomParticipants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        participants: components["schemas"]["RoomParticipant"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not a participant of this room. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getRoomTranscript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        lines: components["schemas"]["TranscriptLine"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not a participant of this room. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMyFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. `{ "feedback": null }` while generation is still in flight — not an error state, callers should poll. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    rateFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rating: boolean;
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        rating: boolean;
+                        ratingReason: string | null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description No feedback exists yet to rate. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMyHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sessions: components["schemas"]["HistorySession"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
 }

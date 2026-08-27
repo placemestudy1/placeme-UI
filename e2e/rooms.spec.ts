@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import { gotoReady, mockApi } from "./mocks";
 
+test.beforeEach(async ({ page }) => {
+  await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
+});
+
 test.describe("create room", () => {
   test("creates a room with the default topic and lands in its lobby", async ({ page }) => {
     await mockApi(
