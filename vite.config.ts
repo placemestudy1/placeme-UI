@@ -83,7 +83,7 @@ export default defineConfig(({ command, mode }) => {
       // NITRO_PRESET lets a specific deploy (e.g. Vercel's build) override
       // the target without changing the Cloudflare default used elsewhere.
       ...(command === "build"
-        ? [nitro({ defaultPreset: process.env.NITRO_PRESET || "cloudflare-module" })]
+        ? [nitro({ defaultPreset: process.env["NITRO_PRESET"] || "cloudflare-module" })]
         : []),
       viteReact(),
     ],

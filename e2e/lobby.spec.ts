@@ -5,6 +5,10 @@ import { gotoReady, mockApi } from "./mocks";
 const ROOM_ID = "room-1";
 const TOPIC = "Is AI making engineers less employable?";
 
+test.beforeEach(async ({ page }) => {
+  await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
+});
+
 test("shows the topic, code, and participants; host sees Start discussion", async ({ page }) => {
   await mockApi(page, `/api/rooms/${ROOM_ID}/status`, {
     id: ROOM_ID,

@@ -5,6 +5,7 @@ import { gotoReady, mockApi } from "./mocks";
 const ROOM_ID = "room-1";
 
 test.beforeEach(async ({ page }) => {
+  await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
   await mockApi(page, `/api/rooms/${ROOM_ID}/status`, {
     id: ROOM_ID,
     status: "ended",
