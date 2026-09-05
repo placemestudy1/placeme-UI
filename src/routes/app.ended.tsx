@@ -273,7 +273,10 @@ function NativeEnded() {
           <>
             {dimensions.length > 0 && (
               <PmCard className="space-y-4 p-4">
-                <SectionTitle title="Score breakdown" />
+                <SectionTitle
+                  title="Score breakdown"
+                  subtitle="Based on PlaceMe's current AI evaluation rubric"
+                />
                 {dimensions.map((d) => (
                   <ScoreBar key={d.label} {...d} />
                 ))}
@@ -305,10 +308,10 @@ function NativeEnded() {
             </PmCard>
 
             <PmCard className="p-4">
-              <SectionTitle title="Suggested next topic" />
+              <SectionTitle title="General practice topic" />
               <p className="text-sm font-semibold">{topics[3]}</p>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Targets your lowest sub-score: fluency under pressure.
+                A general topic for your next practice session.
               </p>
               <PmButton asChild block className="mt-4">
                 <Link to="/app/new">Create this room</Link>

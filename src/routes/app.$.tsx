@@ -1,6 +1,6 @@
 /**
  * Catch-all 404 screen for the native/mobile app — shown when a mobile route
- * doesn't match, or a room code has expired.
+ * doesn't match, or a room is no longer waiting to start.
  *
  * - NativeNotFound(): main route component — renders the 404 message with a
  *   link to join another room.
@@ -35,7 +35,7 @@ function NativeNotFound() {
           <EmptyState
             icon={<Compass />}
             title="This room is gone"
-            description="Room codes expire 15 minutes after a session ends."
+            description="A room code can join only a room that is still waiting to start."
             action={
               <PmButton asChild size="sm">
                 <Link to="/app/join">Join another room</Link>

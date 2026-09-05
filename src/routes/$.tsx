@@ -1,6 +1,6 @@
 /**
  * Catch-all 404 screen for the web app — shown when a URL doesn't match any
- * route, or a room code has expired.
+ * route, or a room is no longer waiting to start.
  *
  * - NotFoundPage(): main route component — renders the 404 message with
  *   links back home or to join a room.
@@ -15,7 +15,10 @@ export const Route = createFileRoute("/$")({
   head: () => ({
     meta: [
       { title: "Page not found · PlaceMe" },
-      { name: "description", content: "This PlaceMe page doesn't exist or the room code expired." },
+      {
+        name: "description",
+        content: "This PlaceMe page doesn't exist or the room is no longer waiting to start.",
+      },
       { property: "og:title", content: "Page not found · PlaceMe" },
       { property: "og:description", content: "The page or room you're looking for is gone." },
       { name: "robots", content: "noindex" },
@@ -24,8 +27,8 @@ export const Route = createFileRoute("/$")({
   component: NotFoundPage,
 });
 
-// Main 404 page: tells the visitor the page/room doesn't exist (or its code
-// expired) and offers links back home or to join with a code.
+// Main 404 page: tells the visitor the page/room doesn't exist and offers
+// links back home or to join a room that is still waiting.
 function NotFoundPage() {
   return (
     <WebShell>
@@ -35,7 +38,7 @@ function NotFoundPage() {
           <EmptyState
             icon={<Compass />}
             title="This room doesn't exist"
-            description="The page moved, or the room code expired 15 minutes after its session ended."
+            description="The page moved, or this room is no longer waiting to start. A code can join only a waiting room."
             action={
               <div className="flex flex-wrap justify-center gap-3">
                 <PmButton asChild>

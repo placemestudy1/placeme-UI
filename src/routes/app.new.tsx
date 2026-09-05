@@ -18,6 +18,7 @@ import { Field, PmBadge, PmButton, PmCard, PmSelect } from "@/components/pm/kit"
 import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { createRoom, generateTopic, submitCustomTopic } from "@/lib/api";
+import { ROOM_CAPACITY_OPTIONS, isSupportedRoomCapacity } from "@/lib/room-capacity";
 
 export const Route = createFileRoute("/app/new")({
   head: () => ({
@@ -57,6 +58,10 @@ function NativeNewRoom() {
   // via the API, and navigates to the room's lobby on success.
   async function onSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
+    if (!isSupportedRoomCapacity(maxParticipants)) {
+      setError("Choose a room capacity from 3 to 12 participants.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -102,10 +107,11 @@ function NativeNewRoom() {
                 value={String(maxParticipants)}
                 onChange={(e) => setMaxParticipants(Number(e.target.value))}
               >
-                <option value="4">4</option>
-                <option value="6">6</option>
-                <option value="8">8</option>
-                <option value="10">10</option>
+                {ROOM_CAPACITY_OPTIONS.map((capacity) => (
+                  <option key={capacity} value={capacity}>
+                    {capacity}
+                  </option>
+                ))}
               </PmSelect>
             </Field>
             <Field label="Duration">
