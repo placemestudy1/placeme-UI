@@ -22,9 +22,51 @@ test.describe("create room", () => {
     );
 
     await gotoReady(page, "/rooms/new");
+    const seats = page.locator('input[type="number"][min="3"][max="12"]');
+    await expect(seats).toHaveValue("6");
+    await expect(
+      page.getByText("Room capacity can be set from 3 to 12 participants."),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Create room" }).click();
 
     await expect(page).toHaveURL(/\/lobby\/room-1/);
+  });
+
+  for (const capacity of [3, 12]) {
+    test(`submits the supported ${capacity}-seat boundary`, async ({ page }) => {
+      await mockApi(
+        page,
+        "/api/topics/custom",
+        { id: "t1", text: "Is AI making engineers less employable?" },
+        { method: "POST" },
+      );
+      let submittedCapacity: number | undefined;
+      await page.route("**/api/rooms", (route) => {
+        if (route.request().method() !== "POST") return route.fallback();
+        submittedCapacity = (route.request().postDataJSON() as { maxParticipants?: number })
+          .maxParticipants;
+        return route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({ id: `room-${capacity}`, code: "GD-1234", status: "waiting" }),
+        });
+      });
+
+      await gotoReady(page, "/rooms/new");
+      await page.locator('input[type="number"][min="3"][max="12"]').fill(String(capacity));
+      await page.getByRole("button", { name: "Create room" }).click();
+
+      await expect(page).toHaveURL(new RegExp(`/lobby/room-${capacity}`));
+      expect(submittedCapacity).toBe(capacity);
+    });
+  }
+
+  test("offers every supported capacity on the mobile route", async ({ page }) => {
+    await gotoReady(page, "/app/new");
+    const seats = page.getByText("Seats", { exact: true }).locator("..").locator("select");
+    await expect(seats.locator("option")).toHaveCount(10);
+    await expect(seats.locator("option").first()).toHaveAttribute("value", "3");
+    await expect(seats.locator("option").last()).toHaveAttribute("value", "12");
   });
 
   test("surfaces a room-creation error instead of navigating away", async ({ page }) => {
@@ -67,6 +109,9 @@ test.describe("join room", () => {
     });
 
     await gotoReady(page, "/join");
+    await expect(
+      page.getByText("A room code can be used only while that room is waiting to start."),
+    ).toBeVisible();
     await expect(page.getByText("Remote work vs. office culture for freshers")).toBeVisible();
     await expect(page.getByText("Ishita Rao")).toBeVisible();
   });

@@ -30,6 +30,12 @@ import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { createRoom, generateTopic, submitCustomTopic } from "@/lib/api";
 import { track } from "@/lib/analytics";
+import {
+  DEFAULT_ROOM_PARTICIPANTS,
+  MAX_ROOM_PARTICIPANTS,
+  MIN_ROOM_PARTICIPANTS,
+  isSupportedRoomCapacity,
+} from "@/lib/room-capacity";
 
 export const Route = createFileRoute("/rooms/new")({
   head: () => ({
@@ -61,7 +67,7 @@ function CreateRoomPage() {
   const navigate = useNavigate();
   const [topicChoice, setTopicChoice] = useState<string>(topics[0]);
   const [durationSeconds, setDurationSeconds] = useState(900);
-  const [maxParticipants, setMaxParticipants] = useState(5);
+  const [maxParticipants, setMaxParticipants] = useState(DEFAULT_ROOM_PARTICIPANTS);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
   const [busy, setBusy] = useState(false);
@@ -71,6 +77,12 @@ function CreateRoomPage() {
   // via the API, and navigates to the room's lobby on success.
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!isSupportedRoomCapacity(maxParticipants)) {
+      setError(
+        `Choose a whole-number room capacity from ${MIN_ROOM_PARTICIPANTS} to ${MAX_ROOM_PARTICIPANTS}.`,
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -128,8 +140,9 @@ function CreateRoomPage() {
               <Field label="Seats">
                 <PmInput
                   type="number"
-                  min="2"
-                  max="5"
+                  min={MIN_ROOM_PARTICIPANTS}
+                  max={MAX_ROOM_PARTICIPANTS}
+                  step="1"
                   value={String(maxParticipants)}
                   onChange={(e) => setMaxParticipants(Number(e.target.value))}
                 />
@@ -231,8 +244,7 @@ function CreateRoomPage() {
           </PmCard>
           <PmCard className="p-5 text-sm text-muted-foreground">
             <p className="mb-2 font-semibold text-foreground">Hosting tips</p>
-            6–8 speakers keeps everyone above the 10% speak-time threshold the AI needs for reliable
-            scoring.
+            Room capacity can be set from 3 to 12 participants.
           </PmCard>
         </aside>
       </div>

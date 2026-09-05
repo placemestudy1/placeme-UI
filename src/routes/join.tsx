@@ -132,7 +132,7 @@ function JoinPage() {
           </form>
           <div className="mt-6 border-t border-border pt-5">
             <p className="text-xs text-muted-foreground">
-              Codes expire 15 minutes after a session ends.
+              A room code can be used only while that room is waiting to start.
             </p>
           </div>
         </PmCard>
