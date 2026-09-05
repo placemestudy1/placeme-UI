@@ -430,6 +430,75 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/rooms/{id}/leave:
+    post:
+      operationId: leaveRoom
+      summary: >-
+        Leave a still-live room early. Does not end the room for other
+        participants; durably claims feedback generation for just the caller,
+        scored from the transcript captured through a bounded flush cutoff.
+      tags: [rooms]
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: An existing idempotent evaluation job was returned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EarlyLeaveEvaluationResponse" }
+        "202":
+          description: A durable evaluation job was claimed and accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EarlyLeaveEvaluationResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not a participant of this room.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The room is not live.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Evaluation is disabled or the durable job claim failed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/rooms/{id}/leave/evaluation:
+    get:
+      operationId: getEarlyLeaveEvaluation
+      summary: Read the caller's durable early-leave evaluation state.
+      tags: [rooms]
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Current state, or null if no early-leave job exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [evaluation]
+                properties:
+                  evaluation:
+                    anyOf:
+                      - $ref: "#/components/schemas/EarlyLeaveEvaluation"
+                      - type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not a participant of this room.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/rooms/{id}/status:
     get:
       operationId: getRoomStatus
@@ -669,6 +738,30 @@ components:
       required: [error]
       properties:
         error: { type: string }
+        code: { type: string }
+
+    EarlyLeaveEvaluationResponse:
+      type: object
+      required: [evaluation]
+      properties:
+        evaluation:
+          $ref: "#/components/schemas/EarlyLeaveEvaluation"
+
+    EarlyLeaveEvaluation:
+      type: object
+      required: [jobId, status, finality, accepted, disposition]
+      properties:
+        jobId: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [queued, running, completed, partial, failed]
+        finality:
+          type: string
+          enum: [pending, flushed, timed_out_partial]
+        accepted: { type: boolean }
+        disposition:
+          type: string
+          enum: [accepted, already_accepted]
 
     Visibility:
       type: string

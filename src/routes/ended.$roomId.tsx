@@ -17,6 +17,7 @@ import {
 } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
 import { track } from "@/lib/analytics";
+import { beginEarlyLeaveEvaluation, useEarlyLeaveEvaluation } from "@/lib/early-leave-evaluation";
 import {
   getMyFeedback,
   getRoomParticipants,
@@ -104,6 +105,7 @@ function talkTimeSummary(participants: RoomParticipant[], selfUserId: string | u
 function EndedPage() {
   const { roomId } = Route.useParams();
   const { session, user } = useAuth();
+  const earlyLeave = useEarlyLeaveEvaluation(session, roomId);
 
   const [status, setStatus] = useState<RoomStatus | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -225,6 +227,35 @@ function EndedPage() {
         <div className="space-y-6">
           <PmCard className="space-y-3 p-6">
             <SectionTitle title="Your feedback" />
+            {earlyLeave?.status === "failed" && !earlyLeave.accepted && (
+              <div className="space-y-2 rounded-lg border border-destructive/40 p-3 text-sm">
+                <p>We couldn't start your early-leave evaluation. Your exit was still completed.</p>
+                <PmButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => beginEarlyLeaveEvaluation(session, roomId).catch(() => {})}
+                >
+                  Retry evaluation
+                </PmButton>
+              </div>
+            )}
+            {earlyLeave?.status === "failed" && earlyLeave.accepted && (
+              <p className="text-sm text-destructive">
+                Your evaluation was accepted but could not be completed. Please try again later.
+              </p>
+            )}
+            {earlyLeave?.status === "partial" && (
+              <p className="text-sm text-muted-foreground">
+                Feedback uses a partial transcript because the final audio did not finish flushing
+                in time.
+              </p>
+            )}
+            {earlyLeave && ["pending", "queued", "running"].includes(earlyLeave.status) && (
+              <p className="text-sm text-muted-foreground">
+                Your early-leave evaluation is pending. It will use only audio captured before the
+                cutoff.
+              </p>
+            )}
             {feedback ? (
               <p className="text-sm leading-relaxed text-muted-foreground">{feedback}</p>
             ) : feedbackFailed ? (

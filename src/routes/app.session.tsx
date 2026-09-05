@@ -21,6 +21,7 @@ import { PmBadge, PmButton, PmDialog, StatusDot } from "@/components/pm/kit";
 import { ParticipantTile, TimerPill } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getRoomStatus } from "@/lib/api";
+import { beginEarlyLeaveEvaluation } from "@/lib/early-leave-evaluation";
 import {
   useLiveRoom,
   LiveRoomError,
@@ -101,7 +102,8 @@ function NativeSession() {
 
   function confirmLeave() {
     live.leave();
-    navigate({ to: "/app/lobby", search: { roomId } });
+    beginEarlyLeaveEvaluation(session, roomId).catch(() => {});
+    navigate({ to: "/app/ended", search: { roomId } });
   }
 
   return (
@@ -196,7 +198,7 @@ function NativeSession() {
         open={leaving}
         onClose={() => setLeaving(false)}
         title="Leave the discussion?"
-        description="Leaving early means no AI feedback for this session."
+        description="We'll try to generate feedback from what was captured before you leave."
         sheetOnMobile
         footer={
           <>

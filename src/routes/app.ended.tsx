@@ -41,6 +41,7 @@ import {
   type RoomParticipant,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { beginEarlyLeaveEvaluation, useEarlyLeaveEvaluation } from "@/lib/early-leave-evaluation";
 
 const searchSchema = z.object({ roomId: z.string().optional() });
 
@@ -80,6 +81,7 @@ function NativeEnded() {
   const { roomId: rawRoomId } = Route.useSearch();
   const roomId = rawRoomId ?? "";
   const { session } = useAuth();
+  const earlyLeave = useEarlyLeaveEvaluation(session, roomId);
 
   const [tab, setTab] = useState<"feedback" | "transcript">("feedback");
   const [status, setStatus] = useState<RoomStatus | null>(null);
@@ -211,6 +213,35 @@ function NativeEnded() {
 
         <PmCard className="space-y-3 p-4">
           <SectionTitle title="Your feedback" />
+          {earlyLeave?.status === "failed" && !earlyLeave.accepted && (
+            <div className="space-y-2 rounded-lg border border-destructive/40 p-3 text-sm">
+              <p>We couldn't start your early-leave evaluation. Your exit was still completed.</p>
+              <PmButton
+                variant="outline"
+                size="sm"
+                onClick={() => beginEarlyLeaveEvaluation(session, roomId).catch(() => {})}
+              >
+                Retry evaluation
+              </PmButton>
+            </div>
+          )}
+          {earlyLeave?.status === "failed" && earlyLeave.accepted && (
+            <p className="text-sm text-destructive">
+              Your evaluation was accepted but could not be completed. Please try again later.
+            </p>
+          )}
+          {earlyLeave?.status === "partial" && (
+            <p className="text-sm text-muted-foreground">
+              Feedback uses a partial transcript because the final audio did not finish flushing in
+              time.
+            </p>
+          )}
+          {earlyLeave && ["pending", "queued", "running"].includes(earlyLeave.status) && (
+            <p className="text-sm text-muted-foreground">
+              Your early-leave evaluation is pending. It will use only audio captured before the
+              cutoff.
+            </p>
+          )}
           {feedback ? (
             <p className="text-sm leading-relaxed text-muted-foreground">{feedback}</p>
           ) : feedbackFailed ? (
