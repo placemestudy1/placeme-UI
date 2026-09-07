@@ -10,7 +10,11 @@ const ROOM_ID = "room-1";
 // -- the leave button, confirmation dialog, and its actions all render and
 // work regardless of live-audio connection state.
 test.beforeEach(async ({ page }) => {
-  await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
+  await mockApi(page, "/api/consent/status", {
+    currentVersion: 1,
+    canEnableMic: true,
+    ageAttested: true,
+  });
   await mockApi(page, `/api/rooms/${ROOM_ID}/status`, {
     id: ROOM_ID,
     status: "live",

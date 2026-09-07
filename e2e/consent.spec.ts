@@ -25,7 +25,7 @@ test("prompts for the separate adult attestation when consent is on file but att
     ageAttested: false,
   });
   await gotoReady(page, "/consent");
-  await expect(page.getByText("Confirm you're 18 or older")).toBeVisible();
+  await expect(page.getByText("I confirm that I am 18 years of age or older.")).toBeVisible();
 
   await expect(page.getByRole("button", { name: "Confirm & continue" })).toBeDisabled();
   await page.getByRole("checkbox").click();
