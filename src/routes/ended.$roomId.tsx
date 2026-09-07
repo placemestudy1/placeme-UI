@@ -92,13 +92,13 @@ function talkTimeSummary(participants: RoomParticipant[], selfUserId: string | u
     const runnerUp = sorted[1]!;
     return {
       talkShare: self.talkShare,
-      headline: `You led the discussion at ${self.talkShare}% talk time, ahead of ${runnerUp.displayName} at ${runnerUp.talkShare}%.`,
+      headline: `You had the highest tracked talk-time share at ${self.talkShare}%, followed by ${runnerUp.displayName} at ${runnerUp.talkShare}%.`,
     };
   }
-  const leader = sorted[0]!;
+  const highestShareParticipant = sorted[0]!;
   return {
     talkShare: self.talkShare,
-    headline: `You were the ${ordinalWord(rank + 1)}-most active speaker at ${self.talkShare}% talk time, behind ${leader.displayName} at ${leader.talkShare}%.`,
+    headline: `Your tracked talk-time share ranked ${ordinalWord(rank + 1)} at ${self.talkShare}%. ${highestShareParticipant.displayName} had the highest tracked share at ${highestShareParticipant.talkShare}%.`,
   };
 }
 
@@ -342,7 +342,7 @@ function EndedPage() {
             <PmCard className="space-y-5 p-6">
               <SectionTitle
                 title="Score breakdown"
-                subtitle="Weighted like a real placement panel"
+                subtitle="Based on PlaceMe's current AI evaluation rubric"
               />
               {dimensions.map((d) => (
                 <ScoreBar key={d.label} {...d} />
@@ -412,7 +412,8 @@ function EndedPage() {
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Complete more sessions to get a personalized suggestion.
+                  No score-based suggestion is available yet. Choose a general practice topic for
+                  your next session.
                 </p>
               );
             })()}

@@ -114,6 +114,9 @@ function NativeJoin() {
             >
               {busy ? "Joining…" : "Join room"}
             </PmButton>
+            <p className="mt-3 text-xs text-muted-foreground">
+              A room code can be used only while that room is waiting to start.
+            </p>
           </PmCard>
         </form>
 

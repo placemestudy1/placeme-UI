@@ -45,10 +45,36 @@ test("shows the score, feedback text, and a dimension-driven next-topic suggesti
   await expect(page.getByText("Content depth", { exact: true })).toBeVisible();
   await expect(page.getByText("Fluency", { exact: true })).toBeVisible();
   await expect(page.getByText("Opened with a crisp framing.")).toBeVisible();
+  await expect(page.getByText("Based on PlaceMe's current AI evaluation rubric")).toBeVisible();
   // Suggested-next-topic targets the real lowest-scoring dimension
   // (Fluency, 55) -- not a hardcoded fixture -- see the
   // weakestDimension() helper this exercises.
   await expect(page.getByText(/targets your lowest sub-score: fluency \(55\)/i)).toBeVisible();
+});
+
+test("describes the highest talk-time share without inferring leadership", async ({ page }) => {
+  await mockApi(page, `/api/rooms/${ROOM_ID}/participants`, {
+    participants: [
+      { userId: "11111111-1111-4111-8111-111111111111", displayName: "Aarav Menon", talkShare: 60 },
+      { userId: "u2", displayName: "Ishita Rao", talkShare: 40 },
+    ],
+  });
+  await mockApi(page, `/api/rooms/${ROOM_ID}/feedback/mine`, {
+    feedback: "Clear contribution.",
+    score: 80,
+    dimensions: [],
+    strengths: [],
+    improvements: [],
+  });
+
+  await gotoReady(page, `/ended/${ROOM_ID}`);
+
+  await expect(
+    page.getByText(
+      "You had the highest tracked talk-time share at 60%, followed by Ishita Rao at 40%.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText(/you led the discussion/i)).toHaveCount(0);
 });
 
 test("shows a pending state before feedback has arrived", async ({ page }) => {
