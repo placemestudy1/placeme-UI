@@ -34,8 +34,8 @@ function PrivacyPage() {
       <div>
         <h2 className="text-base font-semibold text-foreground">Microphone audio</h2>
         <p className="mt-2">
-          Your microphone audio is streamed live to our transcription service so it can be
-          converted to text. Raw audio is never saved to a disk or database.
+          Your microphone audio is streamed live to our transcription service so it can be converted
+          to text. Raw audio is never saved to a disk or database.
         </p>
       </div>
       <div>
@@ -56,18 +56,18 @@ function PrivacyPage() {
       <div>
         <h2 className="text-base font-semibold text-foreground">Processing</h2>
         <p className="mt-2">
-          Feedback is generated using Google's Gemini API on its free tier. Under Gemini's
-          free-tier terms, the transcript sent for feedback may be used by Google to improve its
-          products, and may be reviewed by a human at Google.
+          Feedback is generated using Google's Gemini API on its free tier. Under Gemini's free-tier
+          terms, the transcript sent for feedback may be used by Google to improve its products, and
+          may be reviewed by a human at Google.
         </p>
       </div>
       <div>
         <h2 className="text-base font-semibold text-foreground">Your rights</h2>
         <p className="mt-2">
-          You can withdraw consent for future mic use at any time -- this does not delete your
-          past consent record, transcript, or feedback. You can also request account deletion,
-          which removes your account, transcript, and feedback via our manual deletion process.
-          Both actions are available from the "Privacy &amp; your data" section of your account.
+          You can withdraw consent for future mic use at any time -- this does not delete your past
+          consent record, transcript, or feedback. You can also request account deletion, which
+          removes your account, transcript, and feedback via our manual deletion process. Both
+          actions are available from the "Privacy &amp; your data" section of your account.
         </p>
       </div>
       <div>

@@ -83,8 +83,8 @@ function AccountPage() {
             }
           />
           <p className="text-sm text-muted-foreground">
-            Withdrawing stops future microphone access until you re-consent. It does not delete
-            your existing consent record, transcript, or feedback.
+            Withdrawing stops future microphone access until you re-consent. It does not delete your
+            existing consent record, transcript, or feedback.
           </p>
           {withdrawError && (
             <div className="mt-4">
