@@ -241,19 +241,6 @@ function NativeConsent() {
         )}
         {!canEnableMic && (
           <PmCard className="p-4">
-            <p className="mb-3 text-sm font-semibold">What you're agreeing to</p>
-            <DisclosureList items={CONSENT_DISCLOSURES} />
-            <p className="mt-4 text-xs text-muted-foreground">
-              Full details in our{" "}
-              <Link to="/privacy" className="font-semibold text-primary-glow">
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          </PmCard>
-        )}
-        {!canEnableMic && (
-          <PmCard className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">iPhone Microphone</span>
               {micState === "granted" ? (
