@@ -7,7 +7,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bell, ChevronRight, Shuffle, Sparkles } from "lucide-react";
+import { Bell, ChevronRight, Shield, Shuffle, Sparkles } from "lucide-react";
 
 import { NativeTabScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
@@ -83,6 +83,13 @@ function NativeHome() {
           <button className="grid size-9 place-items-center rounded-full bg-secondary text-muted-foreground">
             <Bell className="size-4" />
           </button>
+          <Link
+            to="/app/account"
+            aria-label="Privacy & your data"
+            className="grid size-9 place-items-center rounded-full bg-secondary text-muted-foreground"
+          >
+            <Shield className="size-4" />
+          </Link>
           <PmAvatar initials={firstName.slice(0, 2).toUpperCase()} size="sm" />
         </div>
       }

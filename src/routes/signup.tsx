@@ -125,7 +125,15 @@ function SignupPage() {
           {submitting ? "Creating account…" : "Create account"}
         </PmButton>
         <p className="text-center text-xs text-muted-foreground">
-          By continuing you agree to our Terms and Privacy Policy.
+          By continuing you agree to our{" "}
+          <Link to="/terms" className="font-semibold text-primary-glow">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link to="/privacy" className="font-semibold text-primary-glow">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </form>
     </AuthLayout>

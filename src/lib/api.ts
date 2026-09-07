@@ -50,6 +50,7 @@ export type TranscriptLine = Schemas["TranscriptLine"];
 export type FeedbackDimension = Schemas["FeedbackDimension"];
 export type FeedbackResult = Schemas["FeedbackResult"];
 export type HistorySession = Schemas["HistorySession"];
+export type DeletionRequest = Schemas["DeletionRequest"];
 
 const API_URL = import.meta.env["VITE_API_URL"] || "http://localhost:3000";
 

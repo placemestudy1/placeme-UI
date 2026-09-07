@@ -23,6 +23,7 @@ import { Banner, PmBadge, PmButton, PmCard, SectionTitle, StatusDot } from "@/co
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
+import { CONSENT_DISCLOSURES } from "@/lib/consent-disclosures";
 import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/consent")({
@@ -230,6 +231,22 @@ function ConsentPage() {
 
   return (
     <WebShell title="Microphone check" subtitle="Required once before your first live session">
+      <div className="mx-auto max-w-4xl">
+        <PmCard className="mb-6 p-6 md:p-8">
+          <SectionTitle
+            title="What you're agreeing to"
+            subtitle="Read this before granting microphone access"
+          />
+          <DisclosureList items={CONSENT_DISCLOSURES} />
+          <p className="mt-5 text-sm text-muted-foreground">
+            Full details in our{" "}
+            <Link to="/privacy" className="font-semibold text-primary-glow">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </PmCard>
+      </div>
       <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <PmCard glass className="p-6 md:p-8">
           <PmBadge tone="primary">
@@ -238,7 +255,9 @@ function ConsentPage() {
           <h2 className="mt-4 text-2xl font-bold">Allow PlaceMe to use your microphone</h2>
           <p className="mt-2 max-w-lg text-sm text-muted-foreground">
             We stream your voice to the room and generate a live transcript used only for your
-            personal AI feedback. You can revoke access at any time in your browser's site settings.
+            personal AI feedback. You can withdraw consent for future sessions any time from the
+            "Privacy &amp; your data" section of your account -- to stop mic access immediately
+            during a live session, use your browser's microphone permission controls instead.
           </p>
 
           <div className="mt-8 rounded-2xl border border-border bg-surface p-6">

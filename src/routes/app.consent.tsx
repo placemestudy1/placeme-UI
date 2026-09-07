@@ -14,10 +14,12 @@ import { Loader2, Mic, ShieldCheck, Headphones } from "lucide-react";
 
 import { NativeStackScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
+import { DisclosureList } from "@/components/pm/disclosure-list";
 import { Banner, PmBadge, PmButton, PmCard, StatusDot } from "@/components/pm/kit";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
+import { CONSENT_DISCLOSURES } from "@/lib/consent-disclosures";
 
 export const Route = createFileRoute("/app/consent")({
   head: () => ({
@@ -235,6 +237,19 @@ function NativeConsent() {
                 validation stage.
               </span>
             </label>
+          </PmCard>
+        )}
+        {!canEnableMic && (
+          <PmCard className="p-4">
+            <p className="mb-3 text-sm font-semibold">What you're agreeing to</p>
+            <DisclosureList items={CONSENT_DISCLOSURES} />
+            <p className="mt-4 text-xs text-muted-foreground">
+              Full details in our{" "}
+              <Link to="/privacy" className="font-semibold text-primary-glow">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </PmCard>
         )}
         {!canEnableMic && (
