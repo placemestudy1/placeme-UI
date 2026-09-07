@@ -158,6 +158,71 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/consent/withdraw:
+    post:
+      operationId: withdrawConsent
+      summary: Withdraw this user's consent (gates future mic-enablement; the consent record itself is kept, never deleted)
+      tags: [consent]
+      responses:
+        "200":
+          description: >
+            OK. Returned whether or not there was anything left to revoke --
+            an already-withdrawn consent is not an error (SPEC-0012 AC3).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canEnableMic]
+                properties:
+                  canEnableMic: { type: boolean, enum: [false] }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/consent/age-attestation:
+    post:
+      operationId: attestAdult
+      summary: >
+        Record a separate minimal adult (18+) confirmation for this user
+        (SCRUM-24 follow-up). Not versioned like consent, and not folded
+        into POST /api/consent -- age doesn't change with a
+        disclosure-copy bump. Idempotent: a second call reports the
+        original attestation timestamp rather than an error, and never a
+        date of birth or identity document is collected for this control.
+      tags: [consent]
+      responses:
+        "201":
+          description: Attestation recorded (or already recorded, unchanged).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ageAttested, ageAttestedAt]
+                properties:
+                  ageAttested: { type: boolean, enum: [true] }
+                  ageAttestedAt: { type: string, format: date-time }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/account/deletion-request:
+    post:
+      operationId: requestAccountDeletion
+      summary: >
+        Submit a self-serve account-deletion request. Intake only -- a
+        founder still executes the deletion via the existing manual process
+        (docs/engineering/ACCOUNT_DELETION.md); this does not itself delete
+        any data.
+      tags: [account]
+      responses:
+        "201":
+          description: >
+            Request recorded (or the caller's existing pending request,
+            unchanged, if one was already pending -- SPEC-0012 AC4).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletionRequest" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/topics/custom:
     post:
       operationId: submitCustomTopic
@@ -684,10 +749,16 @@ components:
 
     ConsentStatus:
       type: object
-      required: [currentVersion, canEnableMic]
+      required: [currentVersion, canEnableMic, ageAttested]
       properties:
         currentVersion: { type: integer }
         canEnableMic: { type: boolean }
+        ageAttested:
+          type: boolean
+          description: >
+            Whether this user has recorded the separate minimal adult (18+)
+            confirmation (SCRUM-24 follow-up). Independent of canEnableMic --
+            audio-sharing consent alone is not adult-eligibility evidence.
 
     Topic:
       type: object
