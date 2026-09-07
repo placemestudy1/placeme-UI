@@ -44,6 +44,7 @@ describe("AccountPage — Privacy & your data", () => {
   beforeEach(() => {
     withdrawConsentMock.mockReset();
     requestAccountDeletionMock.mockReset();
+    localStorage.clear();
     useAuthMock.mockReturnValue({
       user: { id: "u1", email: "student@college.edu" },
       session: fakeSession,
@@ -121,5 +122,35 @@ describe("AccountPage — Privacy & your data", () => {
     expect(await screen.findByText(/couldn't submit request/i)).toBeInTheDocument();
     expect(screen.getByText("server error")).toBeInTheDocument();
     expect(screen.queryByText(/deletion request submitted/i)).not.toBeInTheDocument();
+  });
+
+  it("does not claim consent was withdrawn for a user who has never granted it", () => {
+    // canEnableMic: false here means "never consented", not "withdrew" --
+    // the page must not imply a withdrawal that never happened.
+    useConsentStatusMock.mockReturnValue({
+      canEnableMic: false,
+      loading: false,
+      refresh: vi.fn(),
+    });
+    render(<AccountPage />);
+    expect(screen.queryByText(/consent withdrawn/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/not currently granted/i)).toBeInTheDocument();
+  });
+
+  it("persists the deletion-request confirmation across a remount (no read endpoint exists yet)", async () => {
+    requestAccountDeletionMock.mockResolvedValue({ requestedAt: "2026-09-07T00:00:00.000Z" });
+    const { unmount } = render(<AccountPage />);
+
+    screen.getByRole("button", { name: /request account deletion/i }).click();
+    expect(await screen.findByText(/deletion request submitted/i)).toBeInTheDocument();
+
+    unmount();
+    render(<AccountPage />);
+
+    expect(await screen.findByText(/deletion request submitted/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /deletion requested/i })).toBeDisabled();
+    // A remount must not silently re-submit -- the confirmation came from
+    // localStorage, not a second POST.
+    expect(requestAccountDeletionMock).toHaveBeenCalledTimes(1);
   });
 });

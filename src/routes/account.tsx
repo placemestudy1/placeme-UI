@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Loader2, MicOff, ShieldAlert, Trash2 } from "lucide-react";
 
@@ -7,15 +6,13 @@ import { ProtectedRoute } from "@/components/pm/protected-route";
 import { Banner, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
-import { withdrawConsent, requestAccountDeletion } from "@/lib/api";
+import { useAccountPrivacyActions } from "@/lib/use-account-privacy-actions";
 
 // "Privacy & your data" account-settings section (SPEC-0012 R5/AC5): lets a
 // student withdraw mic consent and submit a self-serve account-deletion
-// request. Not consent-gated -- a student must be able to reach this page
-// (e.g. to re-consent, or to request deletion) regardless of their current
-// canEnableMic state, so `consentRedirectTo` is pointed at this same route
-// to make ProtectedRoute treat it like the consent page itself and skip the
-// redirect-to-/consent check (same mechanism consent.tsx relies on).
+// request. `requireConsent={false}` keeps this page reachable regardless of
+// the caller's current canEnableMic state -- a student needs to reach it to
+// withdraw consent or request deletion whether or not they're consented.
 export const Route = createFileRoute("/account")({
   head: () => ({
     meta: [
@@ -24,49 +21,25 @@ export const Route = createFileRoute("/account")({
     ],
   }),
   component: () => (
-    <ProtectedRoute consentRedirectTo="/account">
+    <ProtectedRoute requireConsent={false}>
       <AccountPage />
     </ProtectedRoute>
   ),
 });
 
 function AccountPage() {
-  const { session } = useAuth();
+  const { user, session } = useAuth();
   const { canEnableMic, loading, refresh } = useConsentStatus(session);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [withdrawError, setWithdrawError] = useState<string | null>(null);
-  const [withdrawn, setWithdrawn] = useState(false);
-
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [requestedAt, setRequestedAt] = useState<string | null>(null);
-
-  async function handleWithdraw() {
-    setWithdrawError(null);
-    setWithdrawing(true);
-    try {
-      await withdrawConsent(session);
-      setWithdrawn(true);
-      refresh();
-    } catch (e) {
-      setWithdrawError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setWithdrawing(false);
-    }
-  }
-
-  async function handleDeletionRequest() {
-    setDeleteError(null);
-    setDeleting(true);
-    try {
-      const result = await requestAccountDeletion(session);
-      setRequestedAt(result.requestedAt);
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const {
+    withdrawing,
+    withdrawError,
+    withdrawn,
+    handleWithdraw,
+    deleting,
+    deleteError,
+    requestedAt,
+    handleDeletionRequest,
+  } = useAccountPrivacyActions(session, user?.id, refresh);
 
   return (
     <WebShell title="Privacy & your data" subtitle="Manage your consent and account data">
@@ -79,7 +52,7 @@ function AccountPage() {
                 ? "Checking your consent status…"
                 : canEnableMic && !withdrawn
                   ? "Currently granted"
-                  : "Currently withdrawn -- you'll be asked to re-consent before your next mic-enabled session"
+                  : "Not currently granted -- you'll be asked to consent before your next mic-enabled session"
             }
           />
           <p className="text-sm text-muted-foreground">
@@ -91,7 +64,7 @@ function AccountPage() {
               <Banner tone="danger" title="Couldn't withdraw consent" description={withdrawError} />
             </div>
           )}
-          {(withdrawn || (!loading && !canEnableMic)) && !withdrawError && (
+          {withdrawn && !withdrawError && (
             <div className="mt-4">
               <Banner
                 tone="success"

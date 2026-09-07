@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Loader2, MicOff, Trash2 } from "lucide-react";
 
@@ -7,11 +6,11 @@ import { ProtectedRoute } from "@/components/pm/protected-route";
 import { Banner, PmButton, PmCard } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
-import { withdrawConsent, requestAccountDeletion } from "@/lib/api";
+import { useAccountPrivacyActions } from "@/lib/use-account-privacy-actions";
 
 // Native mirror of routes/account.tsx -- see that file for the full
-// rationale (SPEC-0012 R5/AC5). `consentRedirectTo` points at this same
-// route so the page is reachable regardless of current mic-consent state.
+// rationale (SPEC-0012 R5/AC5). `requireConsent={false}` keeps this page
+// reachable regardless of current mic-consent state.
 export const Route = createFileRoute("/app/account")({
   head: () => ({
     meta: [
@@ -20,49 +19,25 @@ export const Route = createFileRoute("/app/account")({
     ],
   }),
   component: () => (
-    <ProtectedRoute redirectTo="/app/login" consentRedirectTo="/app/account">
+    <ProtectedRoute redirectTo="/app/login" requireConsent={false}>
       <NativeAccount />
     </ProtectedRoute>
   ),
 });
 
 function NativeAccount() {
-  const { session } = useAuth();
+  const { user, session } = useAuth();
   const { canEnableMic, loading, refresh } = useConsentStatus(session);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [withdrawError, setWithdrawError] = useState<string | null>(null);
-  const [withdrawn, setWithdrawn] = useState(false);
-
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [requestedAt, setRequestedAt] = useState<string | null>(null);
-
-  async function handleWithdraw() {
-    setWithdrawError(null);
-    setWithdrawing(true);
-    try {
-      await withdrawConsent(session);
-      setWithdrawn(true);
-      refresh();
-    } catch (e) {
-      setWithdrawError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setWithdrawing(false);
-    }
-  }
-
-  async function handleDeletionRequest() {
-    setDeleteError(null);
-    setDeleting(true);
-    try {
-      const result = await requestAccountDeletion(session);
-      setRequestedAt(result.requestedAt);
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const {
+    withdrawing,
+    withdrawError,
+    withdrawn,
+    handleWithdraw,
+    deleting,
+    deleteError,
+    requestedAt,
+    handleDeletionRequest,
+  } = useAccountPrivacyActions(session, user?.id, refresh);
 
   return (
     <NativeStackScreen title="Privacy & data" backTo="/app" backLabel="Home">
@@ -74,14 +49,14 @@ function NativeAccount() {
               ? "Checking your consent status…"
               : canEnableMic && !withdrawn
                 ? "Currently granted"
-                : "Currently withdrawn -- you'll re-consent before your next mic-enabled session"}
+                : "Not currently granted -- you'll be asked to consent before your next mic-enabled session"}
           </p>
           {withdrawError && (
             <div className="mt-3">
               <Banner tone="danger" title="Couldn't withdraw" description={withdrawError} />
             </div>
           )}
-          {(withdrawn || (!loading && !canEnableMic)) && !withdrawError && (
+          {withdrawn && !withdrawError && (
             <div className="mt-3">
               <Banner
                 tone="success"

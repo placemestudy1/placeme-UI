@@ -182,8 +182,9 @@ function ConsentPage() {
           <h2 className="mt-4 text-2xl font-bold">Allow PlaceMe to use your microphone</h2>
           <p className="mt-2 max-w-lg text-sm text-muted-foreground">
             We stream your voice to the room and generate a live transcript used only for your
-            personal AI feedback. You can withdraw consent at any time from the "Privacy &amp; your
-            data" section of your account.
+            personal AI feedback. You can withdraw consent for future sessions any time from the
+            "Privacy &amp; your data" section of your account -- to stop mic access immediately
+            during a live session, use your browser's microphone permission controls instead.
           </p>
 
           <div className="mt-8 rounded-2xl border border-border bg-surface p-6">
