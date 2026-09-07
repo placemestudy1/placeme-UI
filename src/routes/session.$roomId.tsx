@@ -13,7 +13,7 @@
  *   the current room status from the server, updates topic/code/end-time
  *   state, and redirects to the ended screen once the room has ended.
  * - confirmLeave(): defined inside SessionPage; leaves the live room and
- *   navigates back to the room's lobby.
+ *   navigates to the ended/report screen.
  */
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";

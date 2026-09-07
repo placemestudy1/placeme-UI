@@ -47,6 +47,7 @@ export function beginEarlyLeaveEvaluation(session: Session | null, roomId: strin
 export function useEarlyLeaveEvaluation(session: Session | null, roomId: string) {
   const [state, setState] = useState<EarlyLeaveUiState | null>(() => readEarlyLeaveState(roomId));
   const stateStatus = state?.status;
+  const stateAccepted = state?.accepted;
 
   useEffect(() => {
     const onChange = (event: Event) => {
@@ -58,7 +59,14 @@ export function useEarlyLeaveEvaluation(session: Session | null, roomId: string)
   }, [roomId]);
 
   useEffect(() => {
-    if (!stateStatus || stateStatus === "completed" || stateStatus === "partial") return undefined;
+    if (
+      !stateStatus ||
+      stateStatus === "completed" ||
+      stateStatus === "partial" ||
+      (stateStatus === "failed" && stateAccepted === false)
+    ) {
+      return undefined;
+    }
     let cancelled = false;
     const poll = () => {
       getEarlyLeaveEvaluation(session, roomId)
@@ -73,7 +81,7 @@ export function useEarlyLeaveEvaluation(session: Session | null, roomId: string)
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [session, roomId, stateStatus]);
+  }, [session, roomId, stateStatus, stateAccepted]);
 
   return state;
 }
