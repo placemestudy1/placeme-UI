@@ -106,6 +106,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consent/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw this user's consent (gates future mic-enablement; the consent record itself is kept, never deleted) */
+        post: operations["withdrawConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/deletion-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a self-serve account-deletion request. Intake only -- a founder still executes the deletion via the existing manual process (docs/engineering/ACCOUNT_DELETION.md); this does not itself delete any data. */
+        post: operations["requestAccountDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/topics/custom": {
         parameters: {
             query?: never;
@@ -243,6 +277,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rooms/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave a still-live room early. Does not end the room for other participants; durably claims feedback generation for just the caller, scored from the transcript captured through a bounded flush cutoff. */
+        post: operations["leaveRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/leave/evaluation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the caller's durable early-leave evaluation state. */
+        get: operations["getEarlyLeaveEvaluation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rooms/{id}/status": {
         parameters: {
             query?: never;
@@ -368,6 +436,21 @@ export interface components {
     schemas: {
         Error: {
             error: string;
+            code?: string;
+        };
+        EarlyLeaveEvaluationResponse: {
+            evaluation: components["schemas"]["EarlyLeaveEvaluation"];
+        };
+        EarlyLeaveEvaluation: {
+            /** Format: uuid */
+            jobId: string;
+            /** @enum {string} */
+            status: "queued" | "running" | "completed" | "partial" | "failed";
+            /** @enum {string} */
+            finality: "pending" | "flushed" | "timed_out_partial";
+            accepted: boolean;
+            /** @enum {string} */
+            disposition: "accepted" | "already_accepted";
         };
         /** @enum {string} */
         Visibility: "public" | "private";
@@ -378,6 +461,10 @@ export interface components {
         ConsentStatus: {
             currentVersion: number;
             canEnableMic: boolean;
+        };
+        DeletionRequest: {
+            /** Format: date-time */
+            requestedAt: string;
         };
         Topic: {
             /** Format: uuid */
@@ -715,6 +802,51 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    withdrawConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. Returned whether or not there was anything left to revoke -- an already-withdrawn consent is not an error (SPEC-0012 AC3). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        canEnableMic: false;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    requestAccountDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request recorded (or the caller's existing pending request, unchanged, if one was already pending -- SPEC-0012 AC4). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     submitCustomTopic: {
         parameters: {
             query?: never;
@@ -1026,6 +1158,100 @@ export interface operations {
             404: components["responses"]["NotFound"];
             /** @description Already started/ended, or the pilot concurrency cap is hit. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    leaveRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An existing idempotent evaluation job was returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarlyLeaveEvaluationResponse"];
+                };
+            };
+            /** @description A durable evaluation job was claimed and accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarlyLeaveEvaluationResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not a participant of this room. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            /** @description The room is not live. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Evaluation is disabled or the durable job claim failed. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getEarlyLeaveEvaluation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["RoomId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current state, or null if no early-leave job exists. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        evaluation: components["schemas"]["EarlyLeaveEvaluation"] | null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not a participant of this room. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

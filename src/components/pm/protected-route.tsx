@@ -33,21 +33,32 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 // is skipped on the configured consent page — that page manages its own
 // consent state, so re-checking here would double-fetch and create a redirect
 // loop while consent is still missing.
+//
+// Pass `requireConsent={false}` for a page that must stay reachable
+// regardless of the caller's consent state (e.g. "Privacy & your data",
+// which a student needs to reach to withdraw consent or request deletion
+// whether or not they're currently consented) — this skips the consent
+// fetch/redirect/loading-gate entirely, the same way the consent page's own
+// exemption does, but as an explicit, self-documenting opt-out rather than
+// pointing `consentRedirectTo` at the page itself.
 export function ProtectedRoute({
   children,
   redirectTo = "/login",
   consentRedirectTo = "/consent",
+  requireConsent = true,
 }: {
   children: React.ReactNode;
   redirectTo?: string;
   consentRedirectTo?: string;
+  requireConsent?: boolean;
 }) {
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isConsentPage = pathname === consentRedirectTo;
+  const skipConsentCheck = !requireConsent || isConsentPage;
   const { canEnableMic, loading: consentLoading } = useConsentStatus(
-    isConsentPage ? null : session,
+    skipConsentCheck ? null : session,
   );
 
   useEffect(() => {
@@ -55,13 +66,13 @@ export function ProtectedRoute({
       navigate({ to: redirectTo });
       return;
     }
-    if (!loading && user && !isConsentPage && !consentLoading && !canEnableMic) {
+    if (!loading && user && !skipConsentCheck && !consentLoading && !canEnableMic) {
       navigate({ to: consentRedirectTo });
     }
   }, [
     loading,
     user,
-    isConsentPage,
+    skipConsentCheck,
     consentLoading,
     canEnableMic,
     navigate,
@@ -77,7 +88,7 @@ export function ProtectedRoute({
     );
   }
 
-  if (!isConsentPage && (consentLoading || !canEnableMic)) {
+  if (!skipConsentCheck && (consentLoading || !canEnableMic)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Checking your consent status…</p>

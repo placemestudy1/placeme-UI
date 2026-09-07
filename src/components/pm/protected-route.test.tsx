@@ -156,4 +156,49 @@ describe("ProtectedRoute", () => {
     expect(screen.getByText("secret content")).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
+
+  it("requireConsent=false renders children and never redirects, regardless of consent state", () => {
+    pathname = "/account";
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
+    render(
+      <ProtectedRoute requireConsent={false}>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    expect(screen.getByText("secret content")).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("requireConsent=false calls useConsentStatus with a null session, never fetching status for the gate", () => {
+    pathname = "/account";
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
+    render(
+      <ProtectedRoute requireConsent={false}>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    expect(useConsentStatusMock).toHaveBeenCalledWith(null);
+  });
+
+  it("requireConsent=false still redirects an unauthenticated user to redirectTo", async () => {
+    pathname = "/account";
+    useAuthMock.mockReturnValue({ user: null, session: null, loading: false });
+    render(
+      <ProtectedRoute requireConsent={false}>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: "/login" }));
+    expect(screen.queryByText("secret content")).not.toBeInTheDocument();
+  });
 });

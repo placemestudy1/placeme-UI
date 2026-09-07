@@ -29,7 +29,9 @@ tags:
   - name: me
     description: Identity.
   - name: consent
-    description: Recording and checking pilot consent (guardrail #3).
+    description: Recording, checking, and withdrawing pilot consent (guardrail #3).
+  - name: account
+    description: Self-serve account actions (DPDP right-to-erasure intake).
   - name: topics
     description: Discussion topic generation and submission.
   - name: rooms
@@ -155,6 +157,46 @@ paths:
                 properties:
                   consentVersion: { type: integer }
                   grantedAt: { type: string, format: date-time }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/consent/withdraw:
+    post:
+      operationId: withdrawConsent
+      summary: Withdraw this user's consent (gates future mic-enablement; the consent record itself is kept, never deleted)
+      tags: [consent]
+      responses:
+        "200":
+          description: >
+            OK. Returned whether or not there was anything left to revoke --
+            an already-withdrawn consent is not an error (SPEC-0012 AC3).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canEnableMic]
+                properties:
+                  canEnableMic: { type: boolean, enum: [false] }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/account/deletion-request:
+    post:
+      operationId: requestAccountDeletion
+      summary: >
+        Submit a self-serve account-deletion request. Intake only -- a
+        founder still executes the deletion via the existing manual process
+        (docs/engineering/ACCOUNT_DELETION.md); this does not itself delete
+        any data.
+      tags: [account]
+      responses:
+        "201":
+          description: >
+            Request recorded (or the caller's existing pending request,
+            unchanged, if one was already pending -- SPEC-0012 AC4).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletionRequest" }
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -430,6 +472,75 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/rooms/{id}/leave:
+    post:
+      operationId: leaveRoom
+      summary: >-
+        Leave a still-live room early. Does not end the room for other
+        participants; durably claims feedback generation for just the caller,
+        scored from the transcript captured through a bounded flush cutoff.
+      tags: [rooms]
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: An existing idempotent evaluation job was returned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EarlyLeaveEvaluationResponse" }
+        "202":
+          description: A durable evaluation job was claimed and accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EarlyLeaveEvaluationResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not a participant of this room.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The room is not live.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: Evaluation is disabled or the durable job claim failed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/rooms/{id}/leave/evaluation:
+    get:
+      operationId: getEarlyLeaveEvaluation
+      summary: Read the caller's durable early-leave evaluation state.
+      tags: [rooms]
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Current state, or null if no early-leave job exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [evaluation]
+                properties:
+                  evaluation:
+                    anyOf:
+                      - $ref: "#/components/schemas/EarlyLeaveEvaluation"
+                      - type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not a participant of this room.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/rooms/{id}/status:
     get:
       operationId: getRoomStatus
@@ -669,6 +780,30 @@ components:
       required: [error]
       properties:
         error: { type: string }
+        code: { type: string }
+
+    EarlyLeaveEvaluationResponse:
+      type: object
+      required: [evaluation]
+      properties:
+        evaluation:
+          $ref: "#/components/schemas/EarlyLeaveEvaluation"
+
+    EarlyLeaveEvaluation:
+      type: object
+      required: [jobId, status, finality, accepted, disposition]
+      properties:
+        jobId: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [queued, running, completed, partial, failed]
+        finality:
+          type: string
+          enum: [pending, flushed, timed_out_partial]
+        accepted: { type: boolean }
+        disposition:
+          type: string
+          enum: [accepted, already_accepted]
 
     Visibility:
       type: string
@@ -688,6 +823,12 @@ components:
       properties:
         currentVersion: { type: integer }
         canEnableMic: { type: boolean }
+
+    DeletionRequest:
+      type: object
+      required: [requestedAt]
+      properties:
+        requestedAt: { type: string, format: date-time }
 
     Topic:
       type: object

@@ -11,14 +11,18 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MatchRouteImport } from './routes/match'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppSplatRouteImport } from './routes/app.$'
+import { Route as AppAccountRouteImport } from './routes/app.account'
 import { Route as AppConsentRouteImport } from './routes/app.consent'
 import { Route as AppEndedRouteImport } from './routes/app.ended'
 import { Route as AppHistoryRouteImport } from './routes/app.history'
@@ -42,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConsentRoute = ConsentRouteImport.update({
@@ -69,9 +78,19 @@ const MatchRoute = MatchRouteImport.update({
   path: '/match',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -82,6 +101,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppSplatRoute = AppSplatRouteImport.update({
   id: '/app/$',
   path: '/app/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAccountRoute = AppAccountRouteImport.update({
+  id: '/app/account',
+  path: '/app/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppConsentRoute = AppConsentRouteImport.update({
@@ -158,13 +182,17 @@ const SessionRoomIdRoute = SessionRoomIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/account': typeof AccountRoute
   '/consent': typeof ConsentRoute
   '/history': typeof HistoryRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/match': typeof MatchRoute
+  '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/app/$': typeof AppSplatRoute
+  '/app/account': typeof AppAccountRoute
   '/app/consent': typeof AppConsentRoute
   '/app/ended': typeof AppEndedRoute
   '/app/history': typeof AppHistoryRoute
@@ -184,13 +212,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/account': typeof AccountRoute
   '/consent': typeof ConsentRoute
   '/history': typeof HistoryRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/match': typeof MatchRoute
+  '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/app/$': typeof AppSplatRoute
+  '/app/account': typeof AppAccountRoute
   '/app/consent': typeof AppConsentRoute
   '/app/ended': typeof AppEndedRoute
   '/app/history': typeof AppHistoryRoute
@@ -211,13 +243,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/account': typeof AccountRoute
   '/consent': typeof ConsentRoute
   '/history': typeof HistoryRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/match': typeof MatchRoute
+  '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/app/$': typeof AppSplatRoute
+  '/app/account': typeof AppAccountRoute
   '/app/consent': typeof AppConsentRoute
   '/app/ended': typeof AppEndedRoute
   '/app/history': typeof AppHistoryRoute
@@ -239,13 +275,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/account'
     | '/consent'
     | '/history'
     | '/join'
     | '/login'
     | '/match'
+    | '/privacy'
     | '/signup'
+    | '/terms'
     | '/app/$'
+    | '/app/account'
     | '/app/consent'
     | '/app/ended'
     | '/app/history'
@@ -265,13 +305,17 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/account'
     | '/consent'
     | '/history'
     | '/join'
     | '/login'
     | '/match'
+    | '/privacy'
     | '/signup'
+    | '/terms'
     | '/app/$'
+    | '/app/account'
     | '/app/consent'
     | '/app/ended'
     | '/app/history'
@@ -291,13 +335,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
+    | '/account'
     | '/consent'
     | '/history'
     | '/join'
     | '/login'
     | '/match'
+    | '/privacy'
     | '/signup'
+    | '/terms'
     | '/app/$'
+    | '/app/account'
     | '/app/consent'
     | '/app/ended'
     | '/app/history'
@@ -318,13 +366,17 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  AccountRoute: typeof AccountRoute
   ConsentRoute: typeof ConsentRoute
   HistoryRoute: typeof HistoryRoute
   JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
   MatchRoute: typeof MatchRoute
+  PrivacyRoute: typeof PrivacyRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
   AppSplatRoute: typeof AppSplatRoute
+  AppAccountRoute: typeof AppAccountRoute
   AppConsentRoute: typeof AppConsentRoute
   AppEndedRoute: typeof AppEndedRoute
   AppHistoryRoute: typeof AppHistoryRoute
@@ -356,6 +408,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/consent': {
@@ -393,11 +452,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -412,6 +485,13 @@ declare module '@tanstack/react-router' {
       path: '/app/$'
       fullPath: '/app/$'
       preLoaderRoute: typeof AppSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/account': {
+      id: '/app/account'
+      path: '/app/account'
+      fullPath: '/app/account'
+      preLoaderRoute: typeof AppAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/consent': {
@@ -518,13 +598,17 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  AccountRoute: AccountRoute,
   ConsentRoute: ConsentRoute,
   HistoryRoute: HistoryRoute,
   JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
   MatchRoute: MatchRoute,
+  PrivacyRoute: PrivacyRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
   AppSplatRoute: AppSplatRoute,
+  AppAccountRoute: AppAccountRoute,
   AppConsentRoute: AppConsentRoute,
   AppEndedRoute: AppEndedRoute,
   AppHistoryRoute: AppHistoryRoute,
