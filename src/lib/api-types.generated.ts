@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consent/age-attestation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a separate minimal adult (18+) confirmation for this user (SCRUM-24 follow-up). Not versioned like consent, and not folded into POST /api/consent -- age doesn't change with a disclosure-copy bump. Idempotent: a second call reports the original attestation timestamp rather than an error, and never a date of birth or identity document is collected for this control. */
+        post: operations["attestAdult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account/deletion-request": {
         parameters: {
             query?: never;
@@ -461,6 +478,8 @@ export interface components {
         ConsentStatus: {
             currentVersion: number;
             canEnableMic: boolean;
+            /** @description Whether this user has recorded the separate minimal adult (18+) confirmation (SCRUM-24 follow-up). Independent of canEnableMic -- audio-sharing consent alone is not adult-eligibility evidence. */
+            ageAttested: boolean;
         };
         DeletionRequest: {
             /** Format: date-time */
@@ -820,6 +839,32 @@ export interface operations {
                     "application/json": {
                         /** @enum {boolean} */
                         canEnableMic: false;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    attestAdult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attestation recorded (or already recorded, unchanged). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ageAttested: true;
+                        /** Format: date-time */
+                        ageAttestedAt: string;
                     };
                 };
             };

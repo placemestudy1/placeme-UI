@@ -24,7 +24,7 @@ describe("ProtectedRoute", () => {
   beforeEach(() => {
     navigateMock.mockClear();
     pathname = "/";
-    useConsentStatusMock.mockReturnValue({ canEnableMic: true, loading: false });
+    useConsentStatusMock.mockReturnValue({ canEnableMic: true, ageAttested: true, loading: false });
   });
 
   it("renders children once a signed-in, consented user is confirmed", () => {
@@ -98,7 +98,34 @@ describe("ProtectedRoute", () => {
       session: { user: { id: "u1" } },
       loading: false,
     });
-    useConsentStatusMock.mockReturnValue({ canEnableMic: false, loading: false });
+    useConsentStatusMock.mockReturnValue({
+      canEnableMic: false,
+      ageAttested: false,
+      loading: false,
+    });
+    render(
+      <ProtectedRoute>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: "/consent" }));
+    expect(screen.queryByText("secret content")).not.toBeInTheDocument();
+  });
+
+  // SCRUM-24 follow-up: audio-sharing consent alone was never
+  // adult-eligibility evidence -- a caller with mic consent but no
+  // attestation must still be sent back to the consent page.
+  it("redirects to /consent once consent finishes with canEnableMic true but ageAttested false", async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    useConsentStatusMock.mockReturnValue({
+      canEnableMic: true,
+      ageAttested: false,
+      loading: false,
+    });
     render(
       <ProtectedRoute>
         <p>secret content</p>

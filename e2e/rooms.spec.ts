@@ -3,7 +3,11 @@ import { expect, test } from "@playwright/test";
 import { gotoReady, mockApi } from "./mocks";
 
 test.beforeEach(async ({ page }) => {
-  await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
+  await mockApi(page, "/api/consent/status", {
+    currentVersion: 1,
+    canEnableMic: true,
+    ageAttested: true,
+  });
 });
 
 test.describe("create room", () => {

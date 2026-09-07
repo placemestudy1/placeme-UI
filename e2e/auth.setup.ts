@@ -12,7 +12,11 @@ const authFile = "e2e/.auth/user.json";
 // since it specifically needs to start unauthenticated.
 setup("authenticate", async ({ page }) => {
   await mockSupabaseAuth(page);
-  await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
+  await mockApi(page, "/api/consent/status", {
+    currentVersion: 1,
+    canEnableMic: true,
+    ageAttested: true,
+  });
 
   await gotoReady(page, "/login");
   await page.getByPlaceholder("you@college.edu").fill("aarav.menon@nitk.edu.in");

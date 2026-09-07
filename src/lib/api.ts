@@ -93,6 +93,13 @@ export const grantConsent = (session: Session | null) =>
 export const withdrawConsent = (session: Session | null) =>
   callApi<Ok<"withdrawConsent", 200>>(session, "/api/consent/withdraw", { method: "POST" });
 
+// Records the separate minimal adult (18+) confirmation for this user
+// (SCRUM-24 follow-up) -- independent of, and not folded into, grantConsent
+// above. Idempotent: a second call reports the original attestation
+// timestamp rather than an error.
+export const attestAdult = (session: Session | null) =>
+  callApi<Ok<"attestAdult", 201>>(session, "/api/consent/age-attestation", { method: "POST" });
+
 /* -------------------------------- account --------------------------------- */
 
 // Submits a self-serve account-deletion request. Intake only -- a founder
