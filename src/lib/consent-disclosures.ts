@@ -42,6 +42,6 @@ export const CONSENT_DISCLOSURES: ConsentDisclosure[] = [
   {
     icon: AlertTriangle,
     title: "Interim policy notice",
-    body: "The processor, purpose, and retention details above are interim, pending a full legal review of our data map (tracked internally as SCRUM-24). See our Privacy Policy for the current version.",
+    body: "The processor, purpose, and retention details above are interim: they reflect our actual current practice, confirmed by an internal review, but formal legal review is still pending -- intentionally deferred during this early validation stage until any paid pilot or external commitment. See our Privacy Policy for the current version.",
   },
 ];

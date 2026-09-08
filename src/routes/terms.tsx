@@ -62,9 +62,9 @@ function TermsPage() {
       <div>
         <h2 className="text-base font-semibold text-foreground">Beta status</h2>
         <p className="mt-2">
-          PlaceMe is in an early pilot. Features, these terms, and the Privacy Policy may change as
-          the product and its legal review (SCRUM-24) progress; material changes will be reflected
-          on this page.
+          PlaceMe is in an early pilot. Formal legal review of these terms and the Privacy Policy is
+          intentionally deferred during this validation stage and will happen before any paid pilot
+          or external commitment; material changes will be reflected on this page.
         </p>
       </div>
     </LegalLayout>

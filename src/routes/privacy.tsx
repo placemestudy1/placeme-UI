@@ -74,8 +74,10 @@ function PrivacyPage() {
         <h2 className="text-base font-semibold text-foreground">Interim status</h2>
         <p className="mt-2">
           The processor, purpose, and retention details above reflect our actual current practice,
-          but are still pending a full legal review of our data map (tracked internally as
-          SCRUM-24). This page will be updated once that review completes.
+          confirmed by an internal data-flow review. We have not yet engaged a lawyer or company
+          secretary for formal legal review -- this is a deliberate validation-stage decision -- so
+          this page is not a compliance guarantee. It will be revisited before any paid pilot,
+          external contract, or similar commitment.
         </p>
       </div>
       <p>
