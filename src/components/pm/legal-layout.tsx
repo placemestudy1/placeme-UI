@@ -21,7 +21,7 @@ export function LegalLayout({ title, children }: { title: string; children: Reac
           <Banner
             tone="warning"
             title="Beta interim notice"
-            description="Processor and retention details are being finalized (tracked internally as SCRUM-24); this page will be updated when that review completes."
+            description="The practices on this page reflect our actual current data handling, confirmed by an internal review. Formal legal review is intentionally deferred during this early validation stage and will happen before any paid pilot or external commitment."
           />
         </div>
         <PmCard className="mt-6 p-6 sm:p-8">
