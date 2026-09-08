@@ -9,6 +9,7 @@ export type EarlyLeaveUiState =
       status: "pending" | "failed";
       finality: "pending";
       accepted: false;
+      terminal: boolean;
     };
 
 const EVENT_NAME = "placeme:early-leave-evaluation";
@@ -32,14 +33,26 @@ export function readEarlyLeaveState(roomId: string): EarlyLeaveUiState | null {
 }
 
 export function beginEarlyLeaveEvaluation(session: Session | null, roomId: string) {
-  publish(roomId, { jobId: null, status: "pending", finality: "pending", accepted: false });
+  publish(roomId, {
+    jobId: null,
+    status: "pending",
+    finality: "pending",
+    accepted: false,
+    terminal: false,
+  });
   return leaveRoom(session, roomId)
     .then(({ evaluation }) => {
       publish(roomId, evaluation);
       return evaluation;
     })
     .catch((error: unknown) => {
-      publish(roomId, { jobId: null, status: "failed", finality: "pending", accepted: false });
+      publish(roomId, {
+        jobId: null,
+        status: "failed",
+        finality: "pending",
+        accepted: false,
+        terminal: true,
+      });
       throw error;
     });
 }
@@ -48,6 +61,7 @@ export function useEarlyLeaveEvaluation(session: Session | null, roomId: string)
   const [state, setState] = useState<EarlyLeaveUiState | null>(() => readEarlyLeaveState(roomId));
   const stateStatus = state?.status;
   const stateAccepted = state?.accepted;
+  const stateTerminal = state?.terminal;
 
   useEffect(() => {
     const onChange = (event: Event) => {
@@ -61,6 +75,7 @@ export function useEarlyLeaveEvaluation(session: Session | null, roomId: string)
   useEffect(() => {
     if (
       !stateStatus ||
+      stateTerminal === true ||
       stateStatus === "completed" ||
       stateStatus === "partial" ||
       (stateStatus === "failed" && stateAccepted === false)
@@ -81,7 +96,7 @@ export function useEarlyLeaveEvaluation(session: Session | null, roomId: string)
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [session, roomId, stateStatus, stateAccepted]);
+  }, [session, roomId, stateStatus, stateAccepted, stateTerminal]);
 
   return state;
 }

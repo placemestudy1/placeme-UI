@@ -33,6 +33,7 @@ describe("early-leave evaluation state", () => {
         finality: "pending",
         accepted: true,
         disposition: "accepted",
+        terminal: false,
       },
     });
     await beginEarlyLeaveEvaluation({} as never, "room-1");
@@ -42,6 +43,7 @@ describe("early-leave evaluation state", () => {
       finality: "pending",
       accepted: true,
       disposition: "accepted",
+      terminal: false,
     });
   });
 
@@ -53,12 +55,31 @@ describe("early-leave evaluation state", () => {
       status: "failed",
       finality: "pending",
       accepted: false,
+      terminal: true,
     });
   });
 
   it("does not poll job status after a locally rejected, unaccepted leave request", async () => {
     vi.mocked(leaveRoom).mockRejectedValue(new Error("offline"));
     await expect(beginEarlyLeaveEvaluation({} as never, "room-1")).rejects.toThrow("offline");
+
+    render(createElement(Probe, { roomId: "room-1" }));
+
+    expect(getEarlyLeaveEvaluation).not.toHaveBeenCalled();
+  });
+
+  it("does not poll after the server reports an accepted job as terminally failed", async () => {
+    vi.mocked(leaveRoom).mockResolvedValue({
+      evaluation: {
+        jobId: "job-1",
+        status: "failed",
+        finality: "pending",
+        accepted: true,
+        disposition: "already_accepted",
+        terminal: true,
+      },
+    });
+    await beginEarlyLeaveEvaluation({} as never, "room-1");
 
     render(createElement(Probe, { roomId: "room-1" }));
 
