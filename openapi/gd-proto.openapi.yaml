@@ -224,7 +224,6 @@ paths:
               schema: { $ref: "#/components/schemas/DeletionRequest" }
         "401":
           $ref: "#/components/responses/Unauthorized"
-
   /api/topics/custom:
     post:
       operationId: submitCustomTopic
@@ -816,7 +815,7 @@ components:
 
     EarlyLeaveEvaluation:
       type: object
-      required: [jobId, status, finality, accepted, disposition]
+      required: [jobId, status, finality, accepted, disposition, terminal]
       properties:
         jobId: { type: string, format: uuid }
         status:
@@ -826,6 +825,9 @@ components:
           type: string
           enum: [pending, flushed, timed_out_partial]
         accepted: { type: boolean }
+        terminal:
+          type: boolean
+          description: True when the job cannot transition again and polling must stop.
         disposition:
           type: string
           enum: [accepted, already_accepted]

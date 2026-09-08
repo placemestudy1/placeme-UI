@@ -466,6 +466,8 @@ export interface components {
             /** @enum {string} */
             finality: "pending" | "flushed" | "timed_out_partial";
             accepted: boolean;
+            /** @description True when the job cannot transition again and polling must stop. */
+            terminal: boolean;
             /** @enum {string} */
             disposition: "accepted" | "already_accepted";
         };
