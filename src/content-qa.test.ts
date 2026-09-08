@@ -6,6 +6,12 @@ const routeSources = import.meta.glob("./routes/*.tsx", {
   eager: true,
 }) as Record<string, string>;
 
+const legalLayoutSource = import.meta.glob("./components/pm/legal-layout.tsx", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
 const misleadingClaims = [
   { claim: "evaluation equivalence to a placement panel", pattern: /real placement panel/i },
   {
@@ -40,6 +46,30 @@ describe("truthful product copy", () => {
     expect(routeSources["./routes/app.$.tsx"]).toContain(
       "A room code can join only a room that is still waiting to start.",
     );
+  });
+
+  it("links signup to real Terms and Privacy routes instead of inert text (SPEC-0012 R1)", () => {
+    for (const path of ["./routes/signup.tsx", "./routes/app.signup.tsx"]) {
+      expect(routeSources[path], path).toMatch(/to="\/terms"/);
+      expect(routeSources[path], path).toMatch(/to="\/privacy"/);
+    }
+  });
+
+  it("carries the beta interim notice on both /terms and /privacy (SPEC-0012 AC1)", () => {
+    // Both pages render it via the shared LegalLayout rather than duplicating
+    // the banner text inline -- assert the shared layout carries it, and
+    // that both routes actually use that layout.
+    expect(legalLayoutSource["./components/pm/legal-layout.tsx"]).toMatch(/Beta interim notice/);
+    for (const path of ["./routes/terms.tsx", "./routes/privacy.tsx"]) {
+      expect(routeSources[path], path).toMatch(/LegalLayout/);
+    }
+  });
+
+  it("shows the full R2 disclosure list on the consent page before requesting mic permission (SPEC-0012 AC2)", () => {
+    for (const path of ["./routes/consent.tsx", "./routes/app.consent.tsx"]) {
+      expect(routeSources[path], path).toMatch(/CONSENT_DISCLOSURES/);
+      expect(routeSources[path], path).toMatch(/to="\/privacy"/);
+    }
   });
 
   it("labels evaluation and suggestions according to their actual source", () => {

@@ -51,6 +51,7 @@ export type FeedbackDimension = Schemas["FeedbackDimension"];
 export type FeedbackResult = Schemas["FeedbackResult"];
 export type HistorySession = Schemas["HistorySession"];
 export type EarlyLeaveEvaluation = Schemas["EarlyLeaveEvaluation"];
+export type DeletionRequest = Schemas["DeletionRequest"];
 
 const API_URL = import.meta.env["VITE_API_URL"] || "http://localhost:3000";
 
@@ -86,6 +87,28 @@ export const getConsentStatus = (session: Session | null) =>
 // Records this user's consent grant for the current consent version.
 export const grantConsent = (session: Session | null) =>
   callApi<Ok<"grantConsent", 201>>(session, "/api/consent", { method: "POST" });
+
+// Withdraws this user's latest consent (canEnableMic becomes false
+// afterward); the consent row itself is kept, never deleted. A second call
+// while already withdrawn is not an error (SPEC-0012 AC3).
+export const withdrawConsent = (session: Session | null) =>
+  callApi<Ok<"withdrawConsent", 200>>(session, "/api/consent/withdraw", { method: "POST" });
+
+// Records the separate minimal adult (18+) confirmation for this user
+// (SCRUM-24 follow-up) -- independent of, and not folded into, grantConsent
+// above. Idempotent: a second call reports the original attestation
+// timestamp rather than an error.
+export const attestAdult = (session: Session | null) =>
+  callApi<Ok<"attestAdult", 201>>(session, "/api/consent/age-attestation", { method: "POST" });
+
+/* -------------------------------- account --------------------------------- */
+
+// Submits a self-serve account-deletion request. Intake only -- a founder
+// still executes the deletion via the existing manual process; a second call
+// while one is pending returns the existing request rather than duplicating
+// it (SPEC-0012 AC4).
+export const requestAccountDeletion = (session: Session | null) =>
+  callApi<DeletionRequest>(session, "/api/account/deletion-request", { method: "POST" });
 
 /* -------------------------------- topics --------------------------------- */
 

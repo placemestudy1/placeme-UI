@@ -106,6 +106,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consent/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw this user's consent (gates future mic-enablement; the consent record itself is kept, never deleted) */
+        post: operations["withdrawConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/consent/age-attestation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a separate minimal adult (18+) confirmation for this user (SCRUM-24 follow-up). Not versioned like consent, and not folded into POST /api/consent -- age doesn't change with a disclosure-copy bump. Idempotent: a second call reports the original attestation timestamp rather than an error, and never a date of birth or identity document is collected for this control. */
+        post: operations["attestAdult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/deletion-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a self-serve account-deletion request. Intake only -- a founder still executes the deletion via the existing manual process (docs/engineering/ACCOUNT_DELETION.md); this does not itself delete any data. */
+        post: operations["requestAccountDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/topics/custom": {
         parameters: {
             query?: never;
@@ -427,6 +478,12 @@ export interface components {
         ConsentStatus: {
             currentVersion: number;
             canEnableMic: boolean;
+            /** @description Whether this user has recorded the separate minimal adult (18+) confirmation (SCRUM-24 follow-up). Independent of canEnableMic -- audio-sharing consent alone is not adult-eligibility evidence. */
+            ageAttested: boolean;
+        };
+        DeletionRequest: {
+            /** Format: date-time */
+            requestedAt: string;
         };
         Topic: {
             /** Format: uuid */
@@ -759,6 +816,77 @@ export interface operations {
                         /** Format: date-time */
                         grantedAt: string;
                     };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    withdrawConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK. Returned whether or not there was anything left to revoke -- an already-withdrawn consent is not an error (SPEC-0012 AC3). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        canEnableMic: false;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    attestAdult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attestation recorded (or already recorded, unchanged). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ageAttested: true;
+                        /** Format: date-time */
+                        ageAttestedAt: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    requestAccountDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request recorded (or the caller's existing pending request, unchanged, if one was already pending -- SPEC-0012 AC4). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletionRequest"];
                 };
             };
             401: components["responses"]["Unauthorized"];

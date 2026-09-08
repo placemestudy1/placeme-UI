@@ -69,7 +69,15 @@ function NativeSignup() {
             {submitting ? "Creating account…" : "Create account"}
           </PmButton>
           <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            By continuing you agree to our Terms and Privacy Policy.
+            By continuing you agree to our{" "}
+            <Link to="/terms" className="font-semibold text-primary-glow">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="font-semibold text-primary-glow">
+              Privacy Policy
+            </Link>
+            .
           </p>
         </>
       }

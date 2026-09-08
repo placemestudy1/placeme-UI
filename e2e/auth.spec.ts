@@ -10,7 +10,11 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test.describe("login", () => {
   test("routes to /consent when consent hasn't been granted yet", async ({ page }) => {
     await mockSupabaseAuth(page);
-    await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: false });
+    await mockApi(page, "/api/consent/status", {
+      currentVersion: 1,
+      canEnableMic: false,
+      ageAttested: false,
+    });
 
     await gotoReady(page, "/login");
     await page.getByPlaceholder("you@college.edu").fill("aarav.menon@nitk.edu.in");
@@ -22,7 +26,11 @@ test.describe("login", () => {
 
   test("routes straight home when consent was already granted", async ({ page }) => {
     await mockSupabaseAuth(page);
-    await mockApi(page, "/api/consent/status", { currentVersion: 1, canEnableMic: true });
+    await mockApi(page, "/api/consent/status", {
+      currentVersion: 1,
+      canEnableMic: true,
+      ageAttested: true,
+    });
 
     await gotoReady(page, "/login");
     await page.getByPlaceholder("you@college.edu").fill("aarav.menon@nitk.edu.in");

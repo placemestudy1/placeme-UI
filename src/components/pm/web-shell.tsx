@@ -8,6 +8,7 @@ import {
   Mic,
   PlusCircle,
   Search,
+  Shield,
   Shuffle,
   Sparkles,
 } from "lucide-react";
@@ -251,6 +252,12 @@ export function WebShell({
             </div>
             <SignOutButton />
           </div>
+          <Link
+            to="/account"
+            className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <Shield className="size-4" /> Privacy &amp; your data
+          </Link>
         </div>
       </aside>
 
@@ -266,6 +273,11 @@ export function WebShell({
           <PmButton variant="ghost" size="iconSm" aria-label="Notifications">
             <Bell />
           </PmButton>
+          <PmButton asChild variant="ghost" size="iconSm" aria-label="Privacy & your data">
+            <Link to="/account">
+              <Shield />
+            </Link>
+          </PmButton>
           <PmAvatar initials={me.initials} size="sm" />
           <SignOutButton />
         </div>
@@ -277,6 +289,11 @@ export function WebShell({
         <div className="flex items-center gap-2">
           <PmButton variant="ghost" size="iconSm" aria-label="Notifications">
             <Bell />
+          </PmButton>
+          <PmButton asChild variant="ghost" size="iconSm" aria-label="Privacy & your data">
+            <Link to="/account">
+              <Shield />
+            </Link>
           </PmButton>
           <PmAvatar initials={me.initials} size="sm" />
         </div>

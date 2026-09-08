@@ -18,9 +18,12 @@ import { Check, Headphones, Loader2, Mic, MicOff, ShieldCheck } from "lucide-rea
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
-import { Banner, PmBadge, PmButton, PmCard, StatusDot } from "@/components/pm/kit";
+import { DisclosureList } from "@/components/pm/disclosure-list";
+import { Banner, PmBadge, PmButton, PmCard, SectionTitle, StatusDot } from "@/components/pm/kit";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
+import { CONSENT_DISCLOSURES } from "@/lib/consent-disclosures";
 import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/consent")({
@@ -64,11 +67,16 @@ type MicState = "idle" | "requesting" | "granted" | "denied";
 // requesting mic permission and recording consent.
 function ConsentPage() {
   const { session } = useAuth();
-  const { canEnableMic, loading, grantConsent } = useConsentStatus(session);
+  const { canEnableMic, ageAttested, loading, grantConsent, confirmAdult } =
+    useConsentStatus(session);
   const [micState, setMicState] = useState<MicState>("idle");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testingSound, setTestingSound] = useState(false);
+  // SCRUM-24 follow-up: audio-sharing consent alone is never adult-eligibility
+  // evidence -- a separate, explicit checkbox is required before mic access,
+  // in addition to (not instead of) the disclosures above.
+  const [adultChecked, setAdultChecked] = useState(false);
 
   // Plays a short tone through the system speakers so the user can confirm
   // audio output works before joining a live session. Client-side only —
@@ -102,7 +110,8 @@ function ConsentPage() {
   }
 
   // Requests browser mic permission, then records account-level consent via
-  // grantConsent(); tracks denied vs. other-error states separately.
+  // grantConsent(), plus the separate adult attestation if not already
+  // recorded; tracks denied vs. other-error states separately.
   async function handleAllow() {
     setError(null);
     setMicState("requesting");
@@ -115,6 +124,7 @@ function ConsentPage() {
       setMicState("granted");
       setSubmitting(true);
       await grantConsent();
+      if (!ageAttested) await confirmAdult();
       track({ name: "consent_granted" });
     } catch (e) {
       if (
@@ -131,10 +141,27 @@ function ConsentPage() {
     }
   }
 
+  // A caller who already granted mic consent before this attestation
+  // existed (or withdrew and re-granted since) can still be missing the
+  // separate 18+ confirmation -- handles that case on its own, without
+  // re-running the mic-permission/disclosure flow.
+  async function handleConfirmAdultOnly() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await confirmAdult();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   // Consent is a one-time, account-level gate (not tied to any specific
   // room), so both the already-granted and just-granted paths continue to
-  // the dashboard, not to a room that doesn't exist yet.
-  if (canEnableMic) {
+  // the dashboard, not to a room that doesn't exist yet. Both gates --
+  // mic consent and the separate adult attestation -- must be satisfied.
+  if (canEnableMic && ageAttested) {
     return (
       <WebShell title="Microphone check">
         <div className="mx-auto max-w-lg text-center">
@@ -154,8 +181,72 @@ function ConsentPage() {
     );
   }
 
+  // Mic consent already recorded, but the separate 18+ attestation (added
+  // after some accounts already had consent on file) is still missing --
+  // a focused prompt instead of re-running the full disclosure/mic flow.
+  if (canEnableMic && !ageAttested) {
+    return (
+      <WebShell title="Confirm you're 18 or older">
+        <div className="mx-auto max-w-lg text-center">
+          <PmCard className="p-6 md:p-8">
+            <PmBadge tone="primary">
+              <ShieldCheck className="size-3" /> One more confirmation
+            </PmBadge>
+            <h2 className="mt-4 text-xl font-bold">Confirm you're 18 or older</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              PlaceMe is currently 18+ only during this early validation stage. We only record your
+              confirmation and the date -- never a date of birth or ID.
+            </p>
+            <label className="mt-6 flex items-start gap-3 text-left text-sm">
+              <Checkbox
+                checked={adultChecked}
+                onCheckedChange={(v) => setAdultChecked(v === true)}
+                className="mt-0.5"
+              />
+              <span>I confirm that I am 18 years of age or older.</span>
+            </label>
+            {error && (
+              <div className="mt-4">
+                <Banner
+                  tone="danger"
+                  title="Couldn't record your confirmation"
+                  description={error}
+                />
+              </div>
+            )}
+            <PmButton
+              size="lg"
+              className="mt-6"
+              onClick={handleConfirmAdultOnly}
+              disabled={!adultChecked || submitting}
+              loading={submitting}
+            >
+              Confirm & continue
+            </PmButton>
+          </PmCard>
+        </div>
+      </WebShell>
+    );
+  }
+
   return (
     <WebShell title="Microphone check" subtitle="Required once before your first live session">
+      <div className="mx-auto max-w-4xl">
+        <PmCard className="mb-6 p-6 md:p-8">
+          <SectionTitle
+            title="What you're agreeing to"
+            subtitle="Read this before granting microphone access"
+          />
+          <DisclosureList items={CONSENT_DISCLOSURES} />
+          <p className="mt-5 text-sm text-muted-foreground">
+            Full details in our{" "}
+            <Link to="/privacy" className="font-semibold text-primary-glow">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </PmCard>
+      </div>
       <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <PmCard glass className="p-6 md:p-8">
           <PmBadge tone="primary">
@@ -164,7 +255,9 @@ function ConsentPage() {
           <h2 className="mt-4 text-2xl font-bold">Allow PlaceMe to use your microphone</h2>
           <p className="mt-2 max-w-lg text-sm text-muted-foreground">
             We stream your voice to the room and generate a live transcript used only for your
-            personal AI feedback. You can revoke access at any time in your browser's site settings.
+            personal AI feedback. You can withdraw consent for future sessions any time from the
+            "Privacy &amp; your data" section of your account -- to stop mic access immediately
+            during a live session, use your browser's microphone permission controls instead.
           </p>
 
           <div className="mt-8 rounded-2xl border border-border bg-surface p-6">
@@ -212,11 +305,26 @@ function ConsentPage() {
             </div>
           )}
 
+          {/* SCRUM-24 follow-up: a separate, explicit 18+ confirmation --
+              audio-sharing consent above is never adult-eligibility evidence.
+              Minimal control: confirmation + timestamp only, no DOB/ID. */}
+          <label className="mt-6 flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 text-sm">
+            <Checkbox
+              checked={adultChecked}
+              onCheckedChange={(v) => setAdultChecked(v === true)}
+              className="mt-0.5"
+            />
+            <span>
+              I confirm that I am 18 years of age or older. PlaceMe is 18+ only during this early
+              validation stage.
+            </span>
+          </label>
+
           <div className="mt-6 flex flex-wrap gap-3">
             <PmButton
               size="lg"
               onClick={handleAllow}
-              disabled={micState === "requesting" || submitting}
+              disabled={micState === "requesting" || submitting || !adultChecked}
             >
               {micState === "requesting" || submitting ? (
                 <Loader2 className="animate-spin" />
