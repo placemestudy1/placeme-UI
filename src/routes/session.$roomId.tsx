@@ -13,7 +13,7 @@
  *   the current room status from the server, updates topic/code/end-time
  *   state, and redirects to the ended screen once the room has ended.
  * - confirmLeave(): defined inside SessionPage; leaves the live room and
- *   navigates back to the room's lobby.
+ *   navigates to the ended/report screen.
  */
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -34,6 +34,7 @@ import { ParticipantTile, TimerPill } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getRoomStatus } from "@/lib/api";
 import { track } from "@/lib/analytics";
+import { beginEarlyLeaveEvaluation } from "@/lib/early-leave-evaluation";
 import {
   useLiveRoom,
   LiveRoomError,
@@ -128,11 +129,12 @@ function SessionPage() {
     return () => clearInterval(tick);
   }, [endsAt]);
 
-  // Leaves the live room and navigates back to the room's lobby.
+  // Exit is immediate; durable evaluation acceptance continues independently.
   function confirmLeave() {
     live.leave();
+    beginEarlyLeaveEvaluation(session, roomId).catch(() => {});
     track({ name: "session_left_early", properties: { roomId } });
-    navigate({ to: "/lobby/$roomId", params: { roomId } });
+    navigate({ to: "/ended/$roomId", params: { roomId } });
   }
 
   return (
@@ -303,7 +305,7 @@ function SessionPage() {
         open={leaving}
         onClose={() => setLeaving(false)}
         title="Leave the discussion?"
-        description="Leaving early means no AI feedback for this session."
+        description="We'll try to generate feedback from what was captured before you leave."
         sheetOnMobile
         footer={
           <>

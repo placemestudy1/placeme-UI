@@ -8,11 +8,11 @@
 // - getConsentStatus, grantConsent: consent status/grant endpoints.
 // - generateTopic, submitCustomTopic: topic generation/submission endpoints.
 // - createRoom, joinRoomByCode, requestMatch, leaveMatchQueue, startRoom,
-//   getRoomStatus, listOpenRooms, getActiveRoom, getRoomToken,
+//   getRoomStatus, leaveRoom, listOpenRooms, getActiveRoom, getRoomToken,
 //   getRoomParticipants, getRoomTranscript: room lifecycle/discovery
 //   endpoints (create, join by code, random match, start, poll status,
-//   browse open rooms, check for an active room, get a LiveKit token, list
-//   participants, get the transcript).
+//   leave a live room early, browse open rooms, check for an active room,
+//   get a LiveKit token, list participants, get the transcript).
 // - getMyFeedback, rateFeedback: read this user's feedback for a room and
 //   rate/annotate it.
 // - getMyHistory: list this user's past sessions.
@@ -50,6 +50,7 @@ export type TranscriptLine = Schemas["TranscriptLine"];
 export type FeedbackDimension = Schemas["FeedbackDimension"];
 export type FeedbackResult = Schemas["FeedbackResult"];
 export type HistorySession = Schemas["HistorySession"];
+export type EarlyLeaveEvaluation = Schemas["EarlyLeaveEvaluation"];
 export type DeletionRequest = Schemas["DeletionRequest"];
 
 const API_URL = import.meta.env["VITE_API_URL"] || "http://localhost:3000";
@@ -183,6 +184,19 @@ export const startRoom = (session: Session | null, roomId: string) =>
 // Polls a room's current status (waiting/live/ended), topic, and timing info.
 export const getRoomStatus = (session: Session | null, roomId: string) =>
   callApi<RoomStatus>(session, `/api/rooms/${roomId}/status`, { method: "GET" });
+
+// Leaves a still-live room early. Does not end the room for the other
+// participants -- it dispatches feedback generation for just this user,
+// scored from the transcript captured up to now.
+export const leaveRoom = (session: Session | null, roomId: string) =>
+  callApi<Ok<"leaveRoom", 200> | Ok<"leaveRoom", 202>>(session, `/api/rooms/${roomId}/leave`, {
+    method: "POST",
+  });
+
+export const getEarlyLeaveEvaluation = (session: Session | null, roomId: string) =>
+  callApi<Ok<"getEarlyLeaveEvaluation", 200>>(session, `/api/rooms/${roomId}/leave/evaluation`, {
+    method: "GET",
+  });
 
 // Lists rooms open for anyone to browse/join.
 export const listOpenRooms = (session: Session | null) =>
