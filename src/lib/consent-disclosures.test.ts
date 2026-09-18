@@ -6,14 +6,20 @@ import { CONSENT_DISCLOSURES } from "./consent-disclosures";
 // before mic permission is requested. If a future edit accidentally drops
 // one, this fails loudly instead of silently shrinking the list.
 describe("CONSENT_DISCLOSURES", () => {
-  it("covers mic capture, no raw audio storage, retention, DR-02 peer visibility, Gemini processing, and the interim notice", () => {
+  it("covers mic capture, no raw audio storage, retention, DR-02 peer visibility, Gemini processing, PostHog analytics, and the interim notice", () => {
     const titles = CONSENT_DISCLOSURES.map((d) => d.title.toLowerCase());
     expect(titles.some((t) => t.includes("microphone"))).toBe(true);
     expect(titles.some((t) => t.includes("raw audio"))).toBe(true);
     expect(titles.some((t) => t.includes("retention"))).toBe(true);
     expect(titles.some((t) => t.includes("peer visibility"))).toBe(true);
     expect(titles.some((t) => t.includes("gemini"))).toBe(true);
+    expect(titles.some((t) => t.includes("posthog"))).toBe(true);
     expect(titles.some((t) => t.includes("interim"))).toBe(true);
+  });
+
+  it("states the PostHog disclosure excludes transcript, audio, and feedback content", () => {
+    const analytics = CONSENT_DISCLOSURES.find((d) => d.title.toLowerCase().includes("posthog"));
+    expect(analytics?.body).toMatch(/never contain your transcript, audio, or feedback/i);
   });
 
   it("states DR-02's own-excerpts-only peer-visibility position", () => {
