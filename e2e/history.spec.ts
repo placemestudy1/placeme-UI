@@ -67,3 +67,43 @@ test("shows an empty state with no past sessions", async ({ page }) => {
   await expect(page.getByText("No sessions yet")).toBeVisible();
   await expect(page.getByRole("link", { name: "Start a session" })).toBeVisible();
 });
+
+// SCRUM-27: "valid-history filtering" -- a room cancelled before it ever
+// started (SCRUM-26: startedAt stays null) is not a real session and must
+// not appear in the list, the count, or the empty state.
+test("hides a room that was cancelled before it ever started", async ({ page }) => {
+  await mockApi(page, "/api/history/mine", {
+    sessions: [
+      {
+        id: "s1",
+        code: "GD-1111",
+        status: "ended",
+        durationSeconds: 900,
+        topicText: "Is AI making engineers less employable?",
+        startedAt: "2026-07-01T10:00:00.000Z",
+        endedAt: "2026-07-01T10:15:00.000Z",
+        feedback: "Great job.",
+        score: 78,
+        talkShare: 26,
+      },
+      {
+        id: "s2-cancelled",
+        code: "GD-2222",
+        status: "ended",
+        durationSeconds: 900,
+        topicText: "Cancelled before anyone else joined",
+        startedAt: null,
+        endedAt: "2026-07-02T10:05:00.000Z",
+        feedback: null,
+        score: null,
+        talkShare: null,
+      },
+    ],
+  });
+
+  await gotoReady(page, "/history");
+
+  await expect(page.getByText("1 sessions · 15m of speaking practice").first()).toBeVisible();
+  await expect(page.getByText("Is AI making engineers less employable?").first()).toBeVisible();
+  await expect(page.getByText("Cancelled before anyone else joined")).toHaveCount(0);
+});
