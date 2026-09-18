@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, CloudOff, History, Mic, Sparkles, Users } from "lucide-react";
+import { AlertTriangle, BarChart3, CloudOff, History, Mic, Sparkles, Users } from "lucide-react";
 
 // The real, current-state consent disclosures shown on both the web and
 // native consent pages (SPEC-0012 R2/AC2). Mirrors gd-proto's
@@ -38,6 +38,11 @@ export const CONSENT_DISCLOSURES: ConsentDisclosure[] = [
     icon: Sparkles,
     title: "Feedback via Google's Gemini API (free tier)",
     body: "Under Gemini's free-tier terms, the transcript sent for feedback may be used by Google to improve their products, and may be reviewed by a human at Google. If you're not comfortable with this, please don't proceed until a paid-tier option is available.",
+  },
+  {
+    icon: BarChart3,
+    title: "Product analytics via PostHog",
+    body: "We record a small set of structured product events (e.g. joining a room, completing a session, rating feedback) via PostHog to understand how the app is used. These events never contain your transcript, audio, or feedback text -- only facts like room IDs, timestamps, and counts. Automatic click tracking and session replay are off.",
   },
   {
     icon: AlertTriangle,
