@@ -64,6 +64,12 @@ export function useEndedSessionResources(
   // guards every setState call in all three instead.
   const mountedRef = useRef(true);
   useEffect(() => {
+    // Reset (not just initialize via useRef) -- dev-mode double-invokes
+    // this effect once per mount (setup, cleanup, setup again), and without
+    // this the first synthetic cleanup would leave mountedRef false for
+    // the rest of the component's real lifetime, silently dropping every
+    // later setState call below.
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
