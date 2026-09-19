@@ -15,12 +15,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Copy, Check, Mic, Play, Settings2 } from "lucide-react";
+import { Ban, Copy, Check, Mic, Play, Settings2 } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
   Banner,
+  EmptyState,
   PmBadge,
   PmButton,
   PmCard,
@@ -30,7 +31,7 @@ import {
 } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
-import { useRoomLobby } from "@/lib/session/lobby";
+import { cancellationMessage, useRoomLobby } from "@/lib/session/lobby";
 import { isRoomReady, MIN_PARTICIPANTS_TO_START } from "@/lib/room-capacity";
 import { track } from "@/lib/analytics";
 
@@ -87,14 +88,24 @@ function LobbyPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
+  // A waiting room can only reach "ended" by being cancelled (creator gave
+  // up their seat, or the sweep expired it) -- one that actually starts
+  // goes through "live" first, which navigates away from this screen
+  // before it can ever see "ended" directly. status.endReason (SCRUM-26)
+  // makes that explicit instead of relying on the implicit "ended  without
+  // ever going live" invariant, so a genuinely-ended room with no
+  // endReason (the historical/fallback case) still falls through to the
+  // normal post-session flow below.
+  const cancelled = status?.status === "ended" && !!status.endReason;
+
   useEffect(() => {
     if (status?.status === "live") {
       track({ name: "session_started", properties: { roomId } });
       navigate({ to: "/session/$roomId", params: { roomId } });
-    } else if (status?.status === "ended") {
+    } else if (status?.status === "ended" && !status.endReason) {
       navigate({ to: "/ended/$roomId", params: { roomId } });
     }
-  }, [status?.status, roomId, navigate]);
+  }, [status?.status, status?.endReason, roomId, navigate]);
 
   const code = status?.code ?? search.code ?? "";
   const topicText = status?.topicText ?? search.topicText ?? "Group discussion room";
@@ -122,6 +133,24 @@ function LobbyPage() {
       setConfirmCancelOpen(false);
       navigate({ to: "/" });
     }
+  }
+
+  // Reached by every other participant still waiting when the room's
+  // creator cancels (or the sweep expires it) -- this is not a session
+  // that ran, so it must not route into the feedback screen (SCRUM-27 PR
+  // #12 review finding: "routes participants to the feedback screen
+  // instead of a cancellation notice").
+  if (cancelled && status?.endReason) {
+    return (
+      <WebShell title="Room lobby" {...(code ? { subtitle: code } : {})}>
+        <EmptyState
+          icon={<Ban />}
+          title="This room was cancelled"
+          description={cancellationMessage(status.endReason)}
+          action={<PmButton onClick={() => navigate({ to: "/" })}>Back to home</PmButton>}
+        />
+      </WebShell>
+    );
   }
 
   return (
@@ -272,7 +301,9 @@ function LobbyPage() {
             </PmButton>
           </>
         }
-      />
+      >
+        {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+      </PmDialog>
     </WebShell>
   );
 }

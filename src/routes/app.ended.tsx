@@ -268,6 +268,8 @@ function NativeEnded() {
                     </PmButton>
                   }
                 />
+              ) : participants === null ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
               ) : participants.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No participant data available yet.</p>
               ) : (

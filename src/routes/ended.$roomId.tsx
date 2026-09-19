@@ -63,8 +63,8 @@ function ordinalWord(rank: number) {
 // Builds the talk-time headline from real BE-10 participant shares instead
 // of a fixed mock sentence -- ranks the caller among the room's speakers by
 // talkShare and describes their position relative to the most active one.
-function talkTimeSummary(participants: RoomParticipant[], selfUserId: string | undefined) {
-  if (!selfUserId || participants.length === 0) return null;
+function talkTimeSummary(participants: RoomParticipant[] | null, selfUserId: string | undefined) {
+  if (!selfUserId || !participants || participants.length === 0) return null;
   const sorted = [...participants].sort((a, b) => b.talkShare - a.talkShare);
   const rank = sorted.findIndex((p) => p.userId === selfUserId);
   if (rank === -1) return null;
@@ -345,6 +345,8 @@ function EndedPage() {
             <SectionTitle title="Talk-time split" />
             {participantsError ? (
               <p className="text-sm text-muted-foreground">Unavailable — see error above.</p>
+            ) : participants === null ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
             ) : participants.length === 0 ? (
               <p className="text-sm text-muted-foreground">No participant data available yet.</p>
             ) : (

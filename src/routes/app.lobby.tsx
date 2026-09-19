@@ -14,12 +14,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Copy, Mic, Play, Check, Settings2 } from "lucide-react";
+import { Ban, Copy, Mic, Play, Check, Settings2 } from "lucide-react";
 
 import { NativeStackScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
   Banner,
+  EmptyState,
   PmBadge,
   PmButton,
   PmCard,
@@ -30,7 +31,7 @@ import {
 import { ParticipantTile } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { initialsFor } from "@/lib/session/participants";
-import { useRoomLobby } from "@/lib/session/lobby";
+import { cancellationMessage, useRoomLobby } from "@/lib/session/lobby";
 import { isRoomReady, MIN_PARTICIPANTS_TO_START } from "@/lib/room-capacity";
 
 const searchSchema = z.object({
@@ -73,13 +74,18 @@ function NativeLobby() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
+  // See the identical comment in routes/lobby.$roomId.tsx (the web
+  // equivalent of this screen) -- a waiting room can only reach "ended"
+  // directly (without passing through "live") by being cancelled.
+  const cancelled = status?.status === "ended" && !!status.endReason;
+
   useEffect(() => {
     if (status?.status === "live") {
       navigate({ to: "/app/session", search: { roomId } });
-    } else if (status?.status === "ended") {
+    } else if (status?.status === "ended" && !status.endReason) {
       navigate({ to: "/app/ended", search: { roomId } });
     }
-  }, [status?.status, roomId, navigate]);
+  }, [status?.status, status?.endReason, roomId, navigate]);
 
   const code = status?.code ?? search.code ?? "";
   const topicText = status?.topicText ?? search.topicText ?? "Group discussion room";
@@ -103,6 +109,21 @@ function NativeLobby() {
       setConfirmCancelOpen(false);
       navigate({ to: "/app/join" });
     }
+  }
+
+  // See the identical comment in routes/lobby.$roomId.tsx.
+  if (cancelled && status?.endReason) {
+    return (
+      <NativeStackScreen title={code || "Lobby"} backTo="/app/join" backLabel="Rooms">
+        <EmptyState
+          icon={<Ban />}
+          title="This room was cancelled"
+          description={cancellationMessage(status.endReason)}
+          action={<PmButton onClick={() => navigate({ to: "/app/join" })}>Back to rooms</PmButton>}
+          className="mx-5 mt-5"
+        />
+      </NativeStackScreen>
+    );
   }
 
   return (
@@ -244,7 +265,9 @@ function NativeLobby() {
             </PmButton>
           </>
         }
-      />
+      >
+        {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+      </PmDialog>
     </NativeStackScreen>
   );
 }

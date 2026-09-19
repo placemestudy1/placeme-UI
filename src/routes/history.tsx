@@ -57,7 +57,6 @@ function HistoryPage() {
     if (!thisMonthOnly) return realSessions;
     const now = new Date();
     return realSessions.filter((s) => {
-      if (!s.startedAt) return false;
       const d = new Date(s.startedAt);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });

@@ -9,7 +9,7 @@
 // - useEndedSessionResources: polls room status/feedback once each, and
 //   the transcript/participants once each, exposing a loading/error/retry
 //   triple for every one of them plus the rating actions.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   getMyFeedback,
@@ -54,8 +54,20 @@ export function useEndedSessionResources(
   const [transcript, setTranscript] = useState<TranscriptLine[] | null>(null);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
 
-  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
+  const [participants, setParticipants] = useState<RoomParticipant[] | null>(null);
   const [participantsError, setParticipantsError] = useState<string | null>(null);
+
+  // checkFeedbackAgain/fetchTranscript/fetchParticipants are called both
+  // from an effect (on mount) and directly from retry buttons -- a single
+  // per-effect `cancelled` flag (as used elsewhere in this file) wouldn't
+  // cover the button-triggered calls, so a ref that flips once on unmount
+  // guards every setState call in all three instead.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -112,16 +124,16 @@ export function useEndedSessionResources(
   function checkFeedbackAgain() {
     setCheckingFeedback(true);
     return getMyFeedback(session, roomId)
-      .then((r) => applyFeedbackResult(r))
+      .then((r) => mountedRef.current && applyFeedbackResult(r))
       .catch(() => false)
-      .finally(() => setCheckingFeedback(false));
+      .finally(() => mountedRef.current && setCheckingFeedback(false));
   }
 
   function fetchTranscript() {
     setTranscriptError(null);
     return getRoomTranscript(session, roomId)
-      .then((r) => setTranscript(r.lines))
-      .catch((e: Error) => setTranscriptError(e.message));
+      .then((r) => mountedRef.current && setTranscript(r.lines))
+      .catch((e: Error) => mountedRef.current && setTranscriptError(e.message));
   }
   useEffect(() => {
     if (roomId) fetchTranscript();
@@ -131,8 +143,8 @@ export function useEndedSessionResources(
   function fetchParticipants() {
     setParticipantsError(null);
     return getRoomParticipants(session, roomId)
-      .then((r) => setParticipants(r.participants))
-      .catch((e: Error) => setParticipantsError(e.message));
+      .then((r) => mountedRef.current && setParticipants(r.participants))
+      .catch((e: Error) => mountedRef.current && setParticipantsError(e.message));
   }
   useEffect(() => {
     if (roomId) fetchParticipants();

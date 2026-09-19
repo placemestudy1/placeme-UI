@@ -6,6 +6,8 @@
 // Exports:
 // - useRoomLobby: polls room status *and* the participant roster together
 //   on every tick, and exposes start/leave actions.
+// - cancellationMessage: plain-language text for a room's endReason
+//   (SCRUM-26), for both the web and native lobby's cancellation notice.
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
@@ -93,4 +95,14 @@ export function useRoomLobby(session: Session | null, roomId: string) {
   }
 
   return { status, participants, error, starting, leaving, handleStart, handleLeave };
+}
+
+// SCRUM-26's two endReason values, in plain language for the lobby's
+// cancellation notice (shown to every other participant still waiting when
+// a room's status reaches "ended" with an endReason -- see the `cancelled`
+// check in both lobby routes).
+export function cancellationMessage(reason: NonNullable<RoomStatus["endReason"]>) {
+  return reason === "cancelled_by_creator"
+    ? "The host cancelled this room before it started."
+    : "This room expired after sitting too long without starting.";
 }
