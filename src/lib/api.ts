@@ -177,6 +177,15 @@ export const requestMatch = (
 export const leaveMatchQueue = (session: Session | null) =>
   callApi<Ok<"leaveMatchQueue", 200>>(session, "/api/rooms/match", { method: "DELETE" });
 
+// Gives up a seat in a room that hasn't started yet (SCRUM-26). If the
+// caller is the room's creator, the room is cancelled outright and every
+// other seated participant's seat is freed. Distinct from leaveRoom below
+// (SCRUM-21, live-only, unchanged).
+export const leaveWaitingSeat = (session: Session | null, roomId: string) =>
+  callApi<Ok<"leaveWaitingSeat", 200>>(session, `/api/rooms/${roomId}/seat`, {
+    method: "DELETE",
+  });
+
 // Starts a waiting room, transitioning it to "live".
 export const startRoom = (session: Session | null, roomId: string) =>
   callApi<Ok<"startRoom", 200>>(session, `/api/rooms/${roomId}/start`, { method: "POST" });
