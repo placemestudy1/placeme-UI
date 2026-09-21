@@ -3,10 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ROOM_PARTICIPANTS,
   MAX_ROOM_PARTICIPANTS,
-  MIN_PARTICIPANTS_TO_START,
   MIN_ROOM_PARTICIPANTS,
   ROOM_CAPACITY_OPTIONS,
-  isRoomReady,
   isSupportedRoomCapacity,
 } from "./room-capacity";
 
@@ -24,19 +22,5 @@ describe("room capacity contract", () => {
 
   it.each([2, 13, 4.5, Number.NaN])("rejects unsupported capacity %s", (capacity) => {
     expect(isSupportedRoomCapacity(capacity)).toBe(false);
-  });
-});
-
-describe("room readiness (SCRUM-26/27)", () => {
-  it("matches gd-proto's roomReadiness.js minimum of 2", () => {
-    expect(MIN_PARTICIPANTS_TO_START).toBe(2);
-  });
-
-  it.each([0, 1])("is not ready with %i participant(s)", (count) => {
-    expect(isRoomReady(count)).toBe(false);
-  });
-
-  it.each([2, 3, 12])("is ready with %i participants", (count) => {
-    expect(isRoomReady(count)).toBe(true);
   });
 });

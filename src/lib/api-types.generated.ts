@@ -259,23 +259,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/rooms/{id}/seat": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Give up a seat in a room that hasn't started yet (SCRUM-26). If the caller is the room's creator, the room is cancelled outright and every other seated participant's seat is freed. Does not interact with POST /api/rooms/{id}/leave (SCRUM-21, live-only, unchanged). */
-        delete: operations["leaveWaitingSeat"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/rooms/match": {
         parameters: {
             query?: never;
@@ -494,26 +477,6 @@ export interface components {
         Level: "beginner" | "intermediate" | "advanced";
         /** @enum {string} */
         RoomLifecycleStatus: "waiting" | "live" | "ended";
-        /** @enum {string} */
-        RoomEndReason: "cancelled_by_creator" | "cancelled_expired";
-        ActiveSeatConflictError: {
-            error: string;
-            /** @enum {string} */
-            code: "active_seat_conflict";
-            activeRoom: {
-                /** Format: uuid */
-                id: string;
-                code: string;
-                status: components["schemas"]["RoomLifecycleStatus"];
-            };
-        };
-        RoomNotReadyError: {
-            error: string;
-            /** @enum {string} */
-            code: "room_not_ready";
-            participantCount: number;
-            minParticipants: number;
-        };
         ConsentStatus: {
             currentVersion: number;
             canEnableMic: boolean;
@@ -569,7 +532,6 @@ export interface components {
             isCreator: boolean;
             /** @description Epoch ms. Present once the room has started. */
             endsAt?: number;
-            endReason?: components["schemas"]["RoomEndReason"];
         };
         RoomParticipant: {
             /** Format: uuid */
@@ -1033,15 +995,6 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            /** @description Caller already holds a seat in another active room. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActiveSeatConflictError"];
-                };
-            };
             429: components["responses"]["TooManyRequests"];
         };
     };
@@ -1128,62 +1081,16 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            /** @description Room already ended/live, full, or (SCRUM-26) the caller already holds a seat in a different active room — a rejoin of a room the caller is already seated in is never rejected this way. */
+            /** @description Room already ended/live, or full. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"] | components["schemas"]["ActiveSeatConflictError"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             429: components["responses"]["TooManyRequests"];
-        };
-    };
-    leaveWaitingSeat: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: components["parameters"]["RoomId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Seat freed, or room cancelled if the caller was its creator. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        id: string;
-                        status: components["schemas"]["RoomLifecycleStatus"];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            /** @description Not a participant of this room. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            /** @description Room is not in waiting status. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
         };
     };
     requestMatch: {
@@ -1232,15 +1139,6 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
-            /** @description Caller already holds a seat in another active room. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActiveSeatConflictError"];
-                };
-            };
             429: components["responses"]["TooManyRequests"];
         };
     };
@@ -1305,13 +1203,13 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
-            /** @description Already ended, the pilot concurrency cap is hit, the room lost a concurrent start race (SCRUM-26, code room_already_live), or it's below the minimum participant count (SCRUM-26, code room_not_ready). */
+            /** @description Already started/ended, or the pilot concurrency cap is hit. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"] | components["schemas"]["RoomNotReadyError"];
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };
