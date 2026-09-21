@@ -146,20 +146,31 @@ export function useEndedSessionResources(
       .finally(() => mountedRef.current && setCheckingFeedback(false));
   }
 
-  // SCRUM-27 (PR #12 review): each fetch now carries its own request id so a
-  // slow earlier call (e.g. an automatic retry racing a user-triggered one)
-  // can't overwrite a faster later call's fresher result -- only the
-  // response matching the most recently issued request id is applied.
+  // SCRUM-27 (PR #12 review): each fetch now carries its own monotonic
+  // request id so an older call resolving after a newer one can't overwrite
+  // it with stale data. Deliberately "id >= last applied", not "id ===
+  // latest issued": `session` starts null and hydrates asynchronously
+  // (auth-context.tsx), so this effect legitimately fires twice on mount
+  // (once before, once after) -- both calls are real and each one's result
+  // (error or success) should still land, just never out of order. Requiring
+  // exact-latest-issued instead would silently drop the first call's result
+  // the moment the second one starts, which is a real state (e.g. the
+  // first's error), not staleness.
   const transcriptRequestIdRef = useRef(0);
+  const transcriptAppliedIdRef = useRef(0);
   function fetchTranscript() {
     const requestId = ++transcriptRequestIdRef.current;
     setTranscriptError(null);
     return getRoomTranscript(session, roomId)
       .then((r) => {
-        if (mountedRef.current && requestId === transcriptRequestIdRef.current) setTranscript(r.lines);
+        if (!mountedRef.current || requestId < transcriptAppliedIdRef.current) return;
+        transcriptAppliedIdRef.current = requestId;
+        setTranscript(r.lines);
       })
       .catch((e: Error) => {
-        if (mountedRef.current && requestId === transcriptRequestIdRef.current) setTranscriptError(e.message);
+        if (!mountedRef.current || requestId < transcriptAppliedIdRef.current) return;
+        transcriptAppliedIdRef.current = requestId;
+        setTranscriptError(e.message);
       });
   }
   useEffect(() => {
@@ -168,15 +179,20 @@ export function useEndedSessionResources(
   }, [session, roomId]);
 
   const participantsRequestIdRef = useRef(0);
+  const participantsAppliedIdRef = useRef(0);
   function fetchParticipants() {
     const requestId = ++participantsRequestIdRef.current;
     setParticipantsError(null);
     return getRoomParticipants(session, roomId)
       .then((r) => {
-        if (mountedRef.current && requestId === participantsRequestIdRef.current) setParticipants(r.participants);
+        if (!mountedRef.current || requestId < participantsAppliedIdRef.current) return;
+        participantsAppliedIdRef.current = requestId;
+        setParticipants(r.participants);
       })
       .catch((e: Error) => {
-        if (mountedRef.current && requestId === participantsRequestIdRef.current) setParticipantsError(e.message);
+        if (!mountedRef.current || requestId < participantsAppliedIdRef.current) return;
+        participantsAppliedIdRef.current = requestId;
+        setParticipantsError(e.message);
       });
   }
   useEffect(() => {

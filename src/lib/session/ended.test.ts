@@ -106,4 +106,53 @@ describe("useEndedSessionResources (SCRUM-27)", () => {
     expect(probe.snapshot.transcriptError).toBeNull();
     expect(probe.snapshot.transcript).toHaveLength(1);
   });
+
+  // SCRUM-27 (PR #12 review): a slow earlier retry used to be able to
+  // overwrite a faster later retry's fresher result, since the only guard
+  // was "are we still mounted" -- not "is this response newer than the one
+  // already applied."
+  it("does not let a slower, older retry overwrite a faster, newer retry's result", async () => {
+    vi.mocked(getMyFeedback).mockResolvedValue({ feedback: null });
+
+    let probe!: ReturnType<typeof renderProbe>;
+    await act(async () => {
+      probe = renderProbe("room-3");
+    });
+    // Let the mount-triggered fetch (default mock: { lines: [] }) settle
+    // first, so the two mockImplementationOnce calls below are consumed by
+    // the two explicit retries this test actually drives, not by that one.
+    await waitFor(() => expect(probe.snapshot.transcript).toEqual([]));
+
+    let resolveFirst!: (v: { lines: never[] }) => void;
+    let resolveSecond!: (v: {
+      lines: { userId: string; displayName: string; text: string; startedAtMs: number }[];
+    }) => void;
+    vi.mocked(getRoomTranscript)
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveFirst = resolve)))
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveSecond = resolve)));
+
+    // Two retries issued back-to-back, before either resolves.
+    let firstCall!: Promise<unknown>;
+    let secondCall!: Promise<unknown>;
+    act(() => {
+      firstCall = probe.snapshot.retryTranscript();
+      secondCall = probe.snapshot.retryTranscript();
+    });
+
+    // The newer (second) call resolves first with the real, fresh data...
+    await act(async () => {
+      resolveSecond({
+        lines: [{ userId: "u1", displayName: "Aarav", text: "fresh", startedAtMs: 0 }],
+      });
+      await secondCall;
+    });
+    expect(probe.snapshot.transcript?.[0]?.text).toBe("fresh");
+
+    // ...and the older (first) call resolving afterward must not clobber it.
+    await act(async () => {
+      resolveFirst({ lines: [] });
+      await firstCall;
+    });
+    expect(probe.snapshot.transcript?.[0]?.text).toBe("fresh");
+  });
 });
