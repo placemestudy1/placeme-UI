@@ -12,13 +12,13 @@ import { CalendarClock, Filter } from "lucide-react";
 
 import { NativeTabScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
-import { EmptyState, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
+import { Banner, EmptyState, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
 import { ProgressChart, SessionRow, StatCard } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, type HistorySession } from "@/lib/api";
 import { average, computeStreak } from "@/lib/session/stats";
 import { dateFormatterWithYear, monthFormatter } from "@/lib/session/formatting";
-import { buildScoreTrend, toSessionRow } from "@/lib/session/history";
+import { buildScoreTrend, realSessionsOnly, toSessionRow } from "@/lib/session/history";
 
 export const Route = createFileRoute("/app/history")({
   head: () => ({
@@ -41,29 +41,38 @@ export const Route = createFileRoute("/app/history")({
 function NativeHistory() {
   const { session } = useAuth();
   const [sessions, setSessions] = useState<HistorySession[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [thisMonthOnly, setThisMonthOnly] = useState(false);
 
-  useEffect(() => {
-    getMyHistory(session)
+  function fetchHistory() {
+    setError(null);
+    return getMyHistory(session)
       .then((r) => setSessions(r.sessions))
-      .catch(() => {});
+      .catch((e: Error) => setError(e.message));
+  }
+  useEffect(() => {
+    fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchHistory is stable per session; re-created each render but only ever called here or from the retry button.
   }, [session]);
 
+  // SCRUM-27: only ever show rooms that actually ran -- see the identical
+  // comment in routes/history.tsx (the web equivalent of this screen).
+  const realSessions = useMemo(() => (sessions ? realSessionsOnly(sessions) : null), [sessions]);
+
   const filtered = useMemo(() => {
-    if (!sessions) return [];
-    if (!thisMonthOnly) return sessions;
+    if (!realSessions) return [];
+    if (!thisMonthOnly) return realSessions;
     const now = new Date();
-    return sessions.filter((s) => {
-      if (!s.startedAt) return false;
+    return realSessions.filter((s) => {
       const d = new Date(s.startedAt);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-  }, [sessions, thisMonthOnly]);
+  }, [realSessions, thisMonthOnly]);
 
   const groups = useMemo(() => {
     const byMonth = new Map<string, HistorySession[]>();
     for (const s of filtered) {
-      const key = s.startedAt ? monthFormatter.format(new Date(s.startedAt)) : "Not started yet";
+      const key = monthFormatter.format(new Date(s.startedAt));
       if (!byMonth.has(key)) byMonth.set(key, []);
       byMonth.get(key)!.push(s);
     }
@@ -72,25 +81,25 @@ function NativeHistory() {
 
   const mostPracticed = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const s of sessions ?? []) {
+    for (const s of realSessions ?? []) {
       if (!s.topicText) continue;
       counts.set(s.topicText, (counts.get(s.topicText) ?? 0) + 1);
     }
     return Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
-  }, [sessions]);
+  }, [realSessions]);
 
-  const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
+  const scoreTrend = useMemo(() => buildScoreTrend(realSessions ?? []), [realSessions]);
   const avgScore = useMemo(
-    () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
-    [sessions],
+    () => average((realSessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
+    [realSessions],
   );
   const avgTalkShare = useMemo(
-    () => average((sessions ?? []).flatMap((s) => (s.talkShare != null ? [s.talkShare] : []))),
-    [sessions],
+    () => average((realSessions ?? []).flatMap((s) => (s.talkShare != null ? [s.talkShare] : []))),
+    [realSessions],
   );
-  const streak = useMemo(() => computeStreak(sessions ?? []), [sessions]);
+  const streak = useMemo(() => computeStreak(realSessions ?? []), [realSessions]);
 
   return (
     <NativeTabScreen
@@ -107,7 +116,7 @@ function NativeHistory() {
     >
       <div className="space-y-5 pb-4">
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Sessions" value={sessions ? String(sessions.length) : "…"} />
+          <StatCard label="Sessions" value={realSessions ? String(realSessions.length) : "…"} />
           <StatCard label="Avg. score" value={avgScore != null ? String(avgScore) : "—"} />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -117,6 +126,18 @@ function NativeHistory() {
             value={streak > 0 ? `${streak} day${streak === 1 ? "" : "s"}` : "—"}
           />
         </div>
+        {error && (
+          <Banner
+            tone="danger"
+            title="Couldn't load your history"
+            description={error}
+            action={
+              <PmButton variant="outline" size="sm" onClick={() => fetchHistory()}>
+                Try again
+              </PmButton>
+            }
+          />
+        )}
         <PmCard className="p-4">
           <SectionTitle title="Score trend" subtitle="Your last scored sessions" />
           {scoreTrend.length > 0 ? (
@@ -157,7 +178,7 @@ function NativeHistory() {
             </div>
           </div>
         ))}
-        {sessions && filtered.length === 0 && (
+        {realSessions && filtered.length === 0 && (
           <EmptyState
             icon={<CalendarClock />}
             title="No sessions yet"

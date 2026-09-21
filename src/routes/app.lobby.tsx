@@ -1,26 +1,26 @@
 /**
  * Renders the mobile "room lobby" screen: shows the discussion topic, the
- * real participant list, and lets the host start the session — polling the
- * server and auto-navigating everyone into the live session (or ended
- * screen) once the room's status changes.
+ * real participant list, and lets the host start the session — using the
+ * shared useRoomLobby hook to poll the server and auto-navigate everyone
+ * into the live session (or ended screen) once the room's status changes.
  *
  * Unlike the real web `/lobby/$roomId`, this is a flat route (no dynamic
  * path segment) — the room is identified by a `roomId` search param instead,
  * since every native `/app/*` screen predates per-room dynamic routing.
  *
- * - initialsFor(): derives up to two-letter initials from a display name.
- * - NativeLobby(): main route component; polls room status/participants and
- *   renders the lobby UI plus the footer start/join action.
+ * - NativeLobby(): main route component; renders the lobby UI plus the
+ *   footer start/join action and leave/cancel confirmation.
  */
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Copy, Mic, Play, Check, Settings2 } from "lucide-react";
+import { Ban, Copy, Mic, Play, Check, Settings2 } from "lucide-react";
 
 import { NativeStackScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
   Banner,
+  EmptyState,
   PmBadge,
   PmButton,
   PmCard,
@@ -31,13 +31,8 @@ import {
 import { ParticipantTile } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { initialsFor } from "@/lib/session/participants";
-import {
-  getRoomStatus,
-  getRoomParticipants,
-  startRoom,
-  type RoomStatus,
-  type RoomParticipant,
-} from "@/lib/api";
+import { cancellationMessage, useRoomLobby } from "@/lib/session/lobby";
+import { isRoomReady, MIN_PARTICIPANTS_TO_START } from "@/lib/room-capacity";
 
 const searchSchema = z.object({
   roomId: z.string().optional(),
@@ -63,69 +58,39 @@ export const Route = createFileRoute("/app/lobby")({
   ),
 });
 
-const POLL_INTERVAL_MS = 3000;
-
-// Main route component: polls real room status/participants and renders the
-// topic card, participant grid, and start/join footer action.
+// Main route component: renders the topic card, participant grid, and
+// start/join footer action (status/roster polling comes from useRoomLobby).
 function NativeLobby() {
   const search = Route.useSearch();
   const roomId = search.roomId ?? "";
   const { session } = useAuth();
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState<RoomStatus | null>(null);
-  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
+  const { status, participants, error, starting, leaving, handleStart, handleLeave } = useRoomLobby(
+    session,
+    roomId,
+  );
   const [copied, setCopied] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
-  useEffect(() => {
-    if (!roomId) return undefined;
-    let cancelled = false;
-    function refresh() {
-      getRoomStatus(session, roomId)
-        .then((r) => {
-          if (!cancelled) {
-            setStatus(r);
-            setError(null);
-          }
-        })
-        .catch((e: Error) => !cancelled && setError(e.message));
-    }
-    refresh();
-    if (status?.status === "ended") return undefined;
-    const interval = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [session, roomId, status?.status]);
-
-  useEffect(() => {
-    if (!roomId) return undefined;
-    let cancelled = false;
-    getRoomParticipants(session, roomId)
-      .then((r) => !cancelled && setParticipants(r.participants))
-      .catch(() => {
-        /* names are a display enhancement */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [session, roomId, status?.status]);
+  // See the identical comment in routes/lobby.$roomId.tsx (the web
+  // equivalent of this screen) -- a waiting room can only reach "ended"
+  // directly (without passing through "live") by being cancelled.
+  const cancelled = status?.status === "ended" && !!status.endReason;
 
   useEffect(() => {
     if (status?.status === "live") {
       navigate({ to: "/app/session", search: { roomId } });
-    } else if (status?.status === "ended") {
+    } else if (status?.status === "ended" && !status.endReason) {
       navigate({ to: "/app/ended", search: { roomId } });
     }
-  }, [status?.status, roomId, navigate]);
+  }, [status?.status, status?.endReason, roomId, navigate]);
 
   const code = status?.code ?? search.code ?? "";
   const topicText = status?.topicText ?? search.topicText ?? "Group discussion room";
   const isCreator = status?.isCreator ?? search.isCreator ?? false;
+  const ready = isRoomReady(participants.length);
 
   function copyCode() {
     if (!code) return;
@@ -135,16 +100,30 @@ function NativeLobby() {
     });
   }
 
-  async function handleStart() {
-    setStarting(true);
-    setError(null);
-    try {
-      await startRoom(session, roomId);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setStarting(false);
+  async function leaveNow() {
+    if (await handleLeave()) navigate({ to: "/app/join" });
+  }
+
+  async function confirmCancel() {
+    if (await handleLeave()) {
+      setConfirmCancelOpen(false);
+      navigate({ to: "/app/join" });
     }
+  }
+
+  // See the identical comment in routes/lobby.$roomId.tsx.
+  if (cancelled && status?.endReason) {
+    return (
+      <NativeStackScreen title={code || "Lobby"} backTo="/app/join" backLabel="Rooms">
+        <EmptyState
+          icon={<Ban />}
+          title="This room was cancelled"
+          description={cancellationMessage(status.endReason)}
+          action={<PmButton onClick={() => navigate({ to: "/app/join" })}>Back to rooms</PmButton>}
+          className="mx-5 mt-5"
+        />
+      </NativeStackScreen>
+    );
   }
 
   return (
@@ -163,15 +142,26 @@ function NativeLobby() {
         </div>
       }
       footer={
-        isCreator ? (
-          <PmButton block size="lg" loading={starting} disabled={starting} onClick={handleStart}>
-            <Play /> Start discussion
+        <div className="flex gap-3">
+          {isCreator ? (
+            <PmButton block size="lg" loading={starting} disabled={starting} onClick={handleStart}>
+              <Play /> Start discussion
+            </PmButton>
+          ) : (
+            <PmButton block size="lg" disabled>
+              <Mic /> Waiting for host…
+            </PmButton>
+          )}
+          <PmButton
+            variant="ghost"
+            size="lg"
+            loading={leaving}
+            disabled={leaving}
+            onClick={isCreator ? () => setConfirmCancelOpen(true) : leaveNow}
+          >
+            {isCreator ? "Cancel" : "Leave"}
           </PmButton>
-        ) : (
-          <PmButton block size="lg" disabled>
-            <Mic /> Waiting for host…
-          </PmButton>
-        )
+        </div>
       }
     >
       <div className="space-y-5 px-5 py-5">
@@ -184,7 +174,16 @@ function NativeLobby() {
         </PmCard>
 
         <div>
-          <SectionTitle title="Participants" subtitle={`${participants.length} joined`} />
+          <SectionTitle
+            title="Participants"
+            subtitle={
+              ready
+                ? `${participants.length} joined · ready to start`
+                : `${participants.length} joined · need ${
+                    MIN_PARTICIPANTS_TO_START - participants.length
+                  } more to start`
+            }
+          />
           <div className="grid grid-cols-2 gap-3">
             {participants.map((p) => (
               <ParticipantTile
@@ -242,6 +241,32 @@ function NativeLobby() {
             Output <span className="text-foreground">System default</span>
           </div>
         </div>
+      </PmDialog>
+
+      <PmDialog
+        open={confirmCancelOpen}
+        onClose={() => setConfirmCancelOpen(false)}
+        title="Cancel this room?"
+        description="Everyone currently waiting will be removed and the room will close. This can't be undone."
+        sheetOnMobile
+        footer={
+          <>
+            <PmButton variant="ghost" block onClick={() => setConfirmCancelOpen(false)}>
+              Keep waiting
+            </PmButton>
+            <PmButton
+              variant="danger"
+              block
+              loading={leaving}
+              disabled={leaving}
+              onClick={confirmCancel}
+            >
+              Cancel room
+            </PmButton>
+          </>
+        }
+      >
+        {error && <p className="text-sm font-medium text-destructive">{error}</p>}
       </PmDialog>
     </NativeStackScreen>
   );

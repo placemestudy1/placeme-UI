@@ -1,25 +1,27 @@
 /**
  * Lobby screen shown to a student after joining or creating a group
  * discussion room, while everyone waits for the host to start the session.
- * Polls the room's status and participant list from the server, lets the
- * host start the discussion, and auto-navigates everyone to the live session
- * (or the ended screen) once the room's status changes.
+ * Polls the room's status and participant list from the server (via
+ * useRoomLobby), lets the host start the discussion, and auto-navigates
+ * everyone to the live session (or the ended screen) once the room's
+ * status changes.
  *
  * - initialsFor(): derives up to two-letter initials from a participant's
  *   display name, used for avatar tiles.
- * - LobbyPage(): main route component — polls room status/participants,
- *   renders the waiting-room UI (topic, invite code, start/leave actions,
- *   participant grid) and the audio-settings dialog.
+ * - LobbyPage(): main route component — renders the waiting-room UI (topic,
+ *   invite code, start/leave actions, participant grid) and the audio-
+ *   settings/leave-confirmation dialogs.
  */
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { Copy, Check, Mic, Play, Settings2 } from "lucide-react";
+import { Ban, Copy, Check, Mic, Play, Settings2 } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
   Banner,
+  EmptyState,
   PmBadge,
   PmButton,
   PmCard,
@@ -29,13 +31,8 @@ import {
 } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
-import {
-  getRoomStatus,
-  getRoomParticipants,
-  startRoom,
-  type RoomStatus,
-  type RoomParticipant,
-} from "@/lib/api";
+import { cancellationMessage, useRoomLobby } from "@/lib/session/lobby";
+import { isRoomReady, MIN_PARTICIPANTS_TO_START } from "@/lib/room-capacity";
 import { track } from "@/lib/analytics";
 
 const searchSchema = z.object({
@@ -62,8 +59,6 @@ export const Route = createFileRoute("/lobby/$roomId")({
   ),
 });
 
-const POLL_INTERVAL_MS = 3000;
-
 // Builds up to two initials (e.g. "Jane Doe" -> "JD") from a display name, for avatar tiles.
 function initialsFor(name: string) {
   return name
@@ -75,71 +70,47 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-// Main lobby route component: polls room status and participant list, shows
-// the topic/invite code/start-or-wait actions and participant grid, opens
-// the audio settings dialog, and redirects to the live session or ended
-// screen once the room status changes.
+// Main lobby route component: renders the topic/invite code/start-or-wait
+// actions and participant grid, opens the audio settings dialog, and
+// redirects to the live session or ended screen once the room status
+// changes (all polling/actions come from useRoomLobby).
 function LobbyPage() {
   const { roomId } = Route.useParams();
   const search = Route.useSearch();
   const { session } = useAuth();
   const navigate = useNavigate();
 
-  // Search params are only a first-paint hint (mirrors gd-proto/apps/web's
-  // router-state pattern) — everything below is re-derived from the server
-  // on the very first poll, so a refresh never loses the room code/topic.
-  const [status, setStatus] = useState<RoomStatus | null>(null);
-  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [starting, setStarting] = useState(false);
+  const { status, participants, error, starting, leaving, handleStart, handleLeave } = useRoomLobby(
+    session,
+    roomId,
+  );
   const [copied, setCopied] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    function refresh() {
-      getRoomStatus(session, roomId)
-        .then((r) => {
-          if (!cancelled) {
-            setStatus(r);
-            setError(null);
-          }
-        })
-        .catch((e: Error) => !cancelled && setError(e.message));
-    }
-    refresh();
-    if (status?.status === "ended") return undefined;
-    const interval = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [session, roomId, status?.status]);
-
-  useEffect(() => {
-    let cancelled = false;
-    getRoomParticipants(session, roomId)
-      .then((r) => !cancelled && setParticipants(r.participants))
-      .catch(() => {
-        /* names are a display enhancement */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [session, roomId, status?.status]);
+  // A waiting room can only reach "ended" by being cancelled (creator gave
+  // up their seat, or the sweep expired it) -- one that actually starts
+  // goes through "live" first, which navigates away from this screen
+  // before it can ever see "ended" directly. status.endReason (SCRUM-26)
+  // makes that explicit instead of relying on the implicit "ended  without
+  // ever going live" invariant, so a genuinely-ended room with no
+  // endReason (the historical/fallback case) still falls through to the
+  // normal post-session flow below.
+  const cancelled = status?.status === "ended" && !!status.endReason;
 
   useEffect(() => {
     if (status?.status === "live") {
       track({ name: "session_started", properties: { roomId } });
       navigate({ to: "/session/$roomId", params: { roomId } });
-    } else if (status?.status === "ended") {
+    } else if (status?.status === "ended" && !status.endReason) {
       navigate({ to: "/ended/$roomId", params: { roomId } });
     }
-  }, [status?.status, roomId, navigate]);
+  }, [status?.status, status?.endReason, roomId, navigate]);
 
   const code = status?.code ?? search.code ?? "";
   const topicText = status?.topicText ?? search.topicText ?? "Group discussion room";
   const isCreator = status?.isCreator ?? search.isCreator ?? false;
+  const ready = isRoomReady(participants.length);
 
   // Copies the room code to the clipboard and shows a brief "copied" confirmation.
   function copyCode() {
@@ -150,17 +121,36 @@ function LobbyPage() {
     });
   }
 
-  // Calls the API to start the room (host only), tracking loading/error state.
-  async function handleStart() {
-    setStarting(true);
-    setError(null);
-    try {
-      await startRoom(session, roomId);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setStarting(false);
+  // Non-creator: leaves immediately (only frees their own seat). Creator:
+  // leaving cancels the room for everyone still waiting, so that action is
+  // gated behind the confirmation dialog instead (see confirmCancel below).
+  async function leaveNow() {
+    if (await handleLeave()) navigate({ to: "/" });
+  }
+
+  async function confirmCancel() {
+    if (await handleLeave()) {
+      setConfirmCancelOpen(false);
+      navigate({ to: "/" });
     }
+  }
+
+  // Reached by every other participant still waiting when the room's
+  // creator cancels (or the sweep expires it) -- this is not a session
+  // that ran, so it must not route into the feedback screen (SCRUM-27 PR
+  // #12 review finding: "routes participants to the feedback screen
+  // instead of a cancellation notice").
+  if (cancelled && status?.endReason) {
+    return (
+      <WebShell title="Room lobby" {...(code ? { subtitle: code } : {})}>
+        <EmptyState
+          icon={<Ban />}
+          title="This room was cancelled"
+          description={cancellationMessage(status.endReason)}
+          action={<PmButton onClick={() => navigate({ to: "/" })}>Back to home</PmButton>}
+        />
+      </WebShell>
+    );
   }
 
   return (
@@ -211,14 +201,29 @@ function LobbyPage() {
               <PmButton variant="outline" size="lg" onClick={copyCode}>
                 <Copy /> Copy invite link
               </PmButton>
-              <PmButton asChild variant="ghost" size="lg">
-                <Link to="/">Leave</Link>
+              <PmButton
+                variant="ghost"
+                size="lg"
+                loading={leaving}
+                disabled={leaving}
+                onClick={isCreator ? () => setConfirmCancelOpen(true) : leaveNow}
+              >
+                {isCreator ? "Cancel room" : "Leave"}
               </PmButton>
             </div>
           </PmCard>
 
           <div>
-            <SectionTitle title="Participants" subtitle={`${participants.length} joined`} />
+            <SectionTitle
+              title="Participants"
+              subtitle={
+                ready
+                  ? `${participants.length} joined · ready to start`
+                  : `${participants.length} joined · need ${
+                      MIN_PARTICIPANTS_TO_START - participants.length
+                    } more to start`
+              }
+            />
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
               {participants.map((p) => (
                 <ParticipantTile
@@ -272,6 +277,32 @@ function LobbyPage() {
             Output <span className="text-foreground">System default</span>
           </div>
         </div>
+      </PmDialog>
+
+      <PmDialog
+        open={confirmCancelOpen}
+        onClose={() => setConfirmCancelOpen(false)}
+        title="Cancel this room?"
+        description="Everyone currently waiting will be removed and the room will close. This can't be undone."
+        sheetOnMobile
+        footer={
+          <>
+            <PmButton variant="ghost" block onClick={() => setConfirmCancelOpen(false)}>
+              Keep waiting
+            </PmButton>
+            <PmButton
+              variant="danger"
+              block
+              loading={leaving}
+              disabled={leaving}
+              onClick={confirmCancel}
+            >
+              Cancel room
+            </PmButton>
+          </>
+        }
+      >
+        {error && <p className="text-sm font-medium text-destructive">{error}</p>}
       </PmDialog>
     </WebShell>
   );
