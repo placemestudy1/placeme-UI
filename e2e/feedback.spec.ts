@@ -89,50 +89,6 @@ test("shows a pending state before feedback has arrived", async ({ page }) => {
   await expect(page.getByText("Generating your feedback…")).toBeVisible();
 });
 
-// SCRUM-27: "retrying final resources" + error states -- a transcript fetch
-// failure must show an error with a retry action, not silently stay blank.
-test("shows a retry action when the transcript fails to load", async ({ page }) => {
-  await mockApi(page, `/api/rooms/${ROOM_ID}/feedback/mine`, { feedback: null });
-  let attempts = 0;
-  await page.route(`**/api/rooms/${ROOM_ID}/transcript`, (route) => {
-    attempts++;
-    if (attempts === 1) {
-      return route.fulfill({
-        status: 500,
-        contentType: "application/json",
-        body: JSON.stringify({ error: "Transcript service unavailable" }),
-      });
-    }
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        lines: [
-          { userId: "u1", displayName: "Aarav Menon", text: "Opening framing.", startedAtMs: 0 },
-        ],
-      }),
-    });
-  });
-
-  await gotoReady(page, `/ended/${ROOM_ID}`);
-
-  await expect(page.getByText("Couldn't load the transcript")).toBeVisible();
-  await page.getByRole("button", { name: "Retry" }).click();
-
-  await expect(page.getByText("Opening framing.")).toBeVisible();
-});
-
-// SCRUM-27: empty state -- a room with zero recorded transcript lines shows
-// an explicit message rather than a blank, ambiguous section.
-test("shows an empty state when the transcript has no lines", async ({ page }) => {
-  await mockApi(page, `/api/rooms/${ROOM_ID}/feedback/mine`, { feedback: null });
-  await mockApi(page, `/api/rooms/${ROOM_ID}/transcript`, { lines: [] });
-
-  await gotoReady(page, `/ended/${ROOM_ID}`);
-
-  await expect(page.getByText("No transcript was recorded for this session.")).toBeVisible();
-});
-
 test("lets the student rate the feedback as useful", async ({ page }) => {
   await mockApi(page, `/api/rooms/${ROOM_ID}/feedback/mine`, {
     feedback: "Solid session overall.",

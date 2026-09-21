@@ -1,10 +1,10 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { RotateCcw, Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
-  Banner,
   FeedbackList,
   PmBadge,
   PmButton,
@@ -18,8 +18,17 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { track } from "@/lib/analytics";
 import { beginEarlyLeaveEvaluation, useEarlyLeaveEvaluation } from "@/lib/early-leave-evaluation";
-import { useEndedSessionResources } from "@/lib/session/ended";
-import type { FeedbackDimension, RoomParticipant } from "@/lib/api";
+import {
+  getMyFeedback,
+  getRoomParticipants,
+  getRoomStatus,
+  getRoomTranscript,
+  rateFeedback,
+  type FeedbackDimension,
+  type RoomParticipant,
+  type RoomStatus,
+  type TranscriptLine,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/ended/$roomId")({
   head: () => ({
@@ -37,6 +46,9 @@ export const Route = createFileRoute("/ended/$roomId")({
     </ProtectedRoute>
   ),
 });
+
+const POLL_INTERVAL_MS = 3000;
+const MAX_FEEDBACK_POLLS = 40;
 
 // Picks the lowest-scoring real feedback dimension, so the "suggested next
 // topic" card targets an actual weak spot instead of a fixed placeholder.
@@ -63,8 +75,8 @@ function ordinalWord(rank: number) {
 // Builds the talk-time headline from real BE-10 participant shares instead
 // of a fixed mock sentence -- ranks the caller among the room's speakers by
 // talkShare and describes their position relative to the most active one.
-function talkTimeSummary(participants: RoomParticipant[] | null, selfUserId: string | undefined) {
-  if (!selfUserId || !participants || participants.length === 0) return null;
+function talkTimeSummary(participants: RoomParticipant[], selfUserId: string | undefined) {
+  if (!selfUserId || participants.length === 0) return null;
   const sorted = [...participants].sort((a, b) => b.talkShare - a.talkShare);
   const rank = sorted.findIndex((p) => p.userId === selfUserId);
   if (rank === -1) return null;
@@ -95,33 +107,97 @@ function EndedPage() {
   const { session, user } = useAuth();
   const earlyLeave = useEarlyLeaveEvaluation(session, roomId);
 
-  const {
-    status,
-    feedback,
-    feedbackFailed,
-    checkingFeedback,
-    checkFeedbackAgain,
-    rating,
-    ratingReason,
-    setRatingReason,
-    savingRating,
-    submitRating,
-    commitReason,
-    score,
-    dimensions,
-    strengths,
-    improvements,
-    transcript,
-    transcriptError,
-    retryTranscript,
-    participants,
-    participantsError,
-    retryParticipants,
-  } = useEndedSessionResources(session, roomId, {
-    onFeedbackViewed: (s) =>
-      track({ name: "feedback_viewed", properties: { roomId, hasScore: s != null } }),
-    onRated: (r) => track({ name: "feedback_rated", properties: { roomId, rating: r } }),
-  });
+  const [status, setStatus] = useState<RoomStatus | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackFailed, setFeedbackFailed] = useState(false);
+  const [rating, setRating] = useState<boolean | null>(null);
+  const [ratingReason, setRatingReason] = useState("");
+  const [savingRating, setSavingRating] = useState(false);
+  const [transcript, setTranscript] = useState<TranscriptLine[] | null>(null);
+  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
+  // BE-6/BE-7 (SPEC-0006): real structured feedback, replacing the
+  // feedbackScores/feedbackStrengths/feedbackImprovements demo fixtures.
+  // score stays null (never a fabricated 0) for a pre-migration row or the
+  // transcription-failed stub -- both have empty dimensions/strengths/
+  // improvements too, so the rubric/lists simply don't render for those.
+  const [score, setScore] = useState<number | null>(null);
+  const [dimensions, setDimensions] = useState<FeedbackDimension[]>([]);
+  const [strengths, setStrengths] = useState<string[]>([]);
+  const [improvements, setImprovements] = useState<string[]>([]);
+
+  useEffect(() => {
+    getRoomStatus(session, roomId)
+      .then(setStatus)
+      .catch(() => {});
+  }, [session, roomId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+    function poll() {
+      if (attempts++ >= MAX_FEEDBACK_POLLS) {
+        clearInterval(interval);
+        if (!cancelled) setFeedbackFailed(true);
+        return;
+      }
+      getMyFeedback(session, roomId)
+        .then((r) => {
+          if (cancelled || !r.feedback) return;
+          track({ name: "feedback_viewed", properties: { roomId, hasScore: r.score != null } });
+          setFeedback(r.feedback);
+          setScore(r.score);
+          setDimensions(r.dimensions);
+          setStrengths(r.strengths);
+          setImprovements(r.improvements);
+          if (r.rating !== undefined) setRating(r.rating);
+          if (r.ratingReason) setRatingReason(r.ratingReason);
+          clearInterval(interval);
+        })
+        .catch(() => {});
+    }
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    poll();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [session, roomId]);
+
+  useEffect(() => {
+    getRoomTranscript(session, roomId)
+      .then((r) => setTranscript(r.lines))
+      .catch(() => {});
+  }, [session, roomId]);
+
+  // BE-10: real participants + their talk-time share, replacing the
+  // fixture list this card used to render unconditionally.
+  useEffect(() => {
+    getRoomParticipants(session, roomId)
+      .then((r) => setParticipants(r.participants))
+      .catch(() => {});
+  }, [session, roomId]);
+
+  async function submitRating(nextRating: boolean) {
+    setSavingRating(true);
+    try {
+      await rateFeedback(session, roomId, {
+        rating: nextRating,
+        reason: ratingReason || undefined,
+      });
+      setRating(nextRating);
+      track({ name: "feedback_rated", properties: { roomId, rating: nextRating } });
+    } catch {
+      /* surfaced implicitly by rating not updating */
+    } finally {
+      setSavingRating(false);
+    }
+  }
+
+  function commitReason() {
+    const trimmed = ratingReason.trim();
+    if (rating !== null && trimmed)
+      rateFeedback(session, roomId, { rating, reason: trimmed }).catch(() => {});
+  }
 
   async function shareReport() {
     const text = `PlaceMe GD report — ${status?.topicText ?? "session"} (${status?.code ?? roomId})\n\n${feedback ?? "Feedback pending."}`;
@@ -183,21 +259,10 @@ function EndedPage() {
             {feedback ? (
               <p className="text-sm leading-relaxed text-muted-foreground">{feedback}</p>
             ) : feedbackFailed ? (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Your feedback is taking longer than expected. It'll appear under History once it's
-                  ready.
-                </p>
-                <PmButton
-                  variant="outline"
-                  size="sm"
-                  loading={checkingFeedback}
-                  disabled={checkingFeedback}
-                  onClick={() => checkFeedbackAgain()}
-                >
-                  Check again
-                </PmButton>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Your feedback is taking longer than expected. It'll appear under History once it's
+                ready.
+              </p>
             ) : (
               <p className="text-sm text-muted-foreground">Generating your feedback…</p>
             )}
@@ -254,34 +319,23 @@ function EndedPage() {
             )}
             <div className="min-w-0">
               <h2 className="text-xl font-bold">{status?.topicText ?? "This discussion"}</h2>
-              {participantsError ? (
-                <div className="mt-2 space-y-2">
-                  <p className="text-sm text-destructive">
-                    Couldn't load participants: {participantsError}
-                  </p>
-                  <PmButton variant="outline" size="sm" onClick={() => retryParticipants()}>
-                    Retry
-                  </PmButton>
-                </div>
-              ) : (
-                (() => {
-                  const summary = talkTimeSummary(participants, user?.id);
-                  return (
-                    <>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {summary
-                          ? summary.headline
-                          : "Talk-time breakdown will appear here once it's ready."}
-                      </p>
-                      {summary && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <PmBadge tone="primary">{summary.talkShare}% talk time</PmBadge>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()
-              )}
+              {(() => {
+                const summary = talkTimeSummary(participants, user?.id);
+                return (
+                  <>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {summary
+                        ? summary.headline
+                        : "Talk-time breakdown will appear here once it's ready."}
+                    </p>
+                    {summary && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <PmBadge tone="primary">{summary.talkShare}% talk time</PmBadge>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </PmCard>
           {dimensions.length > 0 && (
@@ -309,64 +363,39 @@ function EndedPage() {
               title="Full transcript"
               subtitle={transcript ? `${transcript.length} lines` : "Loading…"}
             />
-            {transcriptError ? (
-              <Banner
-                tone="danger"
-                title="Couldn't load the transcript"
-                description={transcriptError}
-                action={
-                  <PmButton variant="outline" size="sm" onClick={() => retryTranscript()}>
-                    Retry
-                  </PmButton>
-                }
-              />
-            ) : transcript && transcript.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No transcript was recorded for this session.
-              </p>
-            ) : (
-              <div className="space-y-5">
-                {(transcript ?? []).map((t, i) => (
-                  <TranscriptLineItem
-                    key={i}
-                    speaker={t.displayName}
-                    initials={initialsFor(t.displayName)}
-                    time=""
-                    text={t.text}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="space-y-5">
+              {(transcript ?? []).map((t, i) => (
+                <TranscriptLineItem
+                  key={i}
+                  speaker={t.displayName}
+                  initials={initialsFor(t.displayName)}
+                  time=""
+                  text={t.text}
+                />
+              ))}
+            </div>
           </PmCard>
         </div>
 
         <aside className="space-y-4">
           <PmCard className="p-5">
             <SectionTitle title="Talk-time split" />
-            {participantsError ? (
-              <p className="text-sm text-muted-foreground">Unavailable — see error above.</p>
-            ) : participants === null ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
-            ) : participants.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No participant data available yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {participants.map((p) => (
-                  <div key={p.userId}>
-                    <div className="flex justify-between text-xs">
-                      <span className="truncate">{p.displayName}</span>
-                      <span className="font-mono text-muted-foreground">{p.talkShare}%</span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full bg-accent"
-                        style={{ width: `${p.talkShare}%` }}
-                      />
-                    </div>
+            <div className="space-y-3">
+              {participants.map((p) => (
+                <div key={p.userId}>
+                  <div className="flex justify-between text-xs">
+                    <span className="truncate">{p.displayName}</span>
+                    <span className="font-mono text-muted-foreground">{p.talkShare}%</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-accent"
+                      style={{ width: `${p.talkShare}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle title="Suggested next topic" />
