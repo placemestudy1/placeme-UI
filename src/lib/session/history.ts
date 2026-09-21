@@ -3,6 +3,7 @@
 //
 // Exports:
 // - MAX_TREND_POINTS: cap on how many trend points to show.
+// - realSessionsOnly: drops rooms cancelled before they ever started.
 // - buildScoreTrend: builds a ProgressPoint[] from scored HistorySession[].
 // - toSessionRow: converts a HistorySession to the UI Session shape.
 
@@ -13,6 +14,22 @@ import { trendLabelFormatter } from "./formatting";
 
 /** Maximum number of scored sessions to include in the trend chart. */
 export const MAX_TREND_POINTS = 8;
+
+/**
+ * Filters out rooms that were cancelled before they ever started (SCRUM-26:
+ * a creator-cancelled or expired waiting room, end_reason
+ * 'cancelled_by_creator'/'cancelled_expired') so History shows only real,
+ * actually-held discussions (SCRUM-27 OUTCOME: "only real sessions"). A
+ * room that truly ran always has startedAt set by the start call; one
+ * cancelled straight out of `waiting` never does -- that's the one signal
+ * this endpoint already exposes that reliably tells the two apart, without
+ * needing end_reason itself in the History contract.
+ */
+export function realSessionsOnly(
+  sessions: HistorySession[],
+): (HistorySession & { startedAt: string })[] {
+  return sessions.filter((s): s is HistorySession & { startedAt: string } => s.startedAt != null);
+}
 
 /**
  * Builds a ProgressPoint[] from actually-scored sessions, chronological,
