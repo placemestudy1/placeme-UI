@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, listOpenRooms, type HistorySession, type OpenRoom } from "@/lib/api";
 import { average, computeStreak } from "@/lib/session/stats";
 import { dateFormatter } from "@/lib/session/formatting";
-import { buildScoreTrend, toSessionRow } from "@/lib/session/history";
+import { buildScoreTrend, realSessionsOnly, toSessionRow } from "@/lib/session/history";
 import { toRoomCard } from "@/lib/session/rooms";
 
 export const Route = createFileRoute("/app/")({
@@ -59,7 +59,10 @@ function NativeHome() {
       .catch(() => setOpenRooms([]));
   }, [session]);
 
-  const recent = sessions?.slice(0, 2) ?? null;
+  // SCRUM-27 (PR #12 review): without this filter, a room cancelled before
+  // it ever started (SCRUM-26) showed up here stuck on "Processing" forever
+  // -- History already excludes these via the same realSessionsOnly check.
+  const recent = sessions ? realSessionsOnly(sessions).slice(0, 2) : null;
   const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
   const avgScore = useMemo(
     () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),

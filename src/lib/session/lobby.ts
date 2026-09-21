@@ -38,14 +38,17 @@ export function useRoomLobby(session: Session | null, roomId: string) {
     if (!roomId) return undefined;
     let cancelled = false;
     function refresh() {
+      // SCRUM-27 (PR #12 review): this used to setError(null) on every
+      // successful poll tick, which cleared an error a user action
+      // (handleStart/handleLeave) had just set -- an error shown inside the
+      // cancel-confirmation dialog could vanish on its own within 3s while
+      // the dialog was still open. The background poll no longer touches
+      // `error` at all; only the actions themselves set or clear it.
       getRoomStatus(session, roomId)
-        .then((r) => {
-          if (!cancelled) {
-            setStatus(r);
-            setError(null);
-          }
-        })
-        .catch((e: Error) => !cancelled && setError(e.message));
+        .then((r) => !cancelled && setStatus(r))
+        .catch(() => {
+          /* transient background refresh failure; the next poll tick retries. */
+        });
       getRoomParticipants(session, roomId)
         .then((r) => !cancelled && setParticipants(r.participants))
         .catch(() => {

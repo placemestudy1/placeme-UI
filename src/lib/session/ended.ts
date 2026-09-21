@@ -43,6 +43,7 @@ export function useEndedSessionResources(
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackFailed, setFeedbackFailed] = useState(false);
   const [checkingFeedback, setCheckingFeedback] = useState(false);
+  const [checkFeedbackError, setCheckFeedbackError] = useState<string | null>(null);
   const [rating, setRating] = useState<boolean | null>(null);
   const [ratingReason, setRatingReason] = useState("");
   const [savingRating, setSavingRating] = useState(false);
@@ -127,30 +128,56 @@ export function useEndedSessionResources(
   // keeps retrying feedback generation server-side for up to 24h
   // (roomSweep.js's FEEDBACK_RETRY_MAX_AGE_MS), so a single fresh check can
   // still succeed long after this client's poll exhausted.
+  //
+  // SCRUM-27 (PR #12 review): a failed getMyFeedback call (network/5xx) used
+  // to be swallowed via .catch(() => false), leaving the UI indistinguishable
+  // from "feedback simply isn't ready yet" -- checkFeedbackError now
+  // surfaces that distinctly so a retry-worthy failure doesn't read as an
+  // still-generating state.
   function checkFeedbackAgain() {
     setCheckingFeedback(true);
+    setCheckFeedbackError(null);
     return getMyFeedback(session, roomId)
       .then((r) => mountedRef.current && applyFeedbackResult(r))
-      .catch(() => false)
+      .catch((e: Error) => {
+        if (mountedRef.current) setCheckFeedbackError(e.message || "Couldn't check for feedback.");
+        return false;
+      })
       .finally(() => mountedRef.current && setCheckingFeedback(false));
   }
 
+  // SCRUM-27 (PR #12 review): each fetch now carries its own request id so a
+  // slow earlier call (e.g. an automatic retry racing a user-triggered one)
+  // can't overwrite a faster later call's fresher result -- only the
+  // response matching the most recently issued request id is applied.
+  const transcriptRequestIdRef = useRef(0);
   function fetchTranscript() {
+    const requestId = ++transcriptRequestIdRef.current;
     setTranscriptError(null);
     return getRoomTranscript(session, roomId)
-      .then((r) => mountedRef.current && setTranscript(r.lines))
-      .catch((e: Error) => mountedRef.current && setTranscriptError(e.message));
+      .then((r) => {
+        if (mountedRef.current && requestId === transcriptRequestIdRef.current) setTranscript(r.lines);
+      })
+      .catch((e: Error) => {
+        if (mountedRef.current && requestId === transcriptRequestIdRef.current) setTranscriptError(e.message);
+      });
   }
   useEffect(() => {
     if (roomId) fetchTranscript();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchTranscript is stable per (session, roomId); re-created each render but only ever called here or from a user click.
   }, [session, roomId]);
 
+  const participantsRequestIdRef = useRef(0);
   function fetchParticipants() {
+    const requestId = ++participantsRequestIdRef.current;
     setParticipantsError(null);
     return getRoomParticipants(session, roomId)
-      .then((r) => mountedRef.current && setParticipants(r.participants))
-      .catch((e: Error) => mountedRef.current && setParticipantsError(e.message));
+      .then((r) => {
+        if (mountedRef.current && requestId === participantsRequestIdRef.current) setParticipants(r.participants);
+      })
+      .catch((e: Error) => {
+        if (mountedRef.current && requestId === participantsRequestIdRef.current) setParticipantsError(e.message);
+      });
   }
   useEffect(() => {
     if (roomId) fetchParticipants();
@@ -185,6 +212,7 @@ export function useEndedSessionResources(
     feedback,
     feedbackFailed,
     checkingFeedback,
+    checkFeedbackError,
     checkFeedbackAgain,
     rating,
     ratingReason,

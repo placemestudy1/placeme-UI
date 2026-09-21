@@ -78,6 +78,7 @@ function NativeEnded() {
     feedback,
     feedbackFailed,
     checkingFeedback,
+    checkFeedbackError,
     checkFeedbackAgain,
     rating,
     ratingReason,
@@ -184,6 +185,11 @@ function NativeEnded() {
               >
                 Check again
               </PmButton>
+              {checkFeedbackError && (
+                <p className="text-sm text-destructive">
+                  Couldn't reach the server to check ({checkFeedbackError}). Try again.
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Generating your feedback…</p>
