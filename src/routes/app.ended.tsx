@@ -1,24 +1,26 @@
 /**
  * Post-session feedback screen for the native/mobile app — shows the
  * student's real AI-generated score and feedback for a group discussion,
- * with a tab to switch over to the full session transcript.
+ * with a tab to switch over to the full session transcript. Resource
+ * fetching (feedback/transcript/participants, with retry) comes from the
+ * shared useEndedSessionResources hook.
  *
  * Unlike the real web `/ended/$roomId`, this is a flat route — the room is
  * identified by a `roomId` search param instead (see app.lobby.tsx).
  *
- * - NativeEnded(): main route component — polls for real feedback and
- *   renders the score summary and a tabbed feedback/transcript view.
+ * - NativeEnded(): main route component — renders the score summary and a
+ *   tabbed feedback/transcript view.
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { Share2, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { NativeStackScreen } from "@/components/pm/native-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import {
+  Banner,
   FeedbackList,
-  PmBadge,
   PmButton,
   PmCard,
   PmInput,
@@ -29,17 +31,7 @@ import {
 } from "@/components/pm/kit";
 import { topics } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
-import {
-  getMyFeedback,
-  getRoomStatus,
-  getRoomTranscript,
-  getRoomParticipants,
-  rateFeedback,
-  type FeedbackDimension,
-  type RoomStatus,
-  type TranscriptLine,
-  type RoomParticipant,
-} from "@/lib/api";
+import { useEndedSessionResources } from "@/lib/session/ended";
 import { cn } from "@/lib/utils";
 import { beginEarlyLeaveEvaluation, useEarlyLeaveEvaluation } from "@/lib/early-leave-evaluation";
 
@@ -62,9 +54,6 @@ export const Route = createFileRoute("/app/ended")({
   ),
 });
 
-const POLL_INTERVAL_MS = 3000;
-const MAX_FEEDBACK_POLLS = 40;
-
 function initialsFor(name: string) {
   return name
     .split(" ")
@@ -75,8 +64,8 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-// Main "session ended" screen: polls for real feedback, shows the score
-// ring and feedback breakdown, and a toggle to view the full transcript.
+// Main "session ended" screen: shows the score ring and feedback breakdown,
+// and a toggle to view the full transcript.
 function NativeEnded() {
   const { roomId: rawRoomId } = Route.useSearch();
   const roomId = rawRoomId ?? "";
@@ -84,92 +73,30 @@ function NativeEnded() {
   const earlyLeave = useEarlyLeaveEvaluation(session, roomId);
 
   const [tab, setTab] = useState<"feedback" | "transcript">("feedback");
-  const [status, setStatus] = useState<RoomStatus | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [feedbackFailed, setFeedbackFailed] = useState(false);
-  const [rating, setRating] = useState<boolean | null>(null);
-  const [ratingReason, setRatingReason] = useState("");
-  const [savingRating, setSavingRating] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptLine[] | null>(null);
-  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
-  const [score, setScore] = useState<number | null>(null);
-  const [dimensions, setDimensions] = useState<FeedbackDimension[]>([]);
-  const [strengths, setStrengths] = useState<string[]>([]);
-  const [improvements, setImprovements] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!roomId) return;
-    getRoomParticipants(session, roomId)
-      .then((r) => setParticipants(r.participants))
-      .catch(() => {});
-  }, [session, roomId]);
-
-  useEffect(() => {
-    if (!roomId) return;
-    getRoomStatus(session, roomId)
-      .then(setStatus)
-      .catch(() => {});
-  }, [session, roomId]);
-
-  useEffect(() => {
-    if (!roomId) return undefined;
-    let cancelled = false;
-    let attempts = 0;
-    function poll() {
-      if (attempts++ >= MAX_FEEDBACK_POLLS) {
-        clearInterval(interval);
-        if (!cancelled) setFeedbackFailed(true);
-        return;
-      }
-      getMyFeedback(session, roomId)
-        .then((r) => {
-          if (cancelled || !r.feedback) return;
-          setFeedback(r.feedback);
-          setScore(r.score);
-          setDimensions(r.dimensions);
-          setStrengths(r.strengths);
-          setImprovements(r.improvements);
-          if (r.rating !== undefined) setRating(r.rating);
-          if (r.ratingReason) setRatingReason(r.ratingReason);
-          clearInterval(interval);
-        })
-        .catch(() => {});
-    }
-    const interval = setInterval(poll, POLL_INTERVAL_MS);
-    poll();
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [session, roomId]);
-
-  useEffect(() => {
-    if (!roomId) return;
-    getRoomTranscript(session, roomId)
-      .then((r) => setTranscript(r.lines))
-      .catch(() => {});
-  }, [session, roomId]);
-
-  async function submitRating(nextRating: boolean) {
-    setSavingRating(true);
-    try {
-      await rateFeedback(session, roomId, {
-        rating: nextRating,
-        reason: ratingReason || undefined,
-      });
-      setRating(nextRating);
-    } catch {
-      /* surfaced implicitly by rating not updating */
-    } finally {
-      setSavingRating(false);
-    }
-  }
-
-  function commitReason() {
-    const trimmed = ratingReason.trim();
-    if (rating !== null && trimmed)
-      rateFeedback(session, roomId, { rating, reason: trimmed }).catch(() => {});
-  }
+  const {
+    status,
+    feedback,
+    feedbackFailed,
+    checkingFeedback,
+    checkFeedbackError,
+    checkFeedbackAgain,
+    rating,
+    ratingReason,
+    setRatingReason,
+    savingRating,
+    submitRating,
+    commitReason,
+    score,
+    dimensions,
+    strengths,
+    improvements,
+    transcript,
+    transcriptError,
+    retryTranscript,
+    participants,
+    participantsError,
+    retryParticipants,
+  } = useEndedSessionResources(session, roomId);
 
   async function shareReport() {
     const text = `PlaceMe GD report — ${status?.topicText ?? "session"} (${status?.code ?? roomId})\n\n${feedback ?? "Feedback pending."}`;
@@ -245,9 +172,25 @@ function NativeEnded() {
           {feedback ? (
             <p className="text-sm leading-relaxed text-muted-foreground">{feedback}</p>
           ) : feedbackFailed ? (
-            <p className="text-sm text-muted-foreground">
-              Your feedback is taking longer than expected. Check back soon.
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Your feedback is taking longer than expected. Check back soon.
+              </p>
+              <PmButton
+                variant="outline"
+                size="sm"
+                loading={checkingFeedback}
+                disabled={checkingFeedback}
+                onClick={() => checkFeedbackAgain()}
+              >
+                Check again
+              </PmButton>
+              {checkFeedbackError && (
+                <p className="text-sm text-destructive">
+                  Couldn't reach the server to check ({checkFeedbackError}). Try again.
+                </p>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">Generating your feedback…</p>
           )}
@@ -320,22 +263,39 @@ function NativeEnded() {
 
             <PmCard className="p-4">
               <SectionTitle title="Talk-time split" />
-              <div className="space-y-3">
-                {participants.map((p) => (
-                  <div key={p.userId}>
-                    <div className="flex justify-between text-xs">
-                      <span className="truncate">{p.displayName}</span>
-                      <span className="font-mono text-muted-foreground">{p.talkShare}%</span>
+              {participantsError ? (
+                <Banner
+                  tone="danger"
+                  title="Couldn't load participants"
+                  description={participantsError}
+                  action={
+                    <PmButton variant="outline" size="sm" onClick={() => retryParticipants()}>
+                      Retry
+                    </PmButton>
+                  }
+                />
+              ) : participants === null ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : participants.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No participant data available yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {participants.map((p) => (
+                    <div key={p.userId}>
+                      <div className="flex justify-between text-xs">
+                        <span className="truncate">{p.displayName}</span>
+                        <span className="font-mono text-muted-foreground">{p.talkShare}%</span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-accent"
+                          style={{ width: `${p.talkShare}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full bg-accent"
-                        style={{ width: `${p.talkShare}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </PmCard>
 
             <PmCard className="p-4">
@@ -351,15 +311,32 @@ function NativeEnded() {
           </>
         ) : (
           <div className="space-y-5">
-            {(transcript ?? []).map((t, i) => (
-              <TranscriptLineItem
-                key={i}
-                speaker={t.displayName}
-                initials={initialsFor(t.displayName)}
-                time=""
-                text={t.text}
+            {transcriptError ? (
+              <Banner
+                tone="danger"
+                title="Couldn't load the transcript"
+                description={transcriptError}
+                action={
+                  <PmButton variant="outline" size="sm" onClick={() => retryTranscript()}>
+                    Retry
+                  </PmButton>
+                }
               />
-            ))}
+            ) : transcript && transcript.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No transcript was recorded for this session.
+              </p>
+            ) : (
+              (transcript ?? []).map((t, i) => (
+                <TranscriptLineItem
+                  key={i}
+                  speaker={t.displayName}
+                  initials={initialsFor(t.displayName)}
+                  time=""
+                  text={t.text}
+                />
+              ))
+            )}
           </div>
         )}
       </div>

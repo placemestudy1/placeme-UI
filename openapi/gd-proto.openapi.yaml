@@ -311,6 +311,11 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Caller already holds a seat in another active room.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActiveSeatConflictError" }
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
@@ -393,12 +398,55 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: Room already ended/live, or full.
+          description: >-
+            Room already ended/live, full, or (SCRUM-26) the caller already
+            holds a seat in a different active room — a rejoin of a room
+            the caller is already seated in is never rejected this way.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Error"
+                  - $ref: "#/components/schemas/ActiveSeatConflictError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /api/rooms/{id}/seat:
+    delete:
+      operationId: leaveWaitingSeat
+      summary: >-
+        Give up a seat in a room that hasn't started yet (SCRUM-26). If the
+        caller is the room's creator, the room is cancelled outright and
+        every other seated participant's seat is freed. Does not interact
+        with POST /api/rooms/{id}/leave (SCRUM-21, live-only, unchanged).
+      tags: [rooms]
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: Seat freed, or room cancelled if the caller was its creator.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { $ref: "#/components/schemas/RoomLifecycleStatus" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Not a participant of this room.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
-        "429":
-          $ref: "#/components/responses/TooManyRequests"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Room is not in waiting status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 
   /api/rooms/match:
     post:
@@ -443,6 +491,11 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Caller already holds a seat in another active room.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActiveSeatConflictError" }
         "429":
           $ref: "#/components/responses/TooManyRequests"
     delete:
@@ -491,10 +544,17 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: Already started/ended, or the pilot concurrency cap is hit.
+          description: >-
+            Already ended, the pilot concurrency cap is hit, the room lost
+            a concurrent start race (SCRUM-26, code room_already_live), or
+            it's below the minimum participant count (SCRUM-26, code
+            room_not_ready).
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Error" }
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Error"
+                  - $ref: "#/components/schemas/RoomNotReadyError"
 
   /api/rooms/{id}/leave:
     post:
@@ -844,6 +904,43 @@ components:
       type: string
       enum: [waiting, live, ended]
 
+    # SCRUM-26 (SPEC-0014): set when a waiting room is cancelled instead of
+    # ending normally -- its creator gave up their seat (cancelled_by_creator)
+    # or it sat abandoned past the sweep's timeout (cancelled_expired).
+    # Omitted (not present) for a room that actually ran. See migration
+    # 0027_rooms_end_reason.sql.
+    RoomEndReason:
+      type: string
+      enum: [cancelled_by_creator, cancelled_expired]
+
+    # SCRUM-26 (SPEC-0014): the caller already holds a seat in a different
+    # waiting/live room. Returned by POST /api/rooms, /api/rooms/join, and
+    # /api/rooms/match.
+    ActiveSeatConflictError:
+      type: object
+      required: [error, code, activeRoom]
+      properties:
+        error: { type: string }
+        code: { type: string, enum: [active_seat_conflict] }
+        activeRoom:
+          type: object
+          required: [id, code, status]
+          properties:
+            id: { type: string, format: uuid }
+            code: { type: string }
+            status: { $ref: "#/components/schemas/RoomLifecycleStatus" }
+
+    # SCRUM-26 (SPEC-0014): the room is below the minimum participant count
+    # required to start. Returned by POST /api/rooms/{id}/start.
+    RoomNotReadyError:
+      type: object
+      required: [error, code, participantCount, minParticipants]
+      properties:
+        error: { type: string }
+        code: { type: string, enum: [room_not_ready] }
+        participantCount: { type: integer }
+        minParticipants: { type: integer }
+
     ConsentStatus:
       type: object
       required: [currentVersion, canEnableMic, ageAttested]
@@ -912,6 +1009,7 @@ components:
         durationSeconds: { type: integer }
         isCreator: { type: boolean }
         endsAt: { type: integer, description: "Epoch ms. Present once the room has started." }
+        endReason: { $ref: "#/components/schemas/RoomEndReason" }
 
     RoomParticipant:
       type: object
