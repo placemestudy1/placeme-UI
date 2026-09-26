@@ -92,9 +92,11 @@ describe("useConsentStatus", () => {
   it("surfaces a fetch failure as an error and leaves canEnableMic false", async () => {
     getConsentStatusMock.mockRejectedValue(new Error("network down"));
     const { result } = renderHook(() => useConsentStatus(fakeSession), { wrapper });
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    // The query retries once (after React Query's 1s delay) before failing.
+    await waitFor(() => expect(result.current.loading).toBe(false), { timeout: 3000 });
     expect(result.current.canEnableMic).toBe(false);
     expect(result.current.error).toBe("network down");
+    expect(getConsentStatusMock).toHaveBeenCalledTimes(2);
   });
 
   it("grantConsent posts the grant, then refreshes status", async () => {

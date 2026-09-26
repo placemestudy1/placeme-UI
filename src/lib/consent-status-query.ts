@@ -35,4 +35,8 @@ export const consentStatusQueryOptions = (session: Session | null) =>
     queryFn: (): Promise<ConsentStatusEntry> => getConsentStatus(session),
     enabled: !!session,
     staleTime: CONSENT_STALE_TIME_MS,
+    // One retry, not React Query's default three with backoff: while it
+    // retries ProtectedRoute shows "Checking your consent status…", and an
+    // offline student should reach its "Try again" prompt in ~1s, not ~7s.
+    retry: 1,
   });
