@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const navigateMock = vi.fn();
@@ -185,5 +185,55 @@ describe("ProtectedRoute", () => {
     );
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: "/login" }));
     expect(screen.queryByText("secret content")).not.toBeInTheDocument();
+  });
+
+  // A failed status fetch says nothing about the caller's consent, so it
+  // mustn't bounce an already-consented student to /consent.
+  it("shows a retry prompt instead of redirecting when the consent check fails", async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    const refresh = vi.fn();
+    useConsentStatusMock.mockReturnValue({
+      canEnableMic: false,
+      ageAttested: false,
+      loading: false,
+      error: "network down",
+      refresh,
+    });
+    render(
+      <ProtectedRoute>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    expect(screen.getByText(/couldn't check your consent status/i)).toBeInTheDocument();
+    expect(screen.queryByText("secret content")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(refresh).toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps rendering children when a background refetch fails but cached consent is satisfied", () => {
+    useAuthMock.mockReturnValue({
+      user: { id: "u1" },
+      session: { user: { id: "u1" } },
+      loading: false,
+    });
+    useConsentStatusMock.mockReturnValue({
+      canEnableMic: true,
+      ageAttested: true,
+      loading: false,
+      error: "network down",
+    });
+    render(
+      <ProtectedRoute>
+        <p>secret content</p>
+      </ProtectedRoute>,
+    );
+    expect(screen.getByText("secret content")).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 });

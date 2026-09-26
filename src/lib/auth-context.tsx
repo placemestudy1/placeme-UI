@@ -7,10 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "./supabase-client";
 import { identifyUser, initAnalytics, resetAnalytics } from "./analytics";
+import { consentStatusQueryKeyRoot } from "./use-consent-status";
 
 type AuthContextValue = {
   session: Session | null;
@@ -36,7 +38,9 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 // Tracks the current Supabase session (via getSession + onAuthStateChange)
 // and provides signUp/signIn/signOut to descendants through AuthContext.
+// Must render inside a QueryClientProvider.
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,10 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAnalytics();
   }, []);
 
-  // Links analytics events to the signed-in user, and clears that link on
-  // an actual sign-out transition -- guarded by the ref so this doesn't
-  // fire a spurious reset() during the initial loading render, before
-  // getSession() has resolved either way.
+  // Links analytics events to the signed-in user, and clears that link (and
+  // the cached consent status) on an actual sign-out transition -- guarded
+  // by the ref so this doesn't fire a spurious reset() during the initial
+  // loading render, before getSession() has resolved either way.
   const wasSignedInRef = useRef(false);
   useEffect(() => {
     if (session?.user) {
@@ -55,9 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       wasSignedInRef.current = true;
     } else if (wasSignedInRef.current) {
       resetAnalytics();
+      queryClient.removeQueries({ queryKey: consentStatusQueryKeyRoot });
       wasSignedInRef.current = false;
     }
-  }, [session]);
+  }, [session, queryClient]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
