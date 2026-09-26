@@ -107,3 +107,14 @@ test("hides a room that was cancelled before it ever started", async ({ page }) 
   await expect(page.getByText("Is AI making engineers less employable?").first()).toBeVisible();
   await expect(page.getByText("Cancelled before anyone else joined")).toHaveCount(0);
 });
+
+// A failed fetch must not render the score heatmap as three months of
+// "No session" -- the card says the history didn't load instead.
+test("says the score heatmap couldn't load when history fails", async ({ page }) => {
+  await mockApi(page, "/api/history/mine", { error: "boom" }, { status: 500 });
+
+  await gotoReady(page, "/history");
+
+  await expect(page.getByText("Couldn't load your history.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /· No session$/ })).toHaveCount(0);
+});
