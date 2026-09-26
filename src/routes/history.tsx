@@ -88,7 +88,9 @@ function HistoryPage() {
       .slice(0, 3);
   }, [realSessions]);
 
-  const heatmap = useMemo(() => buildHeatmap(realSessions ?? []), [realSessions]);
+  // null until history loads, so the heatmap never claims "No session" for
+  // days it simply hasn't fetched.
+  const heatmap = useMemo(() => (realSessions ? buildHeatmap(realSessions) : null), [realSessions]);
 
   const avgScore = useMemo(
     () => average((realSessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
@@ -181,7 +183,13 @@ function HistoryPage() {
         <aside className="space-y-4">
           <PmCard className="p-5">
             <SectionTitle title="Score trend" subtitle={`Last ${HEATMAP_MONTHS} months`} />
-            <ScoreHeatmap days={heatmap} />
+            {heatmap ? (
+              <ScoreHeatmap days={heatmap} />
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {error ? "Couldn't load your history." : "Loading…"}
+              </p>
+            )}
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle title="Most practiced" />

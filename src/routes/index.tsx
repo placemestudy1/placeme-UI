@@ -40,19 +40,23 @@ function Index() {
   const { user, session } = useAuth();
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<HistorySession[] | null>(null);
+  const [historyFailed, setHistoryFailed] = useState(false);
   const [openRooms, setOpenRooms] = useState<OpenRoom[] | null>(null);
 
   useEffect(() => {
     getMyHistory(session)
       .then((r) => setSessions(r.sessions))
-      .catch(() => {});
+      .catch(() => setHistoryFailed(true));
   }, [session]);
 
   // SCRUM-27 (PR #12 review): without this filter, a room cancelled before
   // it ever started (SCRUM-26) showed up here stuck on "Processing" forever
   // -- History already excludes these via the same realSessionsOnly check.
   const recent = sessions ? realSessionsOnly(sessions).slice(0, 3) : null;
-  const heatmap = useMemo(() => buildHeatmap(sessions ?? []), [sessions]);
+  // null until history loads, so the heatmap never claims "No session" for
+  // days it simply hasn't fetched.
+  const heatmap = useMemo(() => (sessions ? buildHeatmap(sessions) : null), [sessions]);
+  const historyStatus = historyFailed ? "Couldn't load your sessions." : "Loading…";
   const avgScore = useMemo(
     () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
     [sessions],
@@ -159,7 +163,11 @@ function Index() {
         <aside className="space-y-6">
           <PmCard className="p-5">
             <SectionTitle title="Score trend" subtitle={`Last ${HEATMAP_MONTHS} months`} />
-            <ScoreHeatmap days={heatmap} />
+            {heatmap ? (
+              <ScoreHeatmap days={heatmap} />
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">{historyStatus}</p>
+            )}
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle
@@ -171,7 +179,7 @@ function Index() {
               }
             />
             <div className="space-y-3">
-              {recent === null && <p className="text-sm text-muted-foreground">Loading…</p>}
+              {recent === null && <p className="text-sm text-muted-foreground">{historyStatus}</p>}
               {recent?.length === 0 && (
                 <p className="text-sm text-muted-foreground">No sessions yet.</p>
               )}
