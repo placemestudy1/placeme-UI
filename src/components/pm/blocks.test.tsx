@@ -2,11 +2,28 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import type { HistorySession } from "@/lib/api";
 import { buildHeatmap } from "@/lib/session/history";
 import { ScoreHeatmap } from "./blocks";
 
 describe("ScoreHeatmap", () => {
   const today = new Date(2026, 8, 26, 12);
+  // One session on Tue 8 Sep scoring 72 (level 3).
+  const scored: HistorySession = {
+    id: "s1",
+    code: "GD-1",
+    status: "ended",
+    durationSeconds: 900,
+    topicText: "T",
+    startedAt: new Date(2026, 8, 8, 10).toISOString(),
+    endedAt: null,
+    feedback: null,
+    score: 72,
+    dimensions: [],
+    strengths: [],
+    improvements: [],
+    talkShare: null,
+  };
 
   it("renders one box per day for the last three months", () => {
     render(<ScoreHeatmap days={buildHeatmap([], today)} />);
@@ -32,53 +49,13 @@ describe("ScoreHeatmap", () => {
   });
 
   it("labels each box with its date and score", () => {
-    const days = buildHeatmap(
-      [
-        {
-          id: "s1",
-          code: "GD-1",
-          status: "ended",
-          durationSeconds: 900,
-          topicText: "T",
-          startedAt: new Date(2026, 8, 8, 10).toISOString(),
-          endedAt: null,
-          feedback: null,
-          score: 72,
-          dimensions: [],
-          strengths: [],
-          improvements: [],
-          talkShare: null,
-        },
-      ],
-      today,
-    );
-    render(<ScoreHeatmap days={days} />);
+    render(<ScoreHeatmap days={buildHeatmap([scored], today)} />);
     expect(screen.getByLabelText(/ 8 Sept? · Score 72/)).toHaveAttribute("data-level", "3");
     expect(screen.getByLabelText(/ 9 Sept? · No session/)).toHaveAttribute("data-level", "0");
   });
 
   it("shows the date and score in a tooltip on hover", async () => {
-    const days = buildHeatmap(
-      [
-        {
-          id: "s1",
-          code: "GD-1",
-          status: "ended",
-          durationSeconds: 900,
-          topicText: "T",
-          startedAt: new Date(2026, 8, 8, 10).toISOString(),
-          endedAt: null,
-          feedback: null,
-          score: 72,
-          dimensions: [],
-          strengths: [],
-          improvements: [],
-          talkShare: null,
-        },
-      ],
-      today,
-    );
-    render(<ScoreHeatmap days={days} />);
+    render(<ScoreHeatmap days={buildHeatmap([scored], today)} />);
     await userEvent.hover(screen.getByLabelText(/ 8 Sept? · Score 72/));
     expect((await screen.findAllByText(/^Tue, 8 Sept?$/))[0]).toBeInTheDocument();
     expect(screen.getAllByText("Score 72")[0]).toBeInTheDocument();
