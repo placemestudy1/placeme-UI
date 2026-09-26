@@ -227,7 +227,9 @@ export function ScoreHeatmap({ className, days }: { className?: string; days: He
         >
           {monthStarts.map((m) => (
             <span
-              key={m.label}
+              // Each month starts in a different week, so unlike the label this
+              // stays unique however many months are shown.
+              key={m.week}
               className="whitespace-nowrap pb-0.5"
               style={{ gridRow: 1, gridColumn: `${m.week + 2} / span 3` }}
             >
