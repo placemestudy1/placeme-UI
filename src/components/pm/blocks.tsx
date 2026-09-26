@@ -245,7 +245,8 @@ export function ScoreHeatmap({ className, days }: { className?: string; days: He
               {label}
             </span>
           ))}
-          <ul className="contents">
+          {/* role="list": Safari drops list semantics from display: contents. */}
+          <ul role="list" className="contents">
             {days.map((d, i) => {
               const date = heatmapDayFormatter.format(d.date);
               const detail = heatmapDayDetail(d);
