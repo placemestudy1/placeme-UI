@@ -31,7 +31,8 @@ export function realSessionsOnly(
 /**
  * GitHub-contributions style, but by score: the higher the day's average
  * score, the stronger the box. Levels 1-4 map to <40, 40-59, 60-79 and 80+;
- * level 0 (no fill) is reserved for days with no session.
+ * level 0 (no fill) is for days with no score: no session, or one still
+ * being scored.
  */
 export function scoreLevel(score: number): Exclude<HeatmapLevel, 0> {
   if (score >= 80) return 4;
@@ -48,8 +49,9 @@ export const HEATMAP_MONTHS = 3;
  * `months - 1` months before `today` through the last day of today's month
  * (days after today come back flagged isFuture), bucketing held sessions by
  * the student's local date. Intensity comes from the average score of that
- * day's scored sessions; a day with only unscored sessions (feedback still
- * processing) shows at level 1 so the practice isn't hidden.
+ * day's scored sessions. A day with only unscored sessions (feedback still
+ * processing) stays at level 0. ScoreHeatmap marks it separately (sessions > 0,
+ * score null) so it doesn't read as a low score.
  */
 export function buildHeatmap(
   sessions: HistorySession[],
@@ -85,7 +87,7 @@ export function buildHeatmap(
       weekday: (date.getDay() + 6) % 7,
       sessions: entry?.count ?? 0,
       score,
-      level: !entry ? 0 : score == null ? 1 : scoreLevel(score),
+      level: score == null ? 0 : scoreLevel(score),
       isToday: date.getTime() === todayStart,
       isFuture: date.getTime() > todayStart,
     });

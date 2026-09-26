@@ -177,7 +177,7 @@ export type HeatmapDay = {
   isFuture: boolean;
 };
 
-// Box fill per intensity level: level 0 (no sessions) is an unfilled neutral
+// Box fill per intensity level: level 0 (no score) is an unfilled neutral
 // box, and fill strengthens as the day's average score rises. Future
 // days are dimmed further so they read as "not yet" rather than "missed".
 const heatmapLevelClass: Record<HeatmapLevel, string> = {
@@ -187,6 +187,11 @@ const heatmapLevelClass: Record<HeatmapLevel, string> = {
   3: "bg-primary/70",
   4: "bg-primary",
 };
+
+// A day held but not scored yet (feedback still processing): an outline
+// rather than a fill, so it can't be mistaken for a low score. A border, not
+// a ring, so it survives the today/selected rings.
+const heatmapScoringClass = "border border-dashed border-primary/80 bg-transparent";
 
 const heatmapDayFormatter = new Intl.DateTimeFormat("en-IN", {
   weekday: "short",
@@ -296,7 +301,11 @@ export function ScoreHeatmap({ className, days }: { className?: string; days: He
                         }}
                         className={cn(
                           "aspect-square w-full rounded-[3px] transition-transform hover:scale-125 focus-visible:outline-none",
-                          d.isFuture ? "bg-secondary/40" : heatmapLevelClass[d.level],
+                          d.isFuture
+                            ? "bg-secondary/40"
+                            : d.sessions > 0 && d.score == null
+                              ? heatmapScoringClass
+                              : heatmapLevelClass[d.level],
                           d.isToday && "ring-1 ring-foreground/50",
                           i === selected && "ring-2 ring-foreground/80",
                         )}
@@ -332,6 +341,8 @@ export function ScoreHeatmap({ className, days }: { className?: string; days: He
               <span key={l} className={cn("size-2.5 rounded-[3px]", heatmapLevelClass[l])} />
             ))}
             <span className="ml-0.5">More</span>
+            <span className={cn("ml-2 size-2.5 rounded-[3px]", heatmapScoringClass)} />
+            <span className="ml-0.5">Scoring</span>
           </div>
         </div>
       </div>
