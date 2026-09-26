@@ -259,8 +259,7 @@ export const rateFeedback = (
 
 /* -------------------------------- history --------------------------------- */
 
-// Lists this user's past sessions (for the history screen and, per the BE-8
-// comment on ProgressChart, as the client-side source for score-history
-// trends too).
+// Lists this user's past sessions (for the history screen and, per BE-8, as
+// the client-side source for the ScoreHeatmap too).
 export const getMyHistory = (session: Session | null) =>
   callApi<{ sessions: HistorySession[] }>(session, "/api/history/mine", { method: "GET" });

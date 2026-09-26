@@ -1,19 +1,16 @@
-// Shared history helpers for building score trend data and converting
+// Shared history helpers for building score heatmap data and converting
 // backend HistorySession records into the UI's Session shape.
 //
 // Exports:
-// - MAX_TREND_POINTS: cap on how many trend points to show.
 // - realSessionsOnly: drops rooms cancelled before they ever started.
-// - buildScoreTrend: builds a ProgressPoint[] from scored HistorySession[].
+// - scoreLevel: buckets a 0-100 score into a heatmap intensity level.
+// - HEATMAP_MONTHS: how many months (current included) the score heatmap covers.
+// - buildHeatmap: one HeatmapDay per day of the last HEATMAP_MONTHS months.
 // - toSessionRow: converts a HistorySession to the UI Session shape.
 
 import type { HistorySession } from "@/lib/api";
 import type { Session } from "@/lib/demo";
-import type { ProgressPoint } from "@/components/pm/blocks";
-import { trendLabelFormatter } from "./formatting";
-
-/** Maximum number of scored sessions to include in the trend chart. */
-export const MAX_TREND_POINTS = 8;
+import type { HeatmapDay, HeatmapLevel } from "@/components/pm/blocks";
 
 /**
  * Filters out rooms that were cancelled before they ever started (SCRUM-26:
@@ -32,21 +29,71 @@ export function realSessionsOnly(
 }
 
 /**
- * Builds a ProgressPoint[] from actually-scored sessions, chronological,
- * capped at MAX_TREND_POINTS so the chart stays readable rather than trying
- * to bucket by week — at pilot scale a student may have very few sessions,
- * and fake weekly gaps would be more misleading than a plain "last N scored
- * sessions" line.
+ * GitHub-contributions style, but by score: the higher the day's average
+ * score, the stronger the box. Levels 1-4 map to <40, 40-59, 60-79 and 80+;
+ * level 0 (no fill) is for days with no score: no session, or one still
+ * being scored.
  */
-export function buildScoreTrend(sessions: HistorySession[]): ProgressPoint[] {
-  return sessions
-    .filter(
-      (s): s is HistorySession & { score: number; startedAt: string } =>
-        s.score != null && s.startedAt != null,
-    )
-    .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
-    .slice(-MAX_TREND_POINTS)
-    .map((s) => ({ label: trendLabelFormatter.format(new Date(s.startedAt)), score: s.score }));
+export function scoreLevel(score: number): Exclude<HeatmapLevel, 0> {
+  if (score >= 80) return 4;
+  if (score >= 60) return 3;
+  if (score >= 40) return 2;
+  return 1;
+}
+
+/** Months the score heatmap covers, current month included (Jul-Sep in Sep). */
+export const HEATMAP_MONTHS = 3;
+
+/**
+ * Builds one HeatmapDay per calendar day from the 1st of the month
+ * `months - 1` months before `today` through the last day of today's month
+ * (days after today come back flagged isFuture), bucketing held sessions by
+ * the student's local date. Intensity comes from the average score of that
+ * day's sessions. Sessions without a score are left out entirely -- the API
+ * can't tell feedback still processing from feedback that failed for good or
+ * legacy text-only feedback, so none of them get a box.
+ */
+export function buildHeatmap(
+  sessions: HistorySession[],
+  today: Date = new Date(),
+  months: number = HEATMAP_MONTHS,
+): HeatmapDay[] {
+  const start = new Date(today.getFullYear(), today.getMonth() - (months - 1), 1);
+  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+  const byDay = new Map<string, { count: number; scores: number[] }>();
+  for (const s of sessions) {
+    if (s.startedAt == null || s.score == null) continue;
+    const d = new Date(s.startedAt);
+    const entry = byDay.get(dayKey(d)) ?? { count: 0, scores: [] };
+    entry.count += 1;
+    entry.scores.push(s.score);
+    byDay.set(dayKey(d), entry);
+  }
+
+  const days: HeatmapDay[] = [];
+  // Stepping by calendar day (not +24h) keeps DST changes from skipping days.
+  for (let date = start; date <= end;) {
+    const entry = byDay.get(dayKey(date));
+    const score = entry?.scores.length
+      ? Math.round(entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length)
+      : null;
+    days.push({
+      date,
+      day: date.getDate(),
+      // Monday-first: 0 = Mon ... 6 = Sun.
+      weekday: (date.getDay() + 6) % 7,
+      sessions: entry?.count ?? 0,
+      score,
+      level: score == null ? 0 : scoreLevel(score),
+      isToday: date.getTime() === todayStart,
+      isFuture: date.getTime() > todayStart,
+    });
+    date = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  }
+  return days;
 }
 
 /**
