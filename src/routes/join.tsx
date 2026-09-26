@@ -3,7 +3,6 @@
  * code directly, or by browsing and searching a list of currently open
  * rooms fetched from the server.
  *
- * - toRoomCard(): adapts a server OpenRoom into the demo Room shape used by RoomCard.
  * - JoinPage(): main route component — room-code entry form plus the open-rooms browser.
  */
 import { useEffect, useState } from "react";
@@ -24,26 +23,10 @@ import {
   EmptyState,
 } from "@/components/pm/kit";
 import { RoomCard } from "@/components/pm/blocks";
-import type { Room } from "@/lib/demo";
 import { useAuth } from "@/lib/auth-context";
 import { joinRoomByCode, listOpenRooms, type OpenRoom } from "@/lib/api";
+import { toRoomCard } from "@/lib/session/rooms";
 import { track } from "@/lib/analytics";
-
-// Converts a server OpenRoom into the Room shape the RoomCard UI expects.
-// BE-4 (level) doesn't exist yet -- an honest "any level" rather than
-// fabricating one of the fixture data's three tiers.
-function toRoomCard(r: OpenRoom): Room {
-  return {
-    code: r.code,
-    topic: r.topicText ?? "Untitled discussion",
-    host: r.hostDisplayName,
-    seats: r.maxParticipants,
-    filled: r.participantCount,
-    level: "Any level",
-    startsIn: "Waiting to start",
-    duration: `${Math.round(r.durationSeconds / 60)} min`,
-  };
-}
 
 export const Route = createFileRoute("/join")({
   head: () => ({
@@ -112,7 +95,7 @@ function JoinPage() {
 
   return (
     <WebShell title="Join a room" subtitle="Have a code, or browse rooms open right now">
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <PmCard glass className="h-fit p-6">
           <SectionTitle title="Have a code?" subtitle="Ask the host for their room code" />
           <form className="space-y-4" onSubmit={onSubmit}>
@@ -149,7 +132,7 @@ function JoinPage() {
               Filters{filtersActive ? " •" : ""}
             </PmButton>
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {openRooms === null && (
               <>
                 <CardSkeleton />

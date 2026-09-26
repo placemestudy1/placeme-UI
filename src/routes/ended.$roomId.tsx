@@ -148,7 +148,7 @@ function EndedPage() {
         </>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <PmCard className="space-y-3 p-6">
             <SectionTitle title="Your feedback" />
@@ -250,7 +250,10 @@ function EndedPage() {
             number would be worse than showing none. The talk-time headline
             below is derived from BE-10's live participants/talkShare data.
           */}
-          <PmCard glass className="grid gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] md:p-8">
+          <PmCard
+            glass
+            className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] md:p-8"
+          >
             {score != null ? (
               <ScoreRing score={score} />
             ) : (
@@ -302,7 +305,7 @@ function EndedPage() {
             </PmCard>
           )}
           {(strengths.length > 0 || improvements.length > 0) && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {strengths.length > 0 && <FeedbackList title="What worked" items={strengths} />}
               {improvements.length > 0 && (
                 <FeedbackList title="Fix next time" items={improvements} tone="warning" />

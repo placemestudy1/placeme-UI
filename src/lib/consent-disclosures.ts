@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, BarChart3, CloudOff, History, Mic, Sparkles, Users } from "lucide-react";
 
-// The real, current-state consent disclosures shown on both the web and
-// native consent pages (SPEC-0012 R2/AC2). Mirrors gd-proto's
+// The real, current-state consent disclosures shown on the consent page
+// (SPEC-0012 R2/AC2). Mirrors gd-proto's
 // apps/web/src/pages/ConsentPage.jsx DISCLOSURES pattern rather than
 // inventing a new format -- same required content, just rendered with
 // lucide icons instead of Material Symbols strings. Don't trim any entry

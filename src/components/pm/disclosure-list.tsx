@@ -1,7 +1,7 @@
 import type { ConsentDisclosure } from "@/lib/consent-disclosures";
 
 // Renders the real consent disclosure list (SPEC-0012 R2/AC2) as a titled
-// icon/body list, shared between the web and native consent pages.
+// icon/body list, used by the consent page.
 export function DisclosureList({ items }: { items: ConsentDisclosure[] }) {
   return (
     <ul className="space-y-4">

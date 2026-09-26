@@ -20,19 +20,6 @@ import { Route as MatchRouteImport } from './routes/match'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AppSplatRouteImport } from './routes/app.$'
-import { Route as AppAccountRouteImport } from './routes/app.account'
-import { Route as AppConsentRouteImport } from './routes/app.consent'
-import { Route as AppEndedRouteImport } from './routes/app.ended'
-import { Route as AppHistoryRouteImport } from './routes/app.history'
-import { Route as AppJoinRouteImport } from './routes/app.join'
-import { Route as AppLobbyRouteImport } from './routes/app.lobby'
-import { Route as AppLoginRouteImport } from './routes/app.login'
-import { Route as AppMatchRouteImport } from './routes/app.match'
-import { Route as AppNewRouteImport } from './routes/app.new'
-import { Route as AppSessionRouteImport } from './routes/app.session'
-import { Route as AppSignupRouteImport } from './routes/app.signup'
 import { Route as EndedRoomIdRouteImport } from './routes/ended.$roomId'
 import { Route as LobbyRoomIdRouteImport } from './routes/lobby.$roomId'
 import { Route as RoomsNewRouteImport } from './routes/rooms.new'
@@ -93,71 +80,6 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/app/',
-  path: '/app/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppSplatRoute = AppSplatRouteImport.update({
-  id: '/app/$',
-  path: '/app/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppAccountRoute = AppAccountRouteImport.update({
-  id: '/app/account',
-  path: '/app/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppConsentRoute = AppConsentRouteImport.update({
-  id: '/app/consent',
-  path: '/app/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppEndedRoute = AppEndedRouteImport.update({
-  id: '/app/ended',
-  path: '/app/ended',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppHistoryRoute = AppHistoryRouteImport.update({
-  id: '/app/history',
-  path: '/app/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppJoinRoute = AppJoinRouteImport.update({
-  id: '/app/join',
-  path: '/app/join',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppLobbyRoute = AppLobbyRouteImport.update({
-  id: '/app/lobby',
-  path: '/app/lobby',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppLoginRoute = AppLoginRouteImport.update({
-  id: '/app/login',
-  path: '/app/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppMatchRoute = AppMatchRouteImport.update({
-  id: '/app/match',
-  path: '/app/match',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppNewRoute = AppNewRouteImport.update({
-  id: '/app/new',
-  path: '/app/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppSessionRoute = AppSessionRouteImport.update({
-  id: '/app/session',
-  path: '/app/session',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppSignupRoute = AppSignupRouteImport.update({
-  id: '/app/signup',
-  path: '/app/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EndedRoomIdRoute = EndedRoomIdRouteImport.update({
   id: '/ended/$roomId',
   path: '/ended/$roomId',
@@ -191,23 +113,10 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
-  '/app/$': typeof AppSplatRoute
-  '/app/account': typeof AppAccountRoute
-  '/app/consent': typeof AppConsentRoute
-  '/app/ended': typeof AppEndedRoute
-  '/app/history': typeof AppHistoryRoute
-  '/app/join': typeof AppJoinRoute
-  '/app/lobby': typeof AppLobbyRoute
-  '/app/login': typeof AppLoginRoute
-  '/app/match': typeof AppMatchRoute
-  '/app/new': typeof AppNewRoute
-  '/app/session': typeof AppSessionRoute
-  '/app/signup': typeof AppSignupRoute
   '/ended/$roomId': typeof EndedRoomIdRoute
   '/lobby/$roomId': typeof LobbyRoomIdRoute
   '/rooms/new': typeof RoomsNewRoute
   '/session/$roomId': typeof SessionRoomIdRoute
-  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -221,23 +130,10 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
-  '/app/$': typeof AppSplatRoute
-  '/app/account': typeof AppAccountRoute
-  '/app/consent': typeof AppConsentRoute
-  '/app/ended': typeof AppEndedRoute
-  '/app/history': typeof AppHistoryRoute
-  '/app/join': typeof AppJoinRoute
-  '/app/lobby': typeof AppLobbyRoute
-  '/app/login': typeof AppLoginRoute
-  '/app/match': typeof AppMatchRoute
-  '/app/new': typeof AppNewRoute
-  '/app/session': typeof AppSessionRoute
-  '/app/signup': typeof AppSignupRoute
   '/ended/$roomId': typeof EndedRoomIdRoute
   '/lobby/$roomId': typeof LobbyRoomIdRoute
   '/rooms/new': typeof RoomsNewRoute
   '/session/$roomId': typeof SessionRoomIdRoute
-  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -252,23 +148,10 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
-  '/app/$': typeof AppSplatRoute
-  '/app/account': typeof AppAccountRoute
-  '/app/consent': typeof AppConsentRoute
-  '/app/ended': typeof AppEndedRoute
-  '/app/history': typeof AppHistoryRoute
-  '/app/join': typeof AppJoinRoute
-  '/app/lobby': typeof AppLobbyRoute
-  '/app/login': typeof AppLoginRoute
-  '/app/match': typeof AppMatchRoute
-  '/app/new': typeof AppNewRoute
-  '/app/session': typeof AppSessionRoute
-  '/app/signup': typeof AppSignupRoute
   '/ended/$roomId': typeof EndedRoomIdRoute
   '/lobby/$roomId': typeof LobbyRoomIdRoute
   '/rooms/new': typeof RoomsNewRoute
   '/session/$roomId': typeof SessionRoomIdRoute
-  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -284,23 +167,10 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/signup'
     | '/terms'
-    | '/app/$'
-    | '/app/account'
-    | '/app/consent'
-    | '/app/ended'
-    | '/app/history'
-    | '/app/join'
-    | '/app/lobby'
-    | '/app/login'
-    | '/app/match'
-    | '/app/new'
-    | '/app/session'
-    | '/app/signup'
     | '/ended/$roomId'
     | '/lobby/$roomId'
     | '/rooms/new'
     | '/session/$roomId'
-    | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -314,23 +184,10 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/signup'
     | '/terms'
-    | '/app/$'
-    | '/app/account'
-    | '/app/consent'
-    | '/app/ended'
-    | '/app/history'
-    | '/app/join'
-    | '/app/lobby'
-    | '/app/login'
-    | '/app/match'
-    | '/app/new'
-    | '/app/session'
-    | '/app/signup'
     | '/ended/$roomId'
     | '/lobby/$roomId'
     | '/rooms/new'
     | '/session/$roomId'
-    | '/app'
   id:
     | '__root__'
     | '/'
@@ -344,23 +201,10 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/signup'
     | '/terms'
-    | '/app/$'
-    | '/app/account'
-    | '/app/consent'
-    | '/app/ended'
-    | '/app/history'
-    | '/app/join'
-    | '/app/lobby'
-    | '/app/login'
-    | '/app/match'
-    | '/app/new'
-    | '/app/session'
-    | '/app/signup'
     | '/ended/$roomId'
     | '/lobby/$roomId'
     | '/rooms/new'
     | '/session/$roomId'
-    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -375,23 +219,10 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
-  AppSplatRoute: typeof AppSplatRoute
-  AppAccountRoute: typeof AppAccountRoute
-  AppConsentRoute: typeof AppConsentRoute
-  AppEndedRoute: typeof AppEndedRoute
-  AppHistoryRoute: typeof AppHistoryRoute
-  AppJoinRoute: typeof AppJoinRoute
-  AppLobbyRoute: typeof AppLobbyRoute
-  AppLoginRoute: typeof AppLoginRoute
-  AppMatchRoute: typeof AppMatchRoute
-  AppNewRoute: typeof AppNewRoute
-  AppSessionRoute: typeof AppSessionRoute
-  AppSignupRoute: typeof AppSignupRoute
   EndedRoomIdRoute: typeof EndedRoomIdRoute
   LobbyRoomIdRoute: typeof LobbyRoomIdRoute
   RoomsNewRoute: typeof RoomsNewRoute
   SessionRoomIdRoute: typeof SessionRoomIdRoute
-  AppIndexRoute: typeof AppIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -473,97 +304,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/': {
-      id: '/app/'
-      path: '/app'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/$': {
-      id: '/app/$'
-      path: '/app/$'
-      fullPath: '/app/$'
-      preLoaderRoute: typeof AppSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/account': {
-      id: '/app/account'
-      path: '/app/account'
-      fullPath: '/app/account'
-      preLoaderRoute: typeof AppAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/consent': {
-      id: '/app/consent'
-      path: '/app/consent'
-      fullPath: '/app/consent'
-      preLoaderRoute: typeof AppConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/ended': {
-      id: '/app/ended'
-      path: '/app/ended'
-      fullPath: '/app/ended'
-      preLoaderRoute: typeof AppEndedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/history': {
-      id: '/app/history'
-      path: '/app/history'
-      fullPath: '/app/history'
-      preLoaderRoute: typeof AppHistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/join': {
-      id: '/app/join'
-      path: '/app/join'
-      fullPath: '/app/join'
-      preLoaderRoute: typeof AppJoinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/lobby': {
-      id: '/app/lobby'
-      path: '/app/lobby'
-      fullPath: '/app/lobby'
-      preLoaderRoute: typeof AppLobbyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/login': {
-      id: '/app/login'
-      path: '/app/login'
-      fullPath: '/app/login'
-      preLoaderRoute: typeof AppLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/match': {
-      id: '/app/match'
-      path: '/app/match'
-      fullPath: '/app/match'
-      preLoaderRoute: typeof AppMatchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/new': {
-      id: '/app/new'
-      path: '/app/new'
-      fullPath: '/app/new'
-      preLoaderRoute: typeof AppNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/session': {
-      id: '/app/session'
-      path: '/app/session'
-      fullPath: '/app/session'
-      preLoaderRoute: typeof AppSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/signup': {
-      id: '/app/signup'
-      path: '/app/signup'
-      fullPath: '/app/signup'
-      preLoaderRoute: typeof AppSignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ended/$roomId': {
       id: '/ended/$roomId'
       path: '/ended/$roomId'
@@ -607,23 +347,10 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
-  AppSplatRoute: AppSplatRoute,
-  AppAccountRoute: AppAccountRoute,
-  AppConsentRoute: AppConsentRoute,
-  AppEndedRoute: AppEndedRoute,
-  AppHistoryRoute: AppHistoryRoute,
-  AppJoinRoute: AppJoinRoute,
-  AppLobbyRoute: AppLobbyRoute,
-  AppLoginRoute: AppLoginRoute,
-  AppMatchRoute: AppMatchRoute,
-  AppNewRoute: AppNewRoute,
-  AppSessionRoute: AppSessionRoute,
-  AppSignupRoute: AppSignupRoute,
   EndedRoomIdRoute: EndedRoomIdRoute,
   LobbyRoomIdRoute: LobbyRoomIdRoute,
   RoomsNewRoute: RoomsNewRoute,
   SessionRoomIdRoute: SessionRoomIdRoute,
-  AppIndexRoute: AppIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

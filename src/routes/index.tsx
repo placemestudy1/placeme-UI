@@ -87,7 +87,7 @@ function Index() {
         </PmButton>
       }
     >
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
           <PmCard glass className="overflow-hidden p-6 md:p-8">
             <PmBadge tone="accent">
@@ -133,7 +133,7 @@ function Index() {
                 </PmButton>
               }
             />
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {openRooms === null && <p className="text-sm text-muted-foreground">Loading…</p>}
               {openRooms?.length === 0 && (
                 <p className="text-sm text-muted-foreground">

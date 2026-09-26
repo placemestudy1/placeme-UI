@@ -214,7 +214,8 @@ BE-6/BE-7 since it's decoration on top of the transcript, not a headline feature
 
 ### BE-12 — OAuth login (Google/Apple) (P2, infra not code)
 
-**Where**: `/login`'s "Continue with Google" button, `/app/login`'s "Continue with Apple".
+**Where**: `/login`'s "Continue with Google" button. (The "Continue with Apple" button lived on
+the native `/app/login`, parked on the `native-parked` branch by SCRUM-82.)
 **Why it's blocked**: Supabase supports OAuth providers natively, but none are configured
 on this project. `place-me-UI` wires the real `supabase.auth.signInWithOAuth()` call
 regardless — it'll 400 until a provider is enabled.

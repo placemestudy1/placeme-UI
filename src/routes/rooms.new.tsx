@@ -112,7 +112,7 @@ function CreateRoomPage() {
 
   return (
     <WebShell title="Create a room" subtitle="Your room code is generated instantly">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <PmCard className="p-6 md:p-8">
           <form className="space-y-5" onSubmit={onSubmit}>
             <Field
@@ -136,7 +136,7 @@ function CreateRoomPage() {
               <PmTextarea defaultValue="Panel-style GD. Moderator opens, each speaker gets 90 seconds, then free debate. Cite data where possible." />
             </Field>
             */}
-            <div className="grid gap-5 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
               <Field label="Seats">
                 <PmInput
                   type="number"
@@ -170,7 +170,7 @@ function CreateRoomPage() {
               </Field>
             </div>
             <Field label="Visibility">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
                     visibility === "public" ? "border-primary/50 bg-primary/10" : "border-border"
