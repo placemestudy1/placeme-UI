@@ -5,12 +5,17 @@ import { CalendarClock, Filter } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { Banner, EmptyState, PmButton, PmCard, SectionTitle } from "@/components/pm/kit";
-import { ProgressChart, SessionRow, StatCard } from "@/components/pm/blocks";
+import { ScoreHeatmap, SessionRow, StatCard } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, type HistorySession } from "@/lib/api";
 import { average, computeStreak } from "@/lib/session/stats";
 import { dateFormatterWithYear, monthFormatter } from "@/lib/session/formatting";
-import { buildScoreTrend, realSessionsOnly, toSessionRow } from "@/lib/session/history";
+import {
+  buildHeatmap,
+  HEATMAP_MONTHS,
+  realSessionsOnly,
+  toSessionRow,
+} from "@/lib/session/history";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -83,7 +88,7 @@ function HistoryPage() {
       .slice(0, 3);
   }, [realSessions]);
 
-  const scoreTrend = useMemo(() => buildScoreTrend(realSessions ?? []), [realSessions]);
+  const heatmap = useMemo(() => buildHeatmap(realSessions ?? []), [realSessions]);
 
   const avgScore = useMemo(
     () => average((realSessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
@@ -175,14 +180,8 @@ function HistoryPage() {
         </div>
         <aside className="space-y-4">
           <PmCard className="p-5">
-            <SectionTitle title="Score trend" subtitle="Your last scored sessions" />
-            {scoreTrend.length > 0 ? (
-              <ProgressChart series={scoreTrend} />
-            ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No scored sessions yet.
-              </p>
-            )}
+            <SectionTitle title="Score trend" subtitle={`Last ${HEATMAP_MONTHS} months`} />
+            <ScoreHeatmap days={heatmap} />
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle title="Most practiced" />

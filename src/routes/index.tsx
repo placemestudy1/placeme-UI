@@ -5,12 +5,17 @@ import { ArrowRight, PlusCircle, Shuffle, Sparkles } from "lucide-react";
 import { WebShell } from "@/components/pm/web-shell";
 import { ProtectedRoute } from "@/components/pm/protected-route";
 import { PmButton, PmCard, SectionTitle, PmBadge, EmptyState } from "@/components/pm/kit";
-import { ProgressChart, RoomCard, SessionRow, StatCard } from "@/components/pm/blocks";
+import { ScoreHeatmap, RoomCard, SessionRow, StatCard } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
 import { getMyHistory, listOpenRooms, type HistorySession, type OpenRoom } from "@/lib/api";
 import { average, computeStreak } from "@/lib/session/stats";
 import { dateFormatter } from "@/lib/session/formatting";
-import { buildScoreTrend, realSessionsOnly, toSessionRow } from "@/lib/session/history";
+import {
+  buildHeatmap,
+  HEATMAP_MONTHS,
+  realSessionsOnly,
+  toSessionRow,
+} from "@/lib/session/history";
 import { toRoomCard } from "@/lib/session/rooms";
 
 export const Route = createFileRoute("/")({
@@ -47,7 +52,7 @@ function Index() {
   // it ever started (SCRUM-26) showed up here stuck on "Processing" forever
   // -- History already excludes these via the same realSessionsOnly check.
   const recent = sessions ? realSessionsOnly(sessions).slice(0, 3) : null;
-  const scoreTrend = useMemo(() => buildScoreTrend(sessions ?? []), [sessions]);
+  const heatmap = useMemo(() => buildHeatmap(sessions ?? []), [sessions]);
   const avgScore = useMemo(
     () => average((sessions ?? []).flatMap((s) => (s.score != null ? [s.score] : []))),
     [sessions],
@@ -153,14 +158,8 @@ function Index() {
 
         <aside className="space-y-6">
           <PmCard className="p-5">
-            <SectionTitle title="Score trend" subtitle="Your last scored sessions" />
-            {scoreTrend.length > 0 ? (
-              <ProgressChart series={scoreTrend} />
-            ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No scored sessions yet.
-              </p>
-            )}
+            <SectionTitle title="Score trend" subtitle={`Last ${HEATMAP_MONTHS} months`} />
+            <ScoreHeatmap days={heatmap} />
           </PmCard>
           <PmCard className="p-5">
             <SectionTitle

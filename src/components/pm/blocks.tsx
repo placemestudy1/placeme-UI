@@ -2,11 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { Clock3, Hand, Mic, MicOff, Users } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Participant, Room, Session } from "@/lib/demo";
 import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 
 // Higher-level, domain-specific UI blocks (room cards, participant tiles,
-// session rows, stat cards, progress chart, timer pill) built on top of the
+// session rows, stat cards, score heatmap, timer pill) built on top of the
 // generic `kit.tsx` primitives.
 //
 // Exports:
@@ -14,8 +15,8 @@ import { AvatarStack, PmAvatar, PmBadge, PmCard, StatusDot } from "./kit";
 // - ParticipantTile: a single participant's avatar/name/mic-status tile.
 // - SessionRow: a past-session row for history lists.
 // - StatCard: a small labeled stat tile with an optional delta.
-// - ProgressPoint, ProgressChart: a simple bar chart of score-over-time
-//   points.
+// - HeatmapDay, ScoreHeatmap: a GitHub-contributions style one-box-per-day
+//   heatmap of the last few months' scores.
 // - TimerPill: a small pill showing an elapsed/remaining time string.
 
 // Card summarizing a room to browse/join: live/level badges, topic, host,
@@ -160,36 +161,131 @@ export function StatCard({
   );
 }
 
-export type ProgressPoint = { label: string; score: number };
+export type HeatmapLevel = 0 | 1 | 2 | 3 | 4;
 
-// Simple bar chart rendering a series of labeled score points (0-100) as
-// vertical bars with the label underneath each bar.
-export function ProgressChart({
-  className,
-  // BE-8 (place-me-UI/docs/BACKEND_REQUIREMENTS.md): real score history,
-  // computed client-side from GET /api/history/mine per that item's own
-  // suggested shape (a dedicated trend endpoint is only worth it "if
-  // history grows large" -- not the case at pilot scale).
-  series,
-}: {
-  className?: string;
-  series: ProgressPoint[];
-}) {
-  const max = 100;
+export type HeatmapDay = {
+  date: Date;
+  day: number;
+  /** Monday-first: 0 = Mon ... 6 = Sun. */
+  weekday: number;
+  sessions: number;
+  /** Average score of the day's scored sessions, or null if none. */
+  score: number | null;
+  level: HeatmapLevel;
+  isToday: boolean;
+  isFuture: boolean;
+};
+
+// Box fill per intensity level: level 0 (no sessions) is an unfilled neutral
+// box, and fill strengthens as the day's average score rises. Future
+// days are dimmed further so they read as "not yet" rather than "missed".
+const heatmapLevelClass: Record<HeatmapLevel, string> = {
+  0: "bg-secondary",
+  1: "bg-primary/25",
+  2: "bg-primary/45",
+  3: "bg-primary/70",
+  4: "bg-primary",
+};
+
+const heatmapDayFormatter = new Intl.DateTimeFormat("en-IN", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+
+// Second line of a box's hover tooltip: the day's score, or why there isn't one.
+function heatmapDayDetail(d: HeatmapDay): string {
+  if (d.isFuture) return "Upcoming";
+  if (d.sessions === 0) return "No session";
+  return d.score == null ? "Not scored yet" : `Score ${d.score}`;
+}
+
+const heatmapMonthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short" });
+
+// Row labels for every weekday, Monday first to match HeatmapDay.weekday.
+const heatmapWeekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+// GitHub-contributions style heatmap: rows are weekdays (Mon at top, each
+// labelled),
+// columns are weeks, month names sit above the week each month starts in,
+// and box intensity is the day's average score. Boxes size themselves to
+// fill the card's width; hovering one shows its date and score.
+export function ScoreHeatmap({ className, days }: { className?: string; days: HeatmapDay[] }) {
+  const lead = days[0]?.weekday ?? 0;
+  const weeks = Math.ceil((lead + days.length) / 7);
+  const weekOf = (i: number) => Math.floor((lead + i) / 7);
+  const monthStarts = days.flatMap((d, i) =>
+    d.day === 1 ? [{ label: heatmapMonthFormatter.format(d.date), week: weekOf(i) }] : [],
+  );
   return (
-    <div className={cn("flex h-40 items-end gap-3", className)}>
-      {series.map((p) => (
-        <div key={p.label} className="flex h-full flex-1 flex-col items-center gap-2">
-          <div className="relative w-full flex-1">
-            <div
-              className="absolute inset-x-0 bottom-0 rounded-t-lg bg-[image:var(--gradient-primary)]"
-              style={{ height: `${(p.score / max) * 100}%` }}
-            />
-          </div>
-          <span className="text-[10px] text-muted-foreground">{p.label}</span>
+    <TooltipProvider delayDuration={50}>
+      <div className={cn("w-fit max-w-full space-y-3", className)}>
+        <div
+          className="grid items-center justify-start gap-[3px] text-[10px] text-muted-foreground"
+          // Boxes fill the card but cap at 18px, so a full-width card (sidebar
+          // stacked under the main column on narrower screens) stays compact.
+          style={{ gridTemplateColumns: `auto repeat(${weeks}, minmax(0, 1.125rem))` }}
+        >
+          {monthStarts.map((m) => (
+            <span
+              key={m.label}
+              className="whitespace-nowrap pb-0.5"
+              style={{ gridRow: 1, gridColumn: `${m.week + 2} / span 3` }}
+            >
+              {m.label}
+            </span>
+          ))}
+          {heatmapWeekdayLabels.map((label, row) => (
+            <span
+              key={label}
+              className="pr-1.5 leading-none"
+              style={{ gridRow: row + 2, gridColumn: 1 }}
+            >
+              {label}
+            </span>
+          ))}
+          <ul className="contents">
+            {days.map((d, i) => {
+              const date = heatmapDayFormatter.format(d.date);
+              const detail = heatmapDayDetail(d);
+              return (
+                <Tooltip key={d.date.getTime()}>
+                  <TooltipTrigger asChild>
+                    <li
+                      aria-label={`${date} · ${detail}`}
+                      data-level={d.level}
+                      className={cn(
+                        "aspect-square rounded-[3px] transition-transform hover:scale-125",
+                        d.isFuture ? "bg-secondary/40" : heatmapLevelClass[d.level],
+                        d.isToday && "ring-1 ring-foreground/50",
+                      )}
+                      style={{ gridRow: d.weekday + 2, gridColumn: weekOf(i) + 2 }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="border border-border bg-popover px-2.5 py-1.5 text-popover-foreground"
+                  >
+                    <p className="font-semibold">{date}</p>
+                    <p className="text-muted-foreground">{detail}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </ul>
         </div>
-      ))}
-    </div>
+        <div
+          className="flex items-center justify-end gap-1 text-[10px] text-muted-foreground"
+          aria-hidden
+        >
+          <span className="mr-0.5">Less</span>
+          {([0, 1, 2, 3, 4] as const).map((l) => (
+            <span key={l} className={cn("size-2.5 rounded-[3px]", heatmapLevelClass[l])} />
+          ))}
+          <span className="ml-0.5">More</span>
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
