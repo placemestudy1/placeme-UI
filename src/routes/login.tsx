@@ -16,7 +16,8 @@ import { AuthLayout } from "@/components/pm/auth-layout";
 import { Field, PmButton, PmInput } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase-client";
-import { consentStatusQueryOptions } from "@/lib/use-consent-status";
+import { readConsentClaims } from "@/lib/consent-claims";
+import { consentStatusQueryOptions } from "@/lib/consent-status-query";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -55,8 +56,15 @@ function LoginPage() {
     }
     // Skip straight home if this student has already agreed to the current
     // consent version — /consent is a one-time gate, not a step on every
-    // login. Fetched through the shared consent-status cache, so the
-    // ProtectedRoute on the page we land on renders straight from it.
+    // login. The fresh token's placeme_consent claim (SPEC-0015) answers
+    // that with no request; a token without it falls back to a fetch through
+    // the shared consent-status cache, so the ProtectedRoute on the page we
+    // land on renders straight from it either way.
+    const claims = readConsentClaims(data.session?.access_token);
+    if (claims) {
+      navigate({ to: claims.canEnableMic ? "/" : "/consent" });
+      return;
+    }
     try {
       const status = await queryClient.fetchQuery(consentStatusQueryOptions(data.session));
       navigate({ to: status.canEnableMic ? "/" : "/consent" });

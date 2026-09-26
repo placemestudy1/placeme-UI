@@ -24,17 +24,40 @@ export async function gotoReady(page: Page, url: string) {
 export const FAKE_USER_ID = "11111111-1111-4111-8111-111111111111";
 export const FAKE_EMAIL = "aarav.menon@nitk.edu.in";
 
+// The placeme_consent claim gd-proto's access-token hook adds (SPEC-0015).
+export type FakeConsentClaims = { can_enable_mic: boolean; age_attested: boolean };
+
+// An unsigned JWT-shaped access token carrying `placeme_consent` -- the
+// client only decodes it (src/lib/consent-claims.ts), never verifies it.
+function fakeAccessTokenWithClaims(id: string, claims: FakeConsentClaims, iat: number) {
+  const b64url = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const payload = {
+    sub: id,
+    role: "authenticated",
+    iat,
+    exp: iat + 3600,
+    placeme_consent: { ...claims, consent_version: 2 },
+  };
+  return `${b64url({ alg: "ES256", typ: "JWT" })}.${b64url(payload)}.fake-signature`;
+}
+
 // Builds a GoTrue-shaped session response body -- the same flat shape
 // (access_token/refresh_token/expires_in/user at the top level) that
 // @supabase/auth-js's _sessionResponse() expects from both POST
 // /auth/v1/token (sign in) and POST /auth/v1/signup, per
-// node_modules/@supabase/auth-js/dist/main/lib/fetch.js.
-export function fakeGoTrueSession(overrides: { id?: string; email?: string } = {}) {
+// node_modules/@supabase/auth-js/dist/main/lib/fetch.js. Without
+// `consentClaims` the access token carries no placeme_consent claim, like
+// one issued before the hook was enabled.
+export function fakeGoTrueSession(
+  overrides: { id?: string; email?: string; consentClaims?: FakeConsentClaims } = {},
+) {
   const id = overrides.id ?? FAKE_USER_ID;
   const email = overrides.email ?? FAKE_EMAIL;
   const now = Math.floor(Date.now() / 1000);
   return {
-    access_token: `fake-access-token-${id}`,
+    access_token: overrides.consentClaims
+      ? fakeAccessTokenWithClaims(id, overrides.consentClaims, now)
+      : `fake-access-token-${id}`,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: now + 3600,
@@ -63,7 +86,7 @@ export function fakeGoTrueSession(overrides: { id?: string; email?: string } = {
 // session instead of reaching a real Supabase project.
 export async function mockSupabaseAuth(
   page: Page,
-  overrides: { id?: string; email?: string } = {},
+  overrides: { id?: string; email?: string; consentClaims?: FakeConsentClaims } = {},
 ) {
   const session = fakeGoTrueSession(overrides);
   await page.route("**/auth/v1/token*", (route) =>

@@ -1,6 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-import { gotoReady, mockApi } from "./mocks";
+import { fakeGoTrueSession, gotoReady, mockApi } from "./mocks";
+
+// After a grant or attestation the page reissues the session token
+// (SPEC-0015) before reading consent state. These specs' tokens carry no
+// placeme_consent claim -- as if the access-token hook weren't enabled -- so
+// the reissued token has none either and the page falls back to
+// GET /api/consent/status, which is what they mock. Claim-bearing tokens
+// are covered in consent-claims.spec.ts.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/auth/v1/token*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(fakeGoTrueSession()),
+    }),
+  );
+});
 
 test("shows the already-granted state immediately when consent and adult attestation are both on file", async ({
   page,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Room, RoomEvent, Track, type RemoteTrack, type RemoteParticipant } from "livekit-client";
 
 import { useAuth } from "@/lib/auth-context";
+import { isConsentRejection } from "@/lib/consent-claims";
 import { getRoomToken, getRoomParticipants, type RoomParticipant } from "@/lib/api";
 import { Banner, LiveCaption, TranscriptLineItem } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
@@ -56,7 +57,7 @@ function initialsFor(name: string) {
 // rolling buffer (capped at MAX_CAPTIONS), and exposes mute/leave controls
 // plus participant tiles mapped onto the shared `Participant` shape.
 export function useLiveRoom(roomId: string) {
-  const { session, user } = useAuth();
+  const { session, user, refreshSession } = useAuth();
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [captions, setCaptions] = useState<Caption[]>([]);
@@ -227,6 +228,25 @@ export function useLiveRoom(roomId: string) {
   }));
 
   const needsConsent = error != null && /consent/i.test(error);
+
+  // SPEC-0015: the server's consentGate (authoritative, DB-backed) refused
+  // the token mint, so this session's consent claim is stale -- e.g. consent
+  // was withdrawn on another device or the version was bumped since the
+  // token was issued. Reissue the token once so the claim catches up;
+  // ProtectedRoute then routes to /consent from the corrected state.
+  // Once per rejection: the error stays set after the refresh, and the
+  // refresh itself changes the session.
+  const rejectedByConsentGate = isConsentRejection(error);
+  const refreshedForRejection = useRef(false);
+  useEffect(() => {
+    if (!rejectedByConsentGate) {
+      refreshedForRejection.current = false;
+      return;
+    }
+    if (refreshedForRejection.current) return;
+    refreshedForRejection.current = true;
+    void refreshSession();
+  }, [rejectedByConsentGate, refreshSession]);
   const latestCaption = captions.at(-1);
   const handRaised = user?.id != null && raisedHandIds.has(user.id);
 
