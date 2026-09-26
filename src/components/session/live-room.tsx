@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Room, RoomEvent, Track, type RemoteTrack, type RemoteParticipant } from "livekit-client";
 
 import { useAuth } from "@/lib/auth-context";
+import { isConsentRejection } from "@/lib/consent-claims";
+import { useConsentStatus } from "@/lib/use-consent-status";
 import { getRoomToken, getRoomParticipants, type RoomParticipant } from "@/lib/api";
 import { Banner, LiveCaption, TranscriptLineItem } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
@@ -57,6 +59,7 @@ function initialsFor(name: string) {
 // plus participant tiles mapped onto the shared `Participant` shape.
 export function useLiveRoom(roomId: string) {
   const { session, user } = useAuth();
+  const { refresh: refreshConsent } = useConsentStatus(session);
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [captions, setCaptions] = useState<Caption[]>([]);
@@ -227,6 +230,32 @@ export function useLiveRoom(roomId: string) {
   }));
 
   const needsConsent = error != null && /consent/i.test(error);
+
+  // SPEC-0015: the server's consentGate (authoritative, DB-backed) refused
+  // the token mint, so this session's consent claim is stale -- e.g. consent
+  // was withdrawn on another device or the version was bumped since the
+  // token was issued. useConsentStatus's refresh() reissues the token so the
+  // claim catches up and, if that fails or the claim still disagrees, fetches
+  // the status and lets it override the stale claim (also the no-claim
+  // fallback); ProtectedRoute then routes to /consent from the corrected
+  // state.
+  // Once per rejection: the error stays set after the refresh, and the
+  // refresh itself changes the session.
+  const rejectedByConsentGate = isConsentRejection(error);
+  const refreshedForRejection = useRef(false);
+  const refreshConsentRef = useRef(refreshConsent);
+  refreshConsentRef.current = refreshConsent;
+  useEffect(() => {
+    if (!rejectedByConsentGate) {
+      refreshedForRejection.current = false;
+      return;
+    }
+    if (refreshedForRejection.current) return;
+    refreshedForRejection.current = true;
+    void refreshConsentRef.current(
+      error === "age_attestation_required" ? { ageAttested: false } : { canEnableMic: false },
+    );
+  }, [rejectedByConsentGate, error]);
   const latestCaption = captions.at(-1);
   const handRaised = user?.id != null && raisedHandIds.has(user.id);
 

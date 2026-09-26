@@ -11,6 +11,7 @@ const { authMock } = vi.hoisted(() => ({
     signUp: vi.fn(),
     signInWithPassword: vi.fn(),
     signOut: vi.fn(),
+    refreshSession: vi.fn(),
   },
 }));
 vi.mock("./supabase-client", () => ({ supabase: { auth: authMock } }));
@@ -98,6 +99,104 @@ describe("AuthProvider / useAuth", () => {
       onChange("SIGNED_OUT", null);
     });
     await waitFor(() => expect(queryClient.getQueryData(key)).toBeUndefined());
+  });
+
+  // SPEC-0015: the global consent state comes from the token's claim.
+  it("exposes the access token's placeme_consent claim as consentClaims", async () => {
+    const payload = btoa(
+      JSON.stringify({
+        sub: "u1",
+        iat: 1_790_000_000,
+        placeme_consent: { can_enable_mic: true, age_attested: false, consent_version: 2 },
+      }),
+    );
+    const session = {
+      access_token: `h.${payload}.s`,
+      user: { id: "u1" },
+    } as unknown as Session;
+    authMock.getSession.mockResolvedValue({ data: { session } });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.consentClaims).toEqual({
+      canEnableMic: true,
+      ageAttested: false,
+      consentVersion: 2,
+      issuedAtMs: 1_790_000_000_000,
+    });
+  });
+
+  it("has null consentClaims for a token without the claim", async () => {
+    authMock.getSession.mockResolvedValue({ data: { session: fakeSession("u1") } });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.consentClaims).toBeNull();
+  });
+
+  it("refreshSession reissues the token and updates session and consentClaims", async () => {
+    authMock.getSession.mockResolvedValue({ data: { session: fakeSession("u1") } });
+    const payload = btoa(
+      JSON.stringify({
+        sub: "u1",
+        iat: 1_790_000_000,
+        placeme_consent: { can_enable_mic: true, age_attested: true, consent_version: 2 },
+      }),
+    );
+    const reissued = { access_token: `h.${payload}.s`, user: { id: "u1" } } as unknown as Session;
+    authMock.refreshSession.mockResolvedValue({ data: { session: reissued }, error: null });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.consentClaims).toBeNull();
+
+    let returned: Session | null = null;
+    await act(async () => {
+      returned = await result.current.refreshSession();
+    });
+    expect(returned).toBe(reissued);
+    expect(result.current.session).toBe(reissued);
+    expect(result.current.consentClaims?.canEnableMic).toBe(true);
+  });
+
+  it("refreshSession resolves to null and keeps the session when the refresh fails", async () => {
+    const session = fakeSession("u1");
+    authMock.getSession.mockResolvedValue({ data: { session } });
+    authMock.refreshSession.mockResolvedValue({
+      data: { session: null },
+      error: new Error("offline"),
+    });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let returned: Session | null | undefined;
+    await act(async () => {
+      returned = await result.current.refreshSession();
+    });
+    expect(returned).toBeNull();
+    expect(result.current.session).toBe(session);
+  });
+
+  it("refreshSession resolves to null when the Supabase client throws", async () => {
+    authMock.getSession.mockResolvedValue({ data: { session: fakeSession("u1") } });
+    authMock.refreshSession.mockRejectedValue(new TypeError("fetch failed"));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await expect(result.current.refreshSession()).resolves.toBeNull();
+  });
+
+  it("keeps refreshSession's identity stable across session changes", async () => {
+    authMock.getSession.mockResolvedValue({ data: { session: fakeSession("u1") } });
+    authMock.refreshSession.mockResolvedValue({
+      data: { session: fakeSession("u1") },
+      error: null,
+    });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const first = result.current.refreshSession;
+    await act(async () => {
+      await result.current.refreshSession();
+    });
+    expect(result.current.refreshSession).toBe(first);
   });
 
   it("delegates signIn/signUp/signOut to the Supabase client", async () => {

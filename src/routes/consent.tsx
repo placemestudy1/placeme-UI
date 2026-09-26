@@ -12,7 +12,7 @@
  *   permission via getUserMedia, then records consent through
  *   grantConsent(), updating local state along the way.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Headphones, Loader2, Mic, MicOff, ShieldCheck } from "lucide-react";
 
@@ -67,8 +67,22 @@ type MicState = "idle" | "requesting" | "granted" | "denied";
 // requesting mic permission and recording consent.
 function ConsentPage() {
   const { session } = useAuth();
-  const { canEnableMic, ageAttested, loading, grantConsent, confirmAdult } =
+  const { canEnableMic, ageAttested, loading, source, grantConsent, confirmAdult, refresh } =
     useConsentStatus(session);
+  const consentSatisfied = canEnableMic && ageAttested;
+
+  // SPEC-0015: a token claim can lag a change made elsewhere (consent given
+  // on another device since this token was issued), and that stale claim is
+  // what routed the student here. Reissue the token once on arrival so this
+  // page shows the current state instead of re-asking for consent already
+  // on record. Only when the claim says "not satisfied", so a consented
+  // student opening this page costs nothing.
+  const verifiedStaleClaim = useRef(false);
+  useEffect(() => {
+    if (source !== "claims" || consentSatisfied || verifiedStaleClaim.current) return;
+    verifiedStaleClaim.current = true;
+    void refresh();
+  }, [source, consentSatisfied, refresh]);
   const [micState, setMicState] = useState<MicState>("idle");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

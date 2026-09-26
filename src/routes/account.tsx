@@ -39,7 +39,7 @@ function AccountPage() {
     deleteError,
     requestedAt,
     handleDeletionRequest,
-  } = useAccountPrivacyActions(session, user?.id, refresh);
+  } = useAccountPrivacyActions(session, user?.id, () => refresh({ canEnableMic: false }));
 
   return (
     <WebShell title="Privacy & your data" subtitle="Manage your consent and account data">
