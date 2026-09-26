@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
+import { PmButton } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
 
@@ -38,6 +39,14 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 // here would double-fetch and create a redirect loop while consent is
 // still missing.
 //
+// Consent status comes from a shared React Query cache (see
+// use-consent-status.ts), so although every route mounts its own
+// ProtectedRoute, only the first protected page after sign-in waits on the
+// consent fetch -- later navigations render straight from cache. If that
+// fetch fails with nothing cached, this shows a retry prompt rather than
+// redirecting: a network error says nothing about the caller's consent, and
+// sending an already-consented student to /consent for it would be wrong.
+//
 // Pass `requireConsent={false}` for a page that must stay reachable
 // regardless of the caller's consent state (e.g. "Privacy & your data",
 // which a student needs to reach to withdraw consent or request deletion
@@ -60,23 +69,54 @@ export function ProtectedRoute({
     canEnableMic,
     ageAttested,
     loading: consentLoading,
+    error: consentError,
+    refresh: refreshConsent,
   } = useConsentStatus(skipConsentCheck ? null : session);
   const consentSatisfied = canEnableMic && ageAttested;
+  const consentCheckFailed = !consentLoading && !consentSatisfied && !!consentError;
 
   useEffect(() => {
     if (!loading && !user) {
       navigate({ to: "/login" });
       return;
     }
-    if (!loading && user && !skipConsentCheck && !consentLoading && !consentSatisfied) {
+    if (
+      !loading &&
+      user &&
+      !skipConsentCheck &&
+      !consentLoading &&
+      !consentSatisfied &&
+      !consentCheckFailed
+    ) {
       navigate({ to: "/consent" });
     }
-  }, [loading, user, skipConsentCheck, consentLoading, consentSatisfied, navigate]);
+  }, [
+    loading,
+    user,
+    skipConsentCheck,
+    consentLoading,
+    consentSatisfied,
+    consentCheckFailed,
+    navigate,
+  ]);
 
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Checking your session…</p>
+      </div>
+    );
+  }
+
+  if (!skipConsentCheck && consentCheckFailed) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          We couldn't check your consent status. Check your connection and try again.
+        </p>
+        <PmButton variant="outline" onClick={() => void refreshConsent()}>
+          Try again
+        </PmButton>
       </div>
     );
   }

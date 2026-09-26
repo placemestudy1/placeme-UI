@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -16,8 +17,13 @@ vi.mock("./supabase-client", () => ({ supabase: { auth: authMock } }));
 
 import { AuthProvider, useAuth } from "./auth-context";
 
+let queryClient: QueryClient;
 function wrapper({ children }: { children: ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
+  );
 }
 
 function fakeSession(userId: string): Session {
@@ -27,6 +33,7 @@ function fakeSession(userId: string): Session {
 describe("AuthProvider / useAuth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = new QueryClient();
     authMock.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
@@ -70,6 +77,27 @@ describe("AuthProvider / useAuth", () => {
 
     expect(result.current.session).toEqual(newSession);
     expect(result.current.user).toEqual(newSession.user);
+  });
+
+  it("clears cached consent status when the user signs out", async () => {
+    const session = fakeSession("u1");
+    authMock.getSession.mockResolvedValue({ data: { session } });
+    let onChange: (event: string, session: Session | null) => void = () => {};
+    authMock.onAuthStateChange.mockImplementation((cb: typeof onChange) => {
+      onChange = cb;
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+    const key = ["consent-status", "u1"];
+    queryClient.setQueryData(key, { currentVersion: 3, canEnableMic: true, ageAttested: true });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.user).toEqual(session.user));
+    expect(queryClient.getQueryData(key)).toBeDefined();
+
+    act(() => {
+      onChange("SIGNED_OUT", null);
+    });
+    await waitFor(() => expect(queryClient.getQueryData(key)).toBeUndefined());
   });
 
   it("delegates signIn/signUp/signOut to the Supabase client", async () => {

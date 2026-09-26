@@ -8,14 +8,15 @@
  *   status to decide whether to navigate home or to /consent.
  */
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { KeyRound, Mail } from "lucide-react";
 
 import { AuthLayout } from "@/components/pm/auth-layout";
 import { Field, PmButton, PmInput } from "@/components/pm/kit";
 import { useAuth } from "@/lib/auth-context";
-import { getConsentStatus } from "@/lib/api";
 import { supabase } from "@/lib/supabase-client";
+import { consentStatusQueryOptions } from "@/lib/use-consent-status";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +55,10 @@ function LoginPage() {
     }
     // Skip straight home if this student has already agreed to the current
     // consent version — /consent is a one-time gate, not a step on every
-    // login.
+    // login. Fetched through the shared consent-status cache, so the
+    // ProtectedRoute on the page we land on renders straight from it.
     try {
-      const status = await getConsentStatus(data.session);
+      const status = await queryClient.fetchQuery(consentStatusQueryOptions(data.session));
       navigate({ to: status.canEnableMic ? "/" : "/consent" });
     } catch {
       navigate({ to: "/consent" });
