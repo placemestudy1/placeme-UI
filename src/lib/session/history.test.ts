@@ -117,8 +117,9 @@ describe("buildHeatmap", () => {
       ],
       today,
     );
-    // Held but not scored yet: no intensity, so it can't pass for a low score.
-    expect(days[2]).toMatchObject({ sessions: 1, score: null, level: 0 });
+    // Not scored (still processing, failed, or legacy feedback): ignored, so
+    // the day reads as empty rather than as a low score or a pending one.
+    expect(days[2]).toMatchObject({ sessions: 0, score: null, level: 0 });
     expect(days[3]).toMatchObject({ sessions: 1, score: 95, level: 4 });
     expect(days[4]).toMatchObject({ sessions: 5, score: 20, level: 1 });
   });

@@ -49,9 +49,9 @@ export const HEATMAP_MONTHS = 3;
  * `months - 1` months before `today` through the last day of today's month
  * (days after today come back flagged isFuture), bucketing held sessions by
  * the student's local date. Intensity comes from the average score of that
- * day's scored sessions. A day with only unscored sessions (feedback still
- * processing) stays at level 0. ScoreHeatmap marks it separately (sessions > 0,
- * score null) so it doesn't read as a low score.
+ * day's sessions. Sessions without a score are left out entirely -- the API
+ * can't tell feedback still processing from feedback that failed for good or
+ * legacy text-only feedback, so none of them get a box.
  */
 export function buildHeatmap(
   sessions: HistorySession[],
@@ -65,11 +65,11 @@ export function buildHeatmap(
 
   const byDay = new Map<string, { count: number; scores: number[] }>();
   for (const s of sessions) {
-    if (s.startedAt == null) continue;
+    if (s.startedAt == null || s.score == null) continue;
     const d = new Date(s.startedAt);
     const entry = byDay.get(dayKey(d)) ?? { count: 0, scores: [] };
     entry.count += 1;
-    if (s.score != null) entry.scores.push(s.score);
+    entry.scores.push(s.score);
     byDay.set(dayKey(d), entry);
   }
 

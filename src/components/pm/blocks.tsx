@@ -188,11 +188,6 @@ const heatmapLevelClass: Record<HeatmapLevel, string> = {
   4: "bg-primary",
 };
 
-// A day held but not scored yet (feedback still processing): an outline
-// rather than a fill, so it can't be mistaken for a low score. A border, not
-// a ring, so it survives the today/selected rings.
-const heatmapScoringClass = "border border-dashed border-primary/80 bg-transparent";
-
 const heatmapDayFormatter = new Intl.DateTimeFormat("en-IN", {
   weekday: "short",
   day: "numeric",
@@ -203,8 +198,7 @@ const heatmapDayFormatter = new Intl.DateTimeFormat("en-IN", {
 // of the selected-day line under the grid.
 function heatmapDayDetail(d: HeatmapDay): string {
   if (d.isFuture) return "Upcoming";
-  if (d.sessions === 0) return "No session";
-  return d.score == null ? "Not scored yet" : `Score ${d.score}`;
+  return d.score == null ? "No session" : `Score ${d.score}`;
 }
 
 const heatmapMonthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short" });
@@ -301,11 +295,7 @@ export function ScoreHeatmap({ className, days }: { className?: string; days: He
                         }}
                         className={cn(
                           "aspect-square w-full rounded-[3px] transition-transform hover:scale-125 focus-visible:outline-none",
-                          d.isFuture
-                            ? "bg-secondary/40"
-                            : d.sessions > 0 && d.score == null
-                              ? heatmapScoringClass
-                              : heatmapLevelClass[d.level],
+                          d.isFuture ? "bg-secondary/40" : heatmapLevelClass[d.level],
                           d.isToday && "ring-1 ring-foreground/50",
                           i === selected && "ring-2 ring-foreground/80",
                         )}
@@ -341,8 +331,6 @@ export function ScoreHeatmap({ className, days }: { className?: string; days: He
               <span key={l} className={cn("size-2.5 rounded-[3px]", heatmapLevelClass[l])} />
             ))}
             <span className="ml-0.5">More</span>
-            <span className={cn("ml-2 size-2.5 rounded-[3px]", heatmapScoringClass)} />
-            <span className="ml-0.5">Scoring</span>
           </div>
         </div>
       </div>
