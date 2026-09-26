@@ -60,4 +60,27 @@ describe("ScoreHeatmap", () => {
     expect((await screen.findAllByText(/^Tue, 8 Sept?$/))[0]).toBeInTheDocument();
     expect(screen.getAllByText("Score 72")[0]).toBeInTheDocument();
   });
+
+  it("spells out today under the grid until another day is picked", async () => {
+    render(<ScoreHeatmap days={buildHeatmap([scored], today)} />);
+    const status = screen.getByText(/^Sat, 26 Sept?$/, { selector: "p span" }).closest("p");
+    expect(status).toHaveTextContent(/No session$/);
+
+    // A tap doesn't open the tooltip, so this line is how touch users read a day.
+    await userEvent.click(screen.getByLabelText(/ 8 Sept? · Score 72/));
+    expect(status).toHaveTextContent(/^Tue, 8 Sept? · Score 72$/);
+  });
+
+  it("is a single tab stop that arrow keys move through", async () => {
+    render(<ScoreHeatmap days={buildHeatmap([scored], today)} />);
+    const tabbable = screen.getAllByRole("button").filter((b) => b.tabIndex === 0);
+    expect(tabbable).toHaveLength(1);
+    expect(tabbable[0]).toHaveAccessibleName(/^Sat, 26 Sept? · /);
+
+    await userEvent.tab();
+    await userEvent.keyboard("{ArrowUp}");
+    expect(document.activeElement).toHaveAccessibleName(/^Fri, 25 Sept? · /);
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(document.activeElement).toHaveAccessibleName(/^Fri, 18 Sept? · /);
+  });
 });
