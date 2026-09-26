@@ -206,10 +206,9 @@ const heatmapMonthFormatter = new Intl.DateTimeFormat("en-IN", { month: "short" 
 const heatmapWeekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 // GitHub-contributions style heatmap: rows are weekdays (Mon at top, each
-// labelled),
-// columns are weeks, month names sit above the week each month starts in,
-// and box intensity is the day's average score. Boxes size themselves to
-// fill the card's width; hovering one shows its date and score.
+// labelled), columns are weeks, month names sit above the week each month
+// starts in, and box intensity is the day's average score. Boxes size
+// themselves to fill the card's width; hovering one shows its date and score.
 export function ScoreHeatmap({ className, days }: { className?: string; days: HeatmapDay[] }) {
   const lead = days[0]?.weekday ?? 0;
   const weeks = Math.ceil((lead + days.length) / 7);
