@@ -153,3 +153,62 @@ test("a stale consented claim is corrected when the server refuses the room toke
   await page.goto(`/session/${ROOM_ID}`);
   await expect(page).toHaveURL("/consent");
 });
+
+// Same, with the access-token hook not enabled yet (no claim): routing uses
+// the cached status, which must be refetched when the server refuses the
+// room token rather than served stale for up to its 5-minute staleTime.
+test("without a claim, a refused room token refetches the cached status and re-routes", async ({
+  page,
+}) => {
+  let withdrawnElsewhere = false;
+  await page.route("**/auth/v1/token*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(fakeGoTrueSession()),
+    }),
+  );
+  await page.route("**/api/consent/status", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        currentVersion: 2,
+        canEnableMic: !withdrawnElsewhere,
+        ageAttested: true,
+      }),
+    }),
+  );
+  await mockApi(page, "/api/history/mine", { sessions: [] });
+  await mockApi(page, "/api/rooms/open", { rooms: [] });
+  await mockApi(page, `/api/rooms/${ROOM_ID}/status`, {
+    id: ROOM_ID,
+    status: "live",
+    code: "GD-1234",
+    topicText: "Should campus placements weigh GD performance?",
+    durationSeconds: 900,
+    isCreator: true,
+    endsAt: Date.now() + 900_000,
+  });
+  await mockApi(page, `/api/rooms/${ROOM_ID}/participants`, {
+    participants: [{ userId: "u1", displayName: "Aarav Menon", talkShare: 0 }],
+  });
+  await mockApi(
+    page,
+    `/api/rooms/${ROOM_ID}/token`,
+    { error: "consent_required" },
+    { method: "POST", status: 403 },
+  );
+
+  await logIn(page);
+  await expect(page).toHaveURL("/");
+
+  withdrawnElsewhere = true;
+  // Client-side navigation (no reload), so the status cached at sign-in is
+  // still warm and fresh -- a reload would refetch it and prove nothing.
+  await page.evaluate((id) => {
+    window.history.pushState({}, "", `/session/${id}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, ROOM_ID);
+  await expect(page).toHaveURL("/consent");
+});

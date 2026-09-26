@@ -448,6 +448,80 @@ describe("useConsentStatus", () => {
     }
   });
 
+  // supabase-js shares one in-flight refresh between callers, so a grant can
+  // be handed a token minted before its consent row existed (e.g. /consent's
+  // on-arrival check was still in flight). That must not look like the
+  // grant didn't happen.
+  describe("a reissued token whose claim predates the change", () => {
+    it("reissues once more and uses the up-to-date claim", async () => {
+      const session = sessionWithClaims({ can_enable_mic: false, age_attested: true });
+      grantConsentApiMock.mockResolvedValue({});
+      refreshSessionMock
+        .mockResolvedValueOnce(sessionWithClaims({ can_enable_mic: false, age_attested: true }))
+        .mockResolvedValueOnce(sessionWithClaims({ can_enable_mic: true, age_attested: true }));
+      const { result } = renderHook(() => useConsentStatus(session), { wrapper });
+      await act(async () => {
+        await result.current.grantConsent();
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(2);
+      expect(getConsentStatusMock).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the server when it keeps getting the stale claim -- even in the same second", async () => {
+      const session = sessionWithClaims({ can_enable_mic: false, age_attested: true });
+      // Issued "now", i.e. the same second as the fallback fetch below.
+      const staleReissue = sessionWithClaims({ can_enable_mic: false, age_attested: true });
+      grantConsentApiMock.mockResolvedValue({});
+      refreshSessionMock.mockResolvedValue(staleReissue);
+      getConsentStatusMock.mockResolvedValue({
+        currentVersion: 2,
+        canEnableMic: true,
+        ageAttested: true,
+      });
+      const { result, rerender } = renderHook(({ s }: { s: Session }) => useConsentStatus(s), {
+        wrapper,
+        initialProps: { s: session },
+      });
+      await act(async () => {
+        await result.current.grantConsent();
+      });
+      expect(refreshSessionMock).toHaveBeenCalledTimes(2);
+      expect(getConsentStatusMock).toHaveBeenCalledTimes(1);
+
+      // AuthProvider hands every consumer the (stale) reissued session.
+      rerender({ s: staleReissue });
+      await waitFor(() => expect(result.current.canEnableMic).toBe(true));
+      expect(result.current.source).toBe("server");
+    });
+  });
+
+  it("grantConsent still resolves when the follow-up status read fails", async () => {
+    const session = sessionWithClaims({ can_enable_mic: false, age_attested: true });
+    grantConsentApiMock.mockResolvedValue({});
+    refreshSessionMock.mockResolvedValue(null);
+    getConsentStatusMock.mockRejectedValue(new Error("network down"));
+    const { result } = renderHook(() => useConsentStatus(session), { wrapper });
+    await act(async () => {
+      await expect(result.current.grantConsent()).resolves.toBeUndefined();
+    });
+    expect(grantConsentApiMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refresh treats a throwing token reissue like a failed one", async () => {
+    const session = sessionWithClaims({ can_enable_mic: true, age_attested: true });
+    refreshSessionMock.mockRejectedValue(new Error("boom"));
+    getConsentStatusMock.mockResolvedValue({
+      currentVersion: 2,
+      canEnableMic: true,
+      ageAttested: true,
+    });
+    const { result } = renderHook(() => useConsentStatus(session), { wrapper });
+    await act(async () => {
+      await expect(result.current.refresh()).resolves.toBeUndefined();
+    });
+    expect(getConsentStatusMock).toHaveBeenCalledTimes(1);
+  });
+
   // Missing claim: tokens issued before the hook was enabled.
   describe("without a placeme_consent claim", () => {
     it("falls back to fetching the status", async () => {

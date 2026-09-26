@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Room, RoomEvent, Track, type RemoteTrack, type RemoteParticipant } from "livekit-client";
 
 import { useAuth } from "@/lib/auth-context";
 import { isConsentRejection } from "@/lib/consent-claims";
+import { consentStatusQueryKeyRoot } from "@/lib/consent-status-query";
 import { getRoomToken, getRoomParticipants, type RoomParticipant } from "@/lib/api";
 import { Banner, LiveCaption, TranscriptLineItem } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
@@ -58,6 +60,7 @@ function initialsFor(name: string) {
 // plus participant tiles mapped onto the shared `Participant` shape.
 export function useLiveRoom(roomId: string) {
   const { session, user, refreshSession } = useAuth();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [error, setError] = useState<string | null>(null);
   const [captions, setCaptions] = useState<Caption[]>([]);
@@ -232,8 +235,9 @@ export function useLiveRoom(roomId: string) {
   // SPEC-0015: the server's consentGate (authoritative, DB-backed) refused
   // the token mint, so this session's consent claim is stale -- e.g. consent
   // was withdrawn on another device or the version was bumped since the
-  // token was issued. Reissue the token once so the claim catches up;
-  // ProtectedRoute then routes to /consent from the corrected state.
+  // token was issued. Reissue the token once so the claim catches up, and
+  // refetch any cached status (the no-claim fallback); ProtectedRoute then
+  // routes to /consent from the corrected state.
   // Once per rejection: the error stays set after the refresh, and the
   // refresh itself changes the session.
   const rejectedByConsentGate = isConsentRejection(error);
@@ -245,8 +249,10 @@ export function useLiveRoom(roomId: string) {
     }
     if (refreshedForRejection.current) return;
     refreshedForRejection.current = true;
-    void refreshSession();
-  }, [rejectedByConsentGate, refreshSession]);
+    void refreshSession().then(() =>
+      queryClient.invalidateQueries({ queryKey: consentStatusQueryKeyRoot }),
+    );
+  }, [rejectedByConsentGate, refreshSession, queryClient]);
   const latestCaption = captions.at(-1);
   const handRaised = user?.id != null && raisedHandIds.has(user.id);
 

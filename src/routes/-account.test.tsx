@@ -68,6 +68,16 @@ describe("AccountPage — Privacy & your data", () => {
     expect(await screen.findByText(/consent withdrawn/i)).toBeInTheDocument();
   });
 
+  // SPEC-0015: the reissued token must be recognised as post-withdrawal.
+  it("refreshes consent state expecting the withdrawal to show", async () => {
+    const refresh = vi.fn();
+    useConsentStatusMock.mockReturnValue({ canEnableMic: true, loading: false, refresh });
+    withdrawConsentMock.mockResolvedValue({ canEnableMic: false });
+    render(<AccountPage />);
+    screen.getByRole("button", { name: /withdraw consent/i }).click();
+    await waitFor(() => expect(refresh).toHaveBeenCalledWith({ canEnableMic: false }));
+  });
+
   it("disables the withdraw button once consent is already withdrawn", () => {
     useConsentStatusMock.mockReturnValue({
       canEnableMic: false,

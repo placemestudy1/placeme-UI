@@ -176,6 +176,14 @@ describe("AuthProvider / useAuth", () => {
     expect(result.current.session).toBe(session);
   });
 
+  it("refreshSession resolves to null when the Supabase client throws", async () => {
+    authMock.getSession.mockResolvedValue({ data: { session: fakeSession("u1") } });
+    authMock.refreshSession.mockRejectedValue(new TypeError("fetch failed"));
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await expect(result.current.refreshSession()).resolves.toBeNull();
+  });
+
   it("keeps refreshSession's identity stable across session changes", async () => {
     authMock.getSession.mockResolvedValue({ data: { session: fakeSession("u1") } });
     authMock.refreshSession.mockResolvedValue({

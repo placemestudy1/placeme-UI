@@ -96,10 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // before supabase's refreshSession() resolves; setting the session here
   // too keeps this independent of that order.
   const refreshSession = useCallback(async () => {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error || !data.session) return null;
-    setSession(data.session);
-    return data.session;
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error || !data.session) return null;
+      setSession(data.session);
+      return data.session;
+    } catch {
+      return null;
+    }
   }, []);
 
   const value = useMemo<AuthContextValue>(

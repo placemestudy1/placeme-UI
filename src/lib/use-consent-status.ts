@@ -1,9 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 
-import { attestAdult as attestAdultApi, grantConsent as grantConsentApi } from "./api";
+import {
+  attestAdult as attestAdultApi,
+  getConsentStatus,
+  grantConsent as grantConsentApi,
+} from "./api";
 import { useAuth } from "./auth-context";
-import { readConsentClaims } from "./consent-claims";
+import { readConsentClaims, type ConsentClaims } from "./consent-claims";
 import { consentStatusQueryKey, consentStatusQueryOptions } from "./consent-status-query";
 
 // Hook for tracking whether this user can enable their mic.
@@ -27,9 +31,10 @@ import { consentStatusQueryKey, consentStatusQueryOptions } from "./consent-stat
 //
 // Fallback: a token without the claim (issued before the hook was enabled)
 // uses the shared, per-user GET /api/consent/status cache entry instead.
-// That entry also overrides a claim when it was fetched after the token was
-// issued -- the case where refreshing the token failed, so the claim is
-// known to be older than the latest change.
+// That entry also overrides a claim when refresh() fetched it *because*
+// that token's claim was stale (reissuing failed, timed out, or kept
+// returning the pre-change claim); a token issued after that takes over
+// again.
 //
 // Client-side routing/UI only: the server's consentGate re-checks consent
 // from the database for the LiveKit token mint and never reads the claim.
@@ -39,6 +44,18 @@ import { consentStatusQueryKey, consentStatusQueryOptions } from "./consent-stat
 // token that arrives later still takes over (it's newer than the fetch).
 export const SESSION_REFRESH_TIMEOUT_MS = 4000;
 
+// The consent state a change should produce, e.g. { canEnableMic: true }
+// after a grant; refresh() uses it to recognise a reissued token whose
+// claim predates the change.
+export type ConsentExpectation = Partial<Pick<ConsentClaims, "canEnableMic" | "ageAttested">>;
+
+function meetsExpectation(claims: ConsentClaims, expected: ConsentExpectation) {
+  return (
+    (expected.canEnableMic === undefined || claims.canEnableMic === expected.canEnableMic) &&
+    (expected.ageAttested === undefined || claims.ageAttested === expected.ageAttested)
+  );
+}
+
 export function useConsentStatus(session: Session | null) {
   const queryClient = useQueryClient();
   const { refreshSession } = useAuth();
@@ -46,46 +63,79 @@ export function useConsentStatus(session: Session | null) {
   const query = useQuery({ ...consentStatusQueryOptions(session), enabled: !!session && !claims });
   const queryKey = consentStatusQueryKey(session?.user?.id);
 
-  // `iat` has 1s resolution, so a fetch only counts as newer than the token
-  // from the next whole second on -- a token issued in the same second as a
-  // fetch is treated as the fresher of the two.
-  const fetchedAfterClaims =
-    !!claims && query.data !== undefined && query.dataUpdatedAt >= claims.issuedAtMs + 1000;
-  const useClaims = !!session && !!claims && !fetchedAfterClaims;
+  const supersededAt = query.data?.supersedesTokenIssuedAtMs;
+  const claimsSuperseded =
+    !!claims && supersededAt !== undefined && claims.issuedAtMs <= supersededAt;
+  const useClaims = !!session && !!claims && !claimsSuperseded;
 
-  // Reissues the token so its claim reflects a change just made. If the new
-  // token carries the claim, any fetched status is dropped (the claim is now
-  // the newest); if the refresh failed, timed out or the token has no claim,
-  // fetches the status fresh instead. Resolves once the new state is in
-  // place.
-  async function refresh() {
-    if (!session) return;
+  // Reissues the access token; null if that fails, throws, or takes longer
+  // than SESSION_REFRESH_TIMEOUT_MS.
+  async function reissueToken(): Promise<Session | null> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timedOut = new Promise<null>((resolve) => {
       timer = setTimeout(() => resolve(null), SESSION_REFRESH_TIMEOUT_MS);
     });
-    const refreshed = await Promise.race([refreshSession(), timedOut]);
-    clearTimeout(timer);
-    if (refreshed && readConsentClaims(refreshed.access_token)) {
-      queryClient.removeQueries({ queryKey });
-      return;
+    try {
+      return await Promise.race([refreshSession(), timedOut]);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
     }
-    await queryClient.fetchQuery({
-      ...consentStatusQueryOptions(refreshed ?? session),
-      staleTime: 0,
-    });
+  }
+
+  // Brings consent state up to date after a change, resolving once it is.
+  // Reissues the token so its claim reflects the change. supabase-js hands
+  // concurrent refresh callers the same in-flight request, so a reissue can
+  // return a token minted *before* the change (e.g. /consent's own on-arrival
+  // check, or an auto-refresh, still in flight) -- when the claim doesn't
+  // show the `expected` outcome, it tries once more. If there's still no
+  // up-to-date claim (refresh failed/timed out, or the hook isn't enabled),
+  // it fetches the status from the server and marks it as superseding every
+  // token seen so far. Never throws: the change itself already succeeded,
+  // and a failed status read just leaves the previous state in place.
+  async function refresh(expected: ConsentExpectation = {}) {
+    if (!session) return;
+    let latest: Session | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const reissued = await reissueToken();
+      if (!reissued) break;
+      latest = reissued;
+      const reissuedClaims = readConsentClaims(reissued.access_token);
+      if (!reissuedClaims) break;
+      if (meetsExpectation(reissuedClaims, expected)) {
+        queryClient.removeQueries({ queryKey });
+        return;
+      }
+    }
+
+    const current = latest ?? session;
+    const supersedes = Math.max(
+      claims?.issuedAtMs ?? 0,
+      readConsentClaims(current.access_token)?.issuedAtMs ?? 0,
+    );
+    await queryClient
+      .fetchQuery({
+        queryKey,
+        staleTime: 0,
+        queryFn: async () => ({
+          ...(await getConsentStatus(current)),
+          ...(supersedes ? { supersedesTokenIssuedAtMs: supersedes } : {}),
+        }),
+      })
+      .catch(() => {});
   }
 
   async function grantConsent() {
     if (!session) throw new Error("Not signed in");
     await grantConsentApi(session);
-    await refresh();
+    await refresh({ canEnableMic: true });
   }
 
   async function confirmAdult() {
     if (!session) throw new Error("Not signed in");
     await attestAdultApi(session);
-    await refresh();
+    await refresh({ ageAttested: true });
   }
 
   if (useClaims) {
