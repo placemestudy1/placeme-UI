@@ -54,7 +54,7 @@ function HistoryPage() {
   // SCRUM-27: only ever show rooms that actually ran -- a room cancelled
   // straight out of `waiting` (SCRUM-26) is not a session the student
   // practiced in, so it must not appear in the list, the month grouping,
-  // "most practiced," the score trend, or any of the aggregate stats below.
+  // "most practiced," the score heatmap, or any of the aggregate stats below.
   const realSessions = useMemo(() => (sessions ? realSessionsOnly(sessions) : null), [sessions]);
 
   const filtered = useMemo(() => {
@@ -182,7 +182,7 @@ function HistoryPage() {
         </div>
         <aside className="space-y-4">
           <PmCard className="p-5">
-            <SectionTitle title="Score trend" subtitle={`Last ${HEATMAP_MONTHS} months`} />
+            <SectionTitle title="Daily scores" subtitle={`Last ${HEATMAP_MONTHS} months`} />
             {heatmap ? (
               <ScoreHeatmap days={heatmap} />
             ) : (

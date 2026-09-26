@@ -162,7 +162,7 @@ function Index() {
 
         <aside className="space-y-6">
           <PmCard className="p-5">
-            <SectionTitle title="Score trend" subtitle={`Last ${HEATMAP_MONTHS} months`} />
+            <SectionTitle title="Daily scores" subtitle={`Last ${HEATMAP_MONTHS} months`} />
             {heatmap ? (
               <ScoreHeatmap days={heatmap} />
             ) : (
