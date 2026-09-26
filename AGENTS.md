@@ -50,6 +50,12 @@ npm run build                          # production build → .output/
 npm run preview                        # serve the production build
 ```
 
+- TS is `strict` with `noUncheckedIndexedAccess`: `arr[0]` is `T | undefined`,
+  so use `arr[0]?.x` or assert first (bites mock `.calls[0][1]` in tests).
+- Windows + `core.autocrlf=true`: `npm run lint` shows thousands of
+  `Delete ␍` errors that CI (Linux, LF) never sees. Judge lint by
+  `npx eslint <files> | grep -v ␍`, or set `core.autocrlf=input`.
+
 **OpenAPI regen** (after a gd-proto API change is merged there):
 
 ```sh
