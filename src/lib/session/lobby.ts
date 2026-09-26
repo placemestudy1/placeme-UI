@@ -1,13 +1,13 @@
-// Shared waiting-room polling/actions for both the web (`/lobby/$roomId`)
-// and native (`/app/lobby`) lobby screens (SCRUM-27, align lobby UX with
-// server finality). Extracted so the fix below lives in exactly one place,
+// Waiting-room polling/actions for the `/lobby/$roomId` screen (SCRUM-27,
+// align lobby UX with server finality). Extracted so the fix below lives
+// in exactly one place,
 // same "shared session/* helper" pattern as stats.ts/history.ts.
 //
 // Exports:
 // - useRoomLobby: polls room status *and* the participant roster together
 //   on every tick, and exposes start/leave actions.
 // - cancellationMessage: plain-language text for a room's endReason
-//   (SCRUM-26), for both the web and native lobby's cancellation notice.
+//   (SCRUM-26), for the lobby's cancellation notice.
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {

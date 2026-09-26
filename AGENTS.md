@@ -11,7 +11,10 @@ group discussion, get per-speaker transcription, and receive individual AI
 feedback. This repo is the **canonical web frontend**. All data, auth rules,
 migrations and the REST API live in the sibling backend repo **`gd-proto`**
 (`apps/server`); this app has no server of its own beyond SSR/static hosting.
-`expo-mobile/` is an early Expo shell, not shipped.
+v1 is mobile-responsive web only: one route per screen, each usable down to
+a 360px-wide viewport. The old `/app/*` native-shell routes and the
+`expo-mobile/` WebView wrapper are parked on the `native-parked` branch
+(SCRUM-82) — don't reintroduce them on `main`.
 
 Deferred (do not build without explicit approval): AI voice practice, JAM,
 aptitude/technical tests, roleplay interviews, drive simulator, payments,
@@ -31,7 +34,6 @@ notifications, a shipped mobile app.
 | API types        | `openapi-typescript` 7, generated from gd-proto's OpenAPI                         |
 | Tests            | Vitest 3 + Testing Library (jsdom), Playwright 1.62                               |
 | Lint/format      | ESLint 9 (typescript-eslint), Prettier 3                                          |
-| Mobile (spike)   | Expo SDK 57, React Native 0.86 in `expo-mobile/`                                  |
 
 ## Commands (run from repo root)
 
@@ -71,10 +73,6 @@ clean `docs/api/openapi.yaml`. Commit `openapi/*` and the generated file togethe
 `gd-proto/supabase/migrations/` (forward-only, RLS in the same file — see
 gd-proto's AGENTS.md).
 
-**Mobile:** `cd expo-mobile && npm ci && npm start`. Expo has changed — read the
-versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any
-Expo code; don't rely on memory of older SDKs.
-
 CI (`.github/workflows/ci.yml`, on PRs to `main`): typecheck, lint, test, e2e,
 build, contract-drift. All must pass.
 
@@ -96,7 +94,6 @@ openapi/           vendored gd-proto contract + GD_PROTO_REF (pinned commit)
 scripts/           sync-contract.mjs, check-contract-drift.mjs
 e2e/               Playwright specs + mocks.ts (network mocks, no real creds)
 docs/              BACKEND_REQUIREMENTS.md (BE-N gaps referenced in routes)
-expo-mobile/       Expo SDK 57 shell (not shipped)
 ```
 
 ## Conventions

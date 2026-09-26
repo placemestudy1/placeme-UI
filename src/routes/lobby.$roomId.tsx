@@ -6,8 +6,6 @@
  * everyone to the live session (or the ended screen) once the room's
  * status changes.
  *
- * - initialsFor(): derives up to two-letter initials from a participant's
- *   display name, used for avatar tiles.
  * - LobbyPage(): main route component — renders the waiting-room UI (topic,
  *   invite code, start/leave actions, participant grid) and the audio-
  *   settings/leave-confirmation dialogs.
@@ -31,6 +29,7 @@ import {
 } from "@/components/pm/kit";
 import { ParticipantTile } from "@/components/pm/blocks";
 import { useAuth } from "@/lib/auth-context";
+import { initialsFor } from "@/lib/session/participants";
 import { cancellationMessage, useRoomLobby } from "@/lib/session/lobby";
 import { isRoomReady, MIN_PARTICIPANTS_TO_START } from "@/lib/room-capacity";
 import { track } from "@/lib/analytics";
@@ -58,17 +57,6 @@ export const Route = createFileRoute("/lobby/$roomId")({
     </ProtectedRoute>
   ),
 });
-
-// Builds up to two initials (e.g. "Jane Doe" -> "JD") from a display name, for avatar tiles.
-function initialsFor(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 // Main lobby route component: renders the topic/invite code/start-or-wait
 // actions and participant grid, opens the audio settings dialog, and
@@ -163,7 +151,7 @@ function LobbyPage() {
         </PmButton>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           <PmCard glass className="p-6 md:p-8">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">

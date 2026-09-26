@@ -8,7 +8,7 @@
 // - Participant: a room participant's shape (avatar/mic-state/talk-share),
 //   shared by ParticipantTile and the live-room LiveKit integration.
 // - Room: a browsable/joinable room's shape, shared by RoomCard and the
-//   real-data adapters in join.tsx/index.tsx (server OpenRoom -> Room).
+//   real-data adapter in lib/session/rooms.ts (server OpenRoom -> Room).
 // - Session: a past-session row's shape, shared by SessionRow and the real
 //   HistorySession -> Session adapters in history.tsx/index.tsx.
 // - topics: sample GD discussion prompts, still used as the curated-topic

@@ -1,6 +1,6 @@
-// Shared "session ended" resource fetching for both the web
-// (`/ended/$roomId`) and native (`/app/ended`) screens (SCRUM-27, align
-// end-state UX with server finality). Extracted so retry/error/empty
+// "Session ended" resource fetching for the `/ended/$roomId` screen
+// (SCRUM-27, align end-state UX with server finality). Extracted so
+// retry/error/empty
 // handling for each of the three independently-arriving resources
 // (feedback, transcript, participants) lives in exactly one place, same
 // "shared session/* helper" pattern as stats.ts/history.ts.
@@ -28,7 +28,7 @@ const POLL_INTERVAL_MS = 3000;
 const MAX_FEEDBACK_POLLS = 40;
 
 export interface UseEndedSessionResourcesOptions {
-  // Web-only analytics hooks -- the native screen doesn't call track().
+  // Optional analytics hooks, called when feedback is shown or rated.
   onFeedbackViewed?: (score: number | null) => void;
   onRated?: (rating: boolean) => void;
 }

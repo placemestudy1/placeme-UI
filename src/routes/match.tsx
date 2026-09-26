@@ -140,7 +140,7 @@ function MatchPage() {
 
   return (
     <WebShell title="Random match">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <PmCard glass className="p-8 text-center md:p-12">
           {state === "idle" && (
             <>

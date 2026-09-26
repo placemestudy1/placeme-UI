@@ -65,14 +65,6 @@ test.describe("create room", () => {
     });
   }
 
-  test("offers every supported capacity on the mobile route", async ({ page }) => {
-    await gotoReady(page, "/app/new");
-    const seats = page.getByText("Seats", { exact: true }).locator("..").locator("select");
-    await expect(seats.locator("option")).toHaveCount(10);
-    await expect(seats.locator("option").first()).toHaveAttribute("value", "3");
-    await expect(seats.locator("option").last()).toHaveAttribute("value", "12");
-  });
-
   test("surfaces a room-creation error instead of navigating away", async ({ page }) => {
     await mockApi(
       page,

@@ -35,21 +35,24 @@ describe("truthful product copy", () => {
     });
   }
 
-  it("explains waiting-room code behavior on desktop and mobile routes", () => {
+  // SCRUM-82: v1 is mobile-responsive web only -- one route per screen. The
+  // parallel `/app/*` native-shell routes live on the `native-parked` branch.
+  it("has no parallel app.* native route files", () => {
+    const nativeRoutes = Object.keys(routeSources).filter((path) =>
+      path.startsWith("./routes/app."),
+    );
+    expect(nativeRoutes).toEqual([]);
+  });
+
+  it("explains waiting-room code behavior on the join and not-found routes", () => {
     expect(routeSources["./routes/join.tsx"]).toContain(
       "A room code can be used only while that room is waiting to start.",
     );
-    expect(routeSources["./routes/app.join.tsx"]).toContain(
-      "A room code can be used only while that room is waiting to start.",
-    );
     expect(routeSources["./routes/$.tsx"]).toContain("A code can join only a waiting room.");
-    expect(routeSources["./routes/app.$.tsx"]).toContain(
-      "A room code can join only a room that is still waiting to start.",
-    );
   });
 
   it("links signup to real Terms and Privacy routes instead of inert text (SPEC-0012 R1)", () => {
-    for (const path of ["./routes/signup.tsx", "./routes/app.signup.tsx"]) {
+    for (const path of ["./routes/signup.tsx"]) {
       expect(routeSources[path], path).toMatch(/to="\/terms"/);
       expect(routeSources[path], path).toMatch(/to="\/privacy"/);
     }
@@ -66,7 +69,7 @@ describe("truthful product copy", () => {
   });
 
   it("shows the full R2 disclosure list on the consent page before requesting mic permission (SPEC-0012 AC2)", () => {
-    for (const path of ["./routes/consent.tsx", "./routes/app.consent.tsx"]) {
+    for (const path of ["./routes/consent.tsx"]) {
       expect(routeSources[path], path).toMatch(/CONSENT_DISCLOSURES/);
       expect(routeSources[path], path).toMatch(/to="\/privacy"/);
     }
@@ -77,9 +80,5 @@ describe("truthful product copy", () => {
       "Based on PlaceMe's current AI evaluation rubric",
     );
     expect(routeSources["./routes/ended.$roomId.tsx"]).toContain("Targets your lowest sub-score");
-    expect(routeSources["./routes/app.ended.tsx"]).toContain(
-      "Based on PlaceMe's current AI evaluation rubric",
-    );
-    expect(routeSources["./routes/app.ended.tsx"]).toContain("General practice topic");
   });
 });

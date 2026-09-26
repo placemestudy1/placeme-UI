@@ -1,17 +1,23 @@
 /**
  * Catch-all 404 screen for the web app — shown when a URL doesn't match any
- * route, or a room is no longer waiting to start.
+ * route, or a room is no longer waiting to start. Old `/app/*` native-shell
+ * URLs (parked in SCRUM-82) are redirected to their web equivalents first.
  *
  * - NotFoundPage(): main route component — renders the 404 message with
  *   links back home or to join a room.
  */
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Compass } from "lucide-react";
 
 import { WebShell } from "@/components/pm/web-shell";
 import { EmptyState, PmButton } from "@/components/pm/kit";
+import { legacyAppRedirect } from "@/lib/legacy-app-redirect";
 
 export const Route = createFileRoute("/$")({
+  beforeLoad: ({ location }) => {
+    const target = legacyAppRedirect(location.pathname, location.search);
+    if (target) throw redirect({ href: target });
+  },
   head: () => ({
     meta: [
       { title: "Page not found · PlaceMe" },

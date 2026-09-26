@@ -8,10 +8,8 @@ function deletionRequestStorageKey(userId: string) {
 }
 
 // Shared withdraw-consent / request-account-deletion action state for the
-// "Privacy & your data" section (SPEC-0012 R5/AC5), consumed by both the web
-// (routes/account.tsx) and native (routes/app.account.tsx) pages so this
-// business logic isn't duplicated per platform -- only the surrounding JSX
-// shell differs between them.
+// "Privacy & your data" section (SPEC-0012 R5/AC5) on routes/account.tsx,
+// kept out of the route so the business logic is testable on its own.
 export function useAccountPrivacyActions(
   session: Session | null,
   userId: string | undefined,

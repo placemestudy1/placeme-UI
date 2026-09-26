@@ -8,8 +8,8 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 //
 // Exports:
 // - ProtectedRoute: renders children once signed in and consented, a
-//   loading state while either is resolving, and redirects to the configured
-//   authentication or consent route otherwise.
+//   loading state while either is resolving, and redirects to /login or
+//   /consent otherwise.
 //
 // Mirrors gd-proto/apps/web/src/auth/ProtectedRoute.jsx, extended with a
 // consent check: that legacy component (and this one, until now) only
@@ -28,13 +28,13 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 //
 // Renders `children` once a signed-in, consented user is confirmed; shows a
 // loading placeholder while auth or consent is resolving; redirects to
-// `redirectTo` once auth finishes with no user, and to `consentRedirectTo`
+// /login once auth finishes with no user, and to /consent
 // once consent finishes with `canEnableMic` false or `ageAttested` false
 // (SCRUM-24 follow-up: audio-sharing consent alone was never
 // adult-eligibility evidence, so a caller missing either gate is sent back
 // to the consent page rather than only discovering it later at the LiveKit
-// token mint). The consent check itself is skipped on the configured
-// consent page — that page manages its own consent state, so re-checking
+// token mint). The consent check itself is skipped on the /consent
+// page — that page manages its own consent state, so re-checking
 // here would double-fetch and create a redirect loop while consent is
 // still missing.
 //
@@ -43,23 +43,18 @@ import { useConsentStatus } from "@/lib/use-consent-status";
 // which a student needs to reach to withdraw consent or request deletion
 // whether or not they're currently consented) — this skips the consent
 // fetch/redirect/loading-gate entirely, the same way the consent page's own
-// exemption does, but as an explicit, self-documenting opt-out rather than
-// pointing `consentRedirectTo` at the page itself.
+// exemption does, but as an explicit, self-documenting opt-out.
 export function ProtectedRoute({
   children,
-  redirectTo = "/login",
-  consentRedirectTo = "/consent",
   requireConsent = true,
 }: {
   children: React.ReactNode;
-  redirectTo?: string;
-  consentRedirectTo?: string;
   requireConsent?: boolean;
 }) {
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isConsentPage = pathname === consentRedirectTo;
+  const isConsentPage = pathname === "/consent";
   const skipConsentCheck = !requireConsent || isConsentPage;
   const {
     canEnableMic,
@@ -70,22 +65,13 @@ export function ProtectedRoute({
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate({ to: redirectTo });
+      navigate({ to: "/login" });
       return;
     }
     if (!loading && user && !skipConsentCheck && !consentLoading && !consentSatisfied) {
-      navigate({ to: consentRedirectTo });
+      navigate({ to: "/consent" });
     }
-  }, [
-    loading,
-    user,
-    skipConsentCheck,
-    consentLoading,
-    consentSatisfied,
-    navigate,
-    redirectTo,
-    consentRedirectTo,
-  ]);
+  }, [loading, user, skipConsentCheck, consentLoading, consentSatisfied, navigate]);
 
   if (loading || !user) {
     return (
