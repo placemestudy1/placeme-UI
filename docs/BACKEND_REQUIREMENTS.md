@@ -162,13 +162,15 @@ heatmap, still computed client-side from the same response, with no API change.
 `lib/session/history.ts`, which replaces `buildScoreTrend`/`MAX_TREND_POINTS`. It shows one
 box per calendar day for the last `HEATMAP_MONTHS` (3) months, current month included,
 bucketed by the student's local date. Each box is shaded by that day's average score in
-fixed bands (<40, 40–59, 60–79, 80+). A day with no session is unfilled, and a day held but
-not yet scored gets a dashed outline (a "Scoring" key in the legend), so it doesn't read as a
-low score. The card is retitled "Daily scores", since it no longer shows a trend. The "No scored sessions yet" empty state is gone,
+fixed bands (<40, 40–59, 60–79, 80+). A day with no scored session is unfilled. Sessions
+without a score are left out entirely (**update 2026-09-27**: they used to get a dashed
+"Scoring" outline, but `score: null` can't tell feedback still processing from feedback that
+failed for good or legacy pre-`0017` text-only feedback, so dead sessions showed as
+"Scoring" forever). The card is retitled "Daily scores", since it no longer shows a trend. The "No scored sessions yet" empty state is gone,
 since an empty grid now says the same thing. While history loads, or if it fails, the card
 says so instead of drawing an empty grid. **Depends on `gd-proto`'s migration `0017`
 (BE-6/BE-7) being live**: until then `GET /api/history/mine` returns `score: null` for every
-row, so every held day shows as an outlined "Not scored yet" box.
+row, so the heatmap stays empty.
 **Why it was blocked**: no numeric score existed yet at all (BE-6), so there was nothing to
 trend.
 

@@ -54,7 +54,7 @@ describe("ScoreHeatmap", () => {
     expect(screen.getByLabelText(/ 9 Sept? · No session/)).toHaveAttribute("data-level", "0");
   });
 
-  it("outlines a day still being scored instead of shading it like a low score", () => {
+  it("ignores a session that has no score yet", () => {
     const pending = {
       ...scored,
       id: "s2",
@@ -62,11 +62,10 @@ describe("ScoreHeatmap", () => {
       score: null,
     };
     render(<ScoreHeatmap days={buildHeatmap([scored, pending], today)} />);
-    const box = screen.getByLabelText(/ 9 Sept? · Not scored yet/);
+    const box = screen.getByLabelText(/ 9 Sept? · No session/);
     expect(box).toHaveAttribute("data-level", "0");
-    expect(box).toHaveClass("border-dashed");
-    expect(screen.getByLabelText(/ 8 Sept? · Score 72/)).not.toHaveClass("border-dashed");
-    expect(screen.getByText("Scoring")).toBeInTheDocument();
+    expect(box).not.toHaveClass("border-dashed");
+    expect(screen.queryByText("Scoring")).not.toBeInTheDocument();
   });
 
   it("shows the date and score in a tooltip on hover", async () => {
