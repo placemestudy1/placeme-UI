@@ -84,3 +84,59 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:contract-drift
+
+  # W1-7: every PR's Vercel preview must talk to staging, never production.
+  # Vercel builds the preview itself (Git integration) from the project's
+  # "Preview" env vars; this job pulls exactly those vars for this PR's
+  # branch, plus the Production ones to compare against, and fails if any
+  # preview value is a production URL or key, or if the three vars the app
+  # needs are missing. scripts/check-env.js is vendored from gd-proto.
+  #
+  # Needs the VERCEL_TOKEN secret and the VERCEL_ORG_ID / VERCEL_PROJECT_ID
+  # variables (gd-proto/docs/runbooks/staging-environment.md). Setting
+  # VERCEL_PROJECT_ID is the switch: before it exists the Vercel step only
+  # warns (setup not started); once it exists, a missing token or org ID
+  # FAILS the job, so the guard can't quietly stop checking. Fork PRs never
+  # receive secrets, so they're skipped explicitly. The pulled files never
+  # leave the runner and are deleted at the end. Keep the VITE_* vars non-"Sensitive" in
+  # Vercel: they ship to the browser anyway, and Sensitive values pull as
+  # empty strings, which --require reports as missing.
+  preview-env:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+      - run: node --test scripts/check-env.test.js
+      - name: No production values in the checked-in staging template
+        run: node scripts/check-env.js --staging .env.staging.example
+      - name: No production values in this PR's Vercel preview env
+        if: github.event_name == 'pull_request'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          if [ "$IS_FORK" = "true" ]; then
+            echo "::warning::Fork PR: no secrets are available, so this PR's preview env was NOT checked. A maintainer must check the preview before trusting it."
+            exit 0
+          fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::warning::VERCEL_PROJECT_ID isn't set yet, so this PR's preview env was NOT checked for production values. See gd-proto/docs/runbooks/staging-environment.md (step 6)."
+            exit 0
+          fi
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ]; then
+            echo "::error::VERCEL_PROJECT_ID is set but VERCEL_TOKEN or VERCEL_ORG_ID is missing (or the token was removed), so the preview env can't be checked. Restore them (runbook step 6)."
+            exit 1
+          fi
+          trap 'rm -f .env.check.preview .env.check.production' EXIT
+          npx --yes vercel@60 env pull .env.check.preview --environment=preview --git-branch="$GITHUB_HEAD_REF" --yes --token="$VERCEL_TOKEN" > /dev/null
+          npx --yes vercel@60 env pull .env.check.production --environment=production --yes --token="$VERCEL_TOKEN" > /dev/null
+          node scripts/check-env.js \
+            --staging .env.check.preview \
+            --prod .env.check.production \
+            --require VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_API_URL

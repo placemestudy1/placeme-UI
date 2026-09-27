@@ -1,0 +1,11 @@
+{
+  "description": "Public identifiers of PlaceMe production, read by scripts/check-env.js. Staging config that contains any of these fails the check. Never put a secret here: secret values are compared at run time (--prod <file> or CHECK_ENV_PROD_VALUES). Keep this file identical in gd-proto and placeme-UI.",
+  "supabaseProjectRefs": ["uiqshhuiykwopqkrvyci"],
+  "hosts": [
+    "gd-proto-1.onrender.com",
+    "prototype-gd-9nm1gfou.livekit.cloud",
+    "gdarena.placeme.study",
+    "placeme.study",
+    "www.placeme.study"
+  ]
+}

@@ -7,3 +7,7 @@ package-lock.json
 bun.lock
 routeTree.gen.ts
 src/lib/api-types.generated.ts
+# Vendored unchanged from gd-proto/scripts (W1-7); edit there and copy over.
+scripts/check-env.js
+scripts/check-env.test.js
+scripts/prod-markers.json
