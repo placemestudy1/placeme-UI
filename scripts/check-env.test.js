@@ -234,4 +234,14 @@ describe('check-env: usage', () => {
     });
     assert.equal(leak.code, 1);
   });
+
+  it('ships the production LiveKit host as a marker', () => {
+    const result = run({
+      argv: ['--staging-env'],
+      env: { LIVEKIT_URL: 'wss://prototype-gd-9nm1gfou.livekit.cloud' },
+      cwd: dirname(fileURLToPath(import.meta.url)),
+    });
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /LIVEKIT_URL uses production host/);
+  });
 });
