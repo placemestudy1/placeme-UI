@@ -32,6 +32,8 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+!.env.example
+!.env.*.example
 
 # Playwright
 /e2e/.auth/

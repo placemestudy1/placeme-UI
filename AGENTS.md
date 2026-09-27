@@ -74,7 +74,10 @@ clean `docs/api/openapi.yaml`. Commit `openapi/*` and the generated file togethe
 gd-proto's AGENTS.md).
 
 CI (`.github/workflows/ci.yml`, on PRs to `main`): typecheck, lint, test, e2e,
-build, contract-drift. All must pass.
+build, contract-drift, preview-env (the PR's Vercel Preview env vars must be
+staging, never production; `scripts/check-env.js`, vendored unchanged from
+gd-proto). All must pass. Staging setup: gd-proto
+`docs/runbooks/staging-environment.md`.
 
 ## Folder map
 
