@@ -54,7 +54,10 @@ export function useFeatureFlag(key: string): boolean {
 export async function requireFeatureFlag(queryClient: QueryClient, key: string): Promise<void> {
   let flags: FeatureFlags | undefined;
   try {
-    flags = await queryClient.ensureQueryData(featureFlagsQueryOptions);
+    // fetchQuery, not ensureQueryData: ensureQueryData returns cached flags
+    // however old, so a flag switched off would keep its route reachable
+    // until reload. fetchQuery re-reads once the cache is past staleTime.
+    flags = await queryClient.fetchQuery(featureFlagsQueryOptions);
   } catch {
     flags = undefined;
   }

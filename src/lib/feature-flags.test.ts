@@ -11,6 +11,7 @@ const { selectMock, fromMock } = vi.hoisted(() => {
 vi.mock("./supabase-client", () => ({ supabase: { from: fromMock } }));
 
 import {
+  FEATURE_FLAGS_STALE_TIME_MS,
   fetchFeatureFlags,
   isFlagOn,
   requireFeatureFlag,
@@ -97,6 +98,21 @@ describe("requireFeatureFlag", () => {
   it("throws notFound while the flag is off", async () => {
     selectMock.mockResolvedValue(rows([{ key: "mcq", enabled: false }]));
     expect(isNotFound(await thrown(requireFeatureFlag(newClient(), "mcq")))).toBe(true);
+  });
+
+  it("re-reads stale flags, so a flag switched off blocks the route without a reload", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const client = newClient();
+      selectMock.mockResolvedValue(rows([{ key: "mcq", enabled: true }]));
+      await expect(requireFeatureFlag(client, "mcq")).resolves.toBeUndefined();
+
+      selectMock.mockResolvedValue(rows([{ key: "mcq", enabled: false }]));
+      vi.setSystemTime(Date.now() + FEATURE_FLAGS_STALE_TIME_MS + 1);
+      expect(isNotFound(await thrown(requireFeatureFlag(client, "mcq")))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("throws notFound when the flag has no row", async () => {
