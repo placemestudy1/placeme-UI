@@ -40,6 +40,12 @@ tags:
     description: Post-session generated feedback, nested under rooms.
   - name: history
     description: A student's own past sessions.
+  - name: mcq
+    description: >-
+      MCQ practice tests (SPEC-0017). Question text and test templates come
+      from the public bundle in the `mcq-bank` storage bucket, not this API.
+      Every route 404s while the `mcq` feature flag (feature_flags table,
+      migration 0039) is off.
 
 paths:
   /health:
@@ -102,7 +108,10 @@ paths:
         - healthToken: []
       responses:
         "200":
-          description: Current in-process dispatch counters.
+          description: >-
+            Current in-process dispatch counters, plus (SPEC-0016) process,
+            sweeper and evaluation-runner liveness, Gemini quota buckets, DB
+            latency and per-route request counts.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AgentStatus" }
@@ -301,6 +310,11 @@ paths:
                 maxParticipants: { type: integer }
                 visibility: { $ref: "#/components/schemas/Visibility" }
                 level: { $ref: "#/components/schemas/Level" }
+                sessionType:
+                  type: string
+                  enum: [gd]
+                  default: gd
+                  description: "Only session types with a working module can be created; jam and interview return 400 until theirs ship. Responses use SessionType, which lists every stored type."
       responses:
         "201":
           description: Created
@@ -464,7 +478,11 @@ paths:
                 durationSeconds: { type: integer }
       responses:
         "200":
-          description: Still queued, waiting for enough participants.
+          description: >-
+            Still queued, waiting for enough participants. Also returned when
+            the caller would have completed a group but topic generation
+            failed: the caller is queued and nobody leaves the queue
+            (SPEC-0016); polling again retries.
           content:
             application/json:
               schema:
@@ -498,6 +516,14 @@ paths:
               schema: { $ref: "#/components/schemas/ActiveSeatConflictError" }
         "429":
           $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: >-
+            A group was claimed but the room could not be created or seated
+            (`code: match_failed`). Every other matched member was put back in
+            the queue; the caller should request a match again (SPEC-0016).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
     delete:
       operationId: leaveMatchQueue
       summary: Leave the random-match queue (idempotent)
@@ -592,7 +618,12 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
         "503":
-          description: Evaluation is disabled or the durable job claim failed.
+          description: >-
+            Evaluation is disabled (`evaluation_disabled`), or it is
+            temporarily unavailable (`evaluation_claim_failed`): the durable
+            job claim failed, or this server instance is shutting down and no
+            longer accepts new evaluation work (SPEC-0016). Retrying shortly
+            reaches the next instance.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -813,6 +844,116 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/mcq/tests/{testId}/attempts:
+    post:
+      operationId: startMcqAttempt
+      summary: Start an attempt at a test, or resume the caller's open one
+      description: >-
+        Draws the questions (unseen in the caller's last 10 attempts first)
+        and sets a server-owned deadline. A student has at most one open
+        attempt: if one exists, for any test, it is returned instead, so
+        compare `testId` with the requested one.
+      tags: [mcq]
+      parameters:
+        - name: testId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The new or already-open attempt.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/McqAttemptStart" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: No question bank has been published yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/mcq/attempts/{id}/checkpoint:
+    put:
+      operationId: checkpointMcqAttempt
+      summary: Save in-progress answers (batched, not per answer)
+      description: >-
+        Send only when something changed (about every 60s, and on tab hide).
+        A checkpoint with a `seq` no higher than the stored one returns
+        `stale` and changes nothing. After the deadline plus 5s, or once
+        submitted, it returns `closed`: show the results.
+      tags: [mcq]
+      parameters:
+        - $ref: "#/components/parameters/McqAttemptId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seq, answers]
+              properties:
+                seq: { type: integer, minimum: 1, maximum: 2147483647 }
+                answers: { $ref: "#/components/schemas/McqAnswers" }
+      responses:
+        "200":
+          description: Checkpoint outcome.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok, stale, closed] }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /api/mcq/attempts/{id}/submit:
+    post:
+      operationId: submitMcqAttempt
+      summary: Submit an attempt and get the score, answer keys and explanations
+      description: >-
+        Safe to repeat: a second submit returns the stored result. Omit
+        `answers` to score the last checkpoint. Answers sent after the
+        deadline plus 5s are ignored and the last checkpoint is scored.
+      tags: [mcq]
+      parameters:
+        - $ref: "#/components/parameters/McqAttemptId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answers: { $ref: "#/components/schemas/McqAnswers" }
+      responses:
+        "200":
+          description: The scored attempt.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/McqSubmitResult" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -830,6 +971,11 @@ components:
         other environments.
 
   parameters:
+    McqAttemptId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     RoomId:
       name: id
       in: path
@@ -859,6 +1005,65 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    McqAnswer:
+      type: object
+      additionalProperties: false
+      properties:
+        c:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 3
+          description: Chosen option index, null when unanswered.
+        t: { type: number, minimum: 0, description: "Time spent on the question, ms (clamped server-side to 3 h)." }
+        r: { type: boolean, description: "Marked for review." }
+    McqAnswers:
+      type: object
+      description: Keyed by question id (uuid). At most 200 entries; ids outside the attempt are dropped.
+      maxProperties: 200
+      additionalProperties: { $ref: "#/components/schemas/McqAnswer" }
+    McqAttemptStart:
+      type: object
+      required: [attemptId, testId, questionIds, bankVersion, startedAt, endAt, now, answers, checkpointSeq]
+      properties:
+        attemptId: { type: string, format: uuid }
+        testId: { type: string, format: uuid }
+        questionIds:
+          type: array
+          description: In display order. Render them from the bundle for `bankVersion`.
+          items: { type: string, format: uuid }
+        bankVersion: { type: [string, "null"] }
+        startedAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        now: { type: string, format: date-time, description: "Server clock, to correct the client timer." }
+        answers: { $ref: "#/components/schemas/McqAnswers" }
+        checkpointSeq: { type: integer, minimum: 0, description: "Send checkpoints with a higher seq." }
+    McqSectionScore:
+      type: object
+      required: [correct, total]
+      properties:
+        correct: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
+    McqSubmitResult:
+      type: object
+      required: [attemptId, score, sectionScores, submitReason, submittedAt, keys]
+      properties:
+        attemptId: { type: string, format: uuid }
+        score: { type: integer, minimum: 0, description: "Number of correct answers." }
+        sectionScores:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/McqSectionScore" }
+        submitReason: { type: string, enum: [student, expired] }
+        submittedAt: { type: string, format: date-time }
+        keys:
+          type: array
+          description: One per question, in the attempt's order.
+          items:
+            type: object
+            required: [questionId, correctIndex, explanation]
+            properties:
+              questionId: { type: string, format: uuid }
+              correctIndex: { type: integer, minimum: 0, maximum: 3 }
+              explanation: { type: [string, "null"] }
     Error:
       type: object
       required: [error]
@@ -899,6 +1104,14 @@ components:
     Level:
       type: string
       enum: [beginner, intermediate, advanced]
+
+    # W1-1 (SCRUM-88): which kind of session a room is (every value 0033's
+    # CHECK allows). Create accepts only gd for now (see POST /api/rooms);
+    # matched rooms are always gd. See migration 0033_rooms_session_type.sql.
+    SessionType:
+      type: string
+      enum: [gd, jam, interview]
+      default: gd
 
     RoomLifecycleStatus:
       type: string
@@ -973,7 +1186,7 @@ components:
 
     RoomSummary:
       type: object
-      required: [id, code, status, topicId, durationSeconds, maxParticipants, visibility, level]
+      required: [id, code, status, topicId, durationSeconds, maxParticipants, visibility, level, sessionType]
       properties:
         id: { type: string, format: uuid }
         code: { type: string }
@@ -983,11 +1196,12 @@ components:
         maxParticipants: { type: integer }
         visibility: { $ref: "#/components/schemas/Visibility" }
         level: { $ref: "#/components/schemas/Level" }
+        sessionType: { $ref: "#/components/schemas/SessionType" }
 
     OpenRoom:
       type: object
       required:
-        [id, code, topicText, durationSeconds, maxParticipants, participantCount, hostDisplayName, createdAt]
+        [id, code, topicText, durationSeconds, maxParticipants, participantCount, hostDisplayName, createdAt, sessionType]
       properties:
         id: { type: string, format: uuid }
         code: { type: string }
@@ -997,10 +1211,11 @@ components:
         participantCount: { type: integer }
         hostDisplayName: { type: string }
         createdAt: { type: string, format: date-time }
+        sessionType: { $ref: "#/components/schemas/SessionType" }
 
     RoomStatus:
       type: object
-      required: [id, status, code, topicText, durationSeconds, isCreator]
+      required: [id, status, code, topicText, durationSeconds, isCreator, sessionType]
       properties:
         id: { type: string, format: uuid }
         status: { $ref: "#/components/schemas/RoomLifecycleStatus" }
@@ -1008,6 +1223,7 @@ components:
         topicText: { type: [string, "null"] }
         durationSeconds: { type: integer }
         isCreator: { type: boolean }
+        sessionType: { $ref: "#/components/schemas/SessionType" }
         endsAt: { type: integer, description: "Epoch ms. Present once the room has started." }
         endReason: { $ref: "#/components/schemas/RoomEndReason" }
 
@@ -1127,3 +1343,75 @@ components:
                 roomId: { type: string, format: uuid }
                 at: { type: string, format: date-time }
         feedbackHealthy: { type: boolean }
+        # SPEC-0016 R14 (PR 12): operational sections. In-process state only;
+        # no secrets (pool keys by label, buckets by project label + model).
+        process:
+          type: object
+          properties:
+            workerId: { type: string, description: "Owner of this process's evaluation runs" }
+            uptimeSec: { type: integer }
+            commit: { type: [string, "null"], description: RENDER_GIT_COMMIT when set }
+        sweeper:
+          type: [object, "null"]
+          properties:
+            lastTickStartedAt: { type: [string, "null"], format: date-time }
+            lastTickFinishedAt: { type: [string, "null"], format: date-time }
+            lastTickDurationMs: { type: [integer, "null"] }
+            lastError: { type: [string, "null"], description: Error name only }
+        evaluationRunner:
+          type: [object, "null"]
+          description: Null when no runner runs in this process.
+          properties:
+            state: { type: string, enum: [idle, running, draining, stopped] }
+            activeRuns:
+              type: array
+              items:
+                type: object
+                properties:
+                  runId: { type: string, format: uuid }
+                  startedAt: { type: string, format: date-time }
+                  ageSec: { type: integer }
+            lastTickAt: { type: [string, "null"], format: date-time }
+            lastTickDurationMs: { type: [integer, "null"] }
+            lastClaimAt: { type: [string, "null"], format: date-time }
+            lastCompletedAt: { type: [string, "null"], format: date-time }
+            lastFailureCategory: { type: [string, "null"] }
+            oldestDueAgeSec: { type: [integer, "null"] }
+            reapedLastPass: { type: [integer, "null"] }
+        gemini:
+          type: object
+          properties:
+            buckets:
+              type: array
+              items:
+                type: object
+                properties:
+                  project: { type: string }
+                  model: { type: string }
+                  state: { type: string, enum: [available, cooling, exhausted] }
+                  until: { type: [string, "null"], format: date-time }
+                  inFlight: { type: integer }
+                  dailyRequests: { type: integer }
+                  lastHourByClass:
+                    type: object
+                    additionalProperties: { type: integer }
+            poolKeys:
+              type: array
+              items:
+                type: object
+                properties:
+                  keyId: { type: string }
+                  healthy: { type: boolean }
+                  inFlight: { type: integer }
+                  cooldownUntil: { type: [string, "null"], format: date-time }
+        db:
+          type: object
+          description: Rolling window of the last 200 Supabase calls.
+          properties:
+            p50Ms: { type: [integer, "null"] }
+            p95Ms: { type: [integer, "null"] }
+            timeoutsLastHour: { type: integer }
+        requests:
+          type: object
+          description: Requests served per route pattern since boot.
+          additionalProperties: { type: integer }

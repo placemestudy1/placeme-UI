@@ -16,6 +16,9 @@
 // - getMyFeedback, rateFeedback: read this user's feedback for a room and
 //   rate/annotate it.
 // - getMyHistory: list this user's past sessions.
+// - startMcqAttempt, checkpointMcqAttempt, submitMcqAttempt: MCQ practice
+//   test attempts (SPEC-0017; question text comes from the public bundle in
+//   src/lib/mcq/bank.ts, not this API).
 import type { Session } from "@supabase/supabase-js";
 import type { components, operations } from "./api-types.generated";
 
@@ -52,6 +55,10 @@ export type FeedbackResult = Schemas["FeedbackResult"];
 export type HistorySession = Schemas["HistorySession"];
 export type EarlyLeaveEvaluation = Schemas["EarlyLeaveEvaluation"];
 export type DeletionRequest = Schemas["DeletionRequest"];
+export type McqAnswer = Schemas["McqAnswer"];
+export type McqAnswers = Schemas["McqAnswers"];
+export type McqAttemptStart = Schemas["McqAttemptStart"];
+export type McqSubmitResult = Schemas["McqSubmitResult"];
 
 const API_URL = import.meta.env["VITE_API_URL"] || "http://localhost:3000";
 
@@ -263,3 +270,38 @@ export const rateFeedback = (
 // the client-side source for the ScoreHeatmap too).
 export const getMyHistory = (session: Session | null) =>
   callApi<{ sessions: HistorySession[] }>(session, "/api/history/mine", { method: "GET" });
+
+/* ---------------------------------- mcq ----------------------------------- */
+
+// SPEC-0017: starts an attempt at `testId`, or returns the caller's already
+// open attempt (possibly for another test -- compare `testId`).
+export const startMcqAttempt = (session: Session | null, testId: string) =>
+  callApi<McqAttemptStart>(session, `/api/mcq/tests/${encodeURIComponent(testId)}/attempts`, {
+    method: "POST",
+  });
+
+// Saves in-progress answers. `keepalive` lets the request finish while the
+// tab is being hidden or closed.
+export const checkpointMcqAttempt = (
+  session: Session | null,
+  attemptId: string,
+  body: { seq: number; answers: McqAnswers },
+  { keepalive = false }: { keepalive?: boolean } = {},
+) =>
+  callApi<Ok<"checkpointMcqAttempt", 200>>(
+    session,
+    `/api/mcq/attempts/${encodeURIComponent(attemptId)}/checkpoint`,
+    { method: "PUT", body: JSON.stringify(body), keepalive },
+  );
+
+// Scores the attempt (safe to repeat). Omit `answers` to score the last
+// checkpoint.
+export const submitMcqAttempt = (
+  session: Session | null,
+  attemptId: string,
+  answers?: McqAnswers,
+) =>
+  callApi<McqSubmitResult>(session, `/api/mcq/attempts/${encodeURIComponent(attemptId)}/submit`, {
+    method: "POST",
+    body: JSON.stringify(answers ? { answers } : {}),
+  });

@@ -37,6 +37,7 @@ describe("useRoomLobby (SCRUM-27 PR #12 review)", () => {
     vi.mocked(getRoomStatus).mockResolvedValue({
       id: "room-1",
       status: "waiting",
+      sessionType: "gd",
       code: "GD-1234",
       topicText: "Topic",
       durationSeconds: 900,

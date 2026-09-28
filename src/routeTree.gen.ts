@@ -22,8 +22,11 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as EndedRoomIdRouteImport } from './routes/ended.$roomId'
 import { Route as LobbyRoomIdRouteImport } from './routes/lobby.$roomId'
+import { Route as McqIndexRouteImport } from './routes/mcq.index'
+import { Route as McqAttemptIdRouteImport } from './routes/mcq.$attemptId'
 import { Route as RoomsNewRouteImport } from './routes/rooms.new'
 import { Route as SessionRoomIdRouteImport } from './routes/session.$roomId'
+import { Route as McqResultsAttemptIdRouteImport } from './routes/mcq.results.$attemptId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -90,6 +93,16 @@ const LobbyRoomIdRoute = LobbyRoomIdRouteImport.update({
   path: '/lobby/$roomId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McqIndexRoute = McqIndexRouteImport.update({
+  id: '/mcq/',
+  path: '/mcq/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McqAttemptIdRoute = McqAttemptIdRouteImport.update({
+  id: '/mcq/$attemptId',
+  path: '/mcq/$attemptId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoomsNewRoute = RoomsNewRouteImport.update({
   id: '/rooms/new',
   path: '/rooms/new',
@@ -98,6 +111,11 @@ const RoomsNewRoute = RoomsNewRouteImport.update({
 const SessionRoomIdRoute = SessionRoomIdRouteImport.update({
   id: '/session/$roomId',
   path: '/session/$roomId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McqResultsAttemptIdRoute = McqResultsAttemptIdRouteImport.update({
+  id: '/mcq/results/$attemptId',
+  path: '/mcq/results/$attemptId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -115,8 +133,11 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/ended/$roomId': typeof EndedRoomIdRoute
   '/lobby/$roomId': typeof LobbyRoomIdRoute
+  '/mcq/$attemptId': typeof McqAttemptIdRoute
   '/rooms/new': typeof RoomsNewRoute
   '/session/$roomId': typeof SessionRoomIdRoute
+  '/mcq/': typeof McqIndexRoute
+  '/mcq/results/$attemptId': typeof McqResultsAttemptIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,8 +153,11 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/ended/$roomId': typeof EndedRoomIdRoute
   '/lobby/$roomId': typeof LobbyRoomIdRoute
+  '/mcq/$attemptId': typeof McqAttemptIdRoute
   '/rooms/new': typeof RoomsNewRoute
   '/session/$roomId': typeof SessionRoomIdRoute
+  '/mcq': typeof McqIndexRoute
+  '/mcq/results/$attemptId': typeof McqResultsAttemptIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,8 +174,11 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/ended/$roomId': typeof EndedRoomIdRoute
   '/lobby/$roomId': typeof LobbyRoomIdRoute
+  '/mcq/$attemptId': typeof McqAttemptIdRoute
   '/rooms/new': typeof RoomsNewRoute
   '/session/$roomId': typeof SessionRoomIdRoute
+  '/mcq/': typeof McqIndexRoute
+  '/mcq/results/$attemptId': typeof McqResultsAttemptIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,8 +196,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/ended/$roomId'
     | '/lobby/$roomId'
+    | '/mcq/$attemptId'
     | '/rooms/new'
     | '/session/$roomId'
+    | '/mcq/'
+    | '/mcq/results/$attemptId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -186,8 +216,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/ended/$roomId'
     | '/lobby/$roomId'
+    | '/mcq/$attemptId'
     | '/rooms/new'
     | '/session/$roomId'
+    | '/mcq'
+    | '/mcq/results/$attemptId'
   id:
     | '__root__'
     | '/'
@@ -203,8 +236,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/ended/$roomId'
     | '/lobby/$roomId'
+    | '/mcq/$attemptId'
     | '/rooms/new'
     | '/session/$roomId'
+    | '/mcq/'
+    | '/mcq/results/$attemptId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -221,8 +257,11 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   EndedRoomIdRoute: typeof EndedRoomIdRoute
   LobbyRoomIdRoute: typeof LobbyRoomIdRoute
+  McqAttemptIdRoute: typeof McqAttemptIdRoute
   RoomsNewRoute: typeof RoomsNewRoute
   SessionRoomIdRoute: typeof SessionRoomIdRoute
+  McqIndexRoute: typeof McqIndexRoute
+  McqResultsAttemptIdRoute: typeof McqResultsAttemptIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -318,6 +357,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LobbyRoomIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcq/': {
+      id: '/mcq/'
+      path: '/mcq'
+      fullPath: '/mcq/'
+      preLoaderRoute: typeof McqIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcq/$attemptId': {
+      id: '/mcq/$attemptId'
+      path: '/mcq/$attemptId'
+      fullPath: '/mcq/$attemptId'
+      preLoaderRoute: typeof McqAttemptIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rooms/new': {
       id: '/rooms/new'
       path: '/rooms/new'
@@ -330,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/session/$roomId'
       fullPath: '/session/$roomId'
       preLoaderRoute: typeof SessionRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcq/results/$attemptId': {
+      id: '/mcq/results/$attemptId'
+      path: '/mcq/results/$attemptId'
+      fullPath: '/mcq/results/$attemptId'
+      preLoaderRoute: typeof McqResultsAttemptIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -349,8 +409,11 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   EndedRoomIdRoute: EndedRoomIdRoute,
   LobbyRoomIdRoute: LobbyRoomIdRoute,
+  McqAttemptIdRoute: McqAttemptIdRoute,
   RoomsNewRoute: RoomsNewRoute,
   SessionRoomIdRoute: SessionRoomIdRoute,
+  McqIndexRoute: McqIndexRoute,
+  McqResultsAttemptIdRoute: McqResultsAttemptIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
