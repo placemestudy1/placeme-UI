@@ -28,6 +28,14 @@ vi.mock("@/lib/use-consent-status", () => ({
   useConsentStatus: (session: unknown) => useConsentStatusMock(session),
 }));
 
+// WebShell's nav reads feature flags through React Query; these tests render
+// without a QueryClient, so flags stay unloaded (every flag off).
+vi.mock("@/lib/feature-flags", () => ({
+  useFeatureFlags: () => undefined,
+  visibleNavItems: <T extends { flag?: string }>(items: readonly T[]) =>
+    items.filter((item) => item.flag === undefined),
+}));
+
 const withdrawConsentMock = vi.fn();
 const requestAccountDeletionMock = vi.fn();
 vi.mock("@/lib/api", () => ({
