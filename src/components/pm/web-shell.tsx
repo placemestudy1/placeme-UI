@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useConsentStatus } from "@/lib/use-consent-status";
+import { useFeatureFlags, visibleNavItems } from "@/lib/feature-flags";
 import { PmAvatar, PmBadge, PmButton, PmInput } from "./kit";
 
 // Responsive web app shell: sidebar nav on desktop, top nav on tablet, and
@@ -81,9 +82,17 @@ export const webNav = [
 function useNavItems() {
   const { session } = useAuth();
   const { canEnableMic, loading } = useConsentStatus(session);
-  if (!session || loading || canEnableMic) return webNav;
-  return [...webNav, { to: "/consent", label: "Consent", icon: Mic }] as const;
+  const flags = useFeatureFlags();
+  const items = [...webNav, ...visibleNavItems(flaggedWebNav, flags)];
+  if (!session || loading || canEnableMic) return items;
+  return [...items, { to: "/consent", label: "Consent", icon: Mic }];
 }
+
+// W1-4 (SCRUM-91): nav entries shown only while their feature flag is on
+// (lib/feature-flags). The flagged route itself must also call
+// requireFeatureFlag in beforeLoad, so a typed URL 404s too. SPEC-0017 PR 4
+// adds { to: "/mcq", label: "Tests", icon: …, flag: "mcq" } here.
+const flaggedWebNav: readonly { to: string; label: string; icon: typeof Home; flag: string }[] = [];
 
 // PlaceMe logo mark, linking to home; `compact` hides the wordmark and shows
 // just the icon.

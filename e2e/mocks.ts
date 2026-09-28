@@ -9,7 +9,21 @@ import type { Page } from "@playwright/test";
 // this app's JS. Every spec navigates through this instead of page.goto
 // directly so that failure mode can't come back.
 export async function gotoReady(page: Page, url: string) {
+  if (!pagesWithFlags.has(page)) await mockFeatureFlags(page, {});
   await page.goto(url, { waitUntil: "networkidle" });
+}
+
+// W1-4 (SCRUM-91): the nav reads feature flags straight from Supabase
+// (src/lib/feature-flags.ts). gotoReady mocks them as all off, since an
+// unmocked call keeps retrying and holds off networkidle. A spec that needs a
+// flag on calls this before its first gotoReady.
+const pagesWithFlags = new WeakSet<Page>();
+export async function mockFeatureFlags(page: Page, flags: Record<string, boolean>) {
+  pagesWithFlags.add(page);
+  const rows = Object.entries(flags).map(([key, enabled]) => ({ key, enabled }));
+  await page.route("**/rest/v1/feature_flags*", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(rows) }),
+  );
 }
 
 // Shared mocking helpers for the e2e suite. This app talks to two real
