@@ -17,6 +17,7 @@ import {
   toSessionRow,
 } from "@/lib/session/history";
 import { toRoomCard } from "@/lib/session/rooms";
+import { useFeatureFlag } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { user, session } = useAuth();
+  const mcqOn = useFeatureFlag("mcq");
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<HistorySession[] | null>(null);
   const [historyFailed, setHistoryFailed] = useState(false);
@@ -118,6 +120,12 @@ function Index() {
               <PmButton asChild variant="outline" size="lg">
                 <Link to="/join">Join with code</Link>
               </PmButton>
+              {/* SPEC-0017: MCQ practice tests, shown while the `mcq` flag is on */}
+              {mcqOn && (
+                <PmButton asChild variant="secondary" size="lg">
+                  <Link to="/mcq">Practice tests</Link>
+                </PmButton>
+              )}
             </div>
           </PmCard>
 

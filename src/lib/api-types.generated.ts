@@ -464,10 +464,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mcq/tests/{testId}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an attempt at a test, or resume the caller's open one
+         * @description Draws the questions (unseen in the caller's last 10 attempts first) and sets a server-owned deadline. A student has at most one open attempt: if one exists, for any test, it is returned instead, so compare `testId` with the requested one.
+         */
+        post: operations["startMcqAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcq/attempts/{id}/checkpoint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save in-progress answers (batched, not per answer)
+         * @description Send only when something changed (about every 60s, and on tab hide). A checkpoint with a `seq` no higher than the stored one returns `stale` and changes nothing. After the deadline plus 5s, or once submitted, it returns `closed`: show the results.
+         */
+        put: operations["checkpointMcqAttempt"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mcq/attempts/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit an attempt and get the score, answer keys and explanations
+         * @description Safe to repeat: a second submit returns the stored result. Omit `answers` to score the last checkpoint. Answers sent after the deadline plus 5s are ignored and the last checkpoint is scored.
+         */
+        post: operations["submitMcqAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        McqAnswer: {
+            /** @description Chosen option index, null when unanswered. */
+            c?: number | null;
+            /** @description Time spent on the question, ms (clamped server-side to 3 h). */
+            t?: number;
+            /** @description Marked for review. */
+            r?: boolean;
+        };
+        /** @description Keyed by question id (uuid). At most 200 entries; ids outside the attempt are dropped. */
+        McqAnswers: {
+            [key: string]: components["schemas"]["McqAnswer"];
+        };
+        McqAttemptStart: {
+            /** Format: uuid */
+            attemptId: string;
+            /** Format: uuid */
+            testId: string;
+            /** @description In display order. Render them from the bundle for `bankVersion`. */
+            questionIds: string[];
+            bankVersion: string | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endAt: string;
+            /**
+             * Format: date-time
+             * @description Server clock, to correct the client timer.
+             */
+            now: string;
+            answers: components["schemas"]["McqAnswers"];
+            /** @description Send checkpoints with a higher seq. */
+            checkpointSeq: number;
+        };
+        McqSectionScore: {
+            correct: number;
+            total: number;
+        };
+        McqSubmitResult: {
+            /** Format: uuid */
+            attemptId: string;
+            /** @description Number of correct answers. */
+            score: number;
+            sectionScores: {
+                [key: string]: components["schemas"]["McqSectionScore"];
+            };
+            /** @enum {string} */
+            submitReason: "student" | "expired";
+            /** Format: date-time */
+            submittedAt: string;
+            /** @description One per question, in the attempt's order. */
+            keys: {
+                /** Format: uuid */
+                questionId: string;
+                correctIndex: number;
+                explanation: string | null;
+            }[];
+        };
         Error: {
             error: string;
             code?: string;
@@ -492,6 +609,11 @@ export interface components {
         Visibility: "public" | "private";
         /** @enum {string} */
         Level: "beginner" | "intermediate" | "advanced";
+        /**
+         * @default gd
+         * @enum {string}
+         */
+        SessionType: "gd" | "jam" | "interview";
         /** @enum {string} */
         RoomLifecycleStatus: "waiting" | "live" | "ended";
         /** @enum {string} */
@@ -546,6 +668,7 @@ export interface components {
             maxParticipants: number;
             visibility: components["schemas"]["Visibility"];
             level: components["schemas"]["Level"];
+            sessionType: components["schemas"]["SessionType"];
         };
         OpenRoom: {
             /** Format: uuid */
@@ -558,6 +681,7 @@ export interface components {
             hostDisplayName: string;
             /** Format: date-time */
             createdAt: string;
+            sessionType: components["schemas"]["SessionType"];
         };
         RoomStatus: {
             /** Format: uuid */
@@ -567,6 +691,7 @@ export interface components {
             topicText: string | null;
             durationSeconds: number;
             isCreator: boolean;
+            sessionType: components["schemas"]["SessionType"];
             /** @description Epoch ms. Present once the room has started. */
             endsAt?: number;
             endReason?: components["schemas"]["RoomEndReason"];
@@ -655,6 +780,76 @@ export interface components {
                 at: string;
             };
             feedbackHealthy: boolean;
+            process?: {
+                /** @description Owner of this process's evaluation runs */
+                workerId?: string;
+                uptimeSec?: number;
+                /** @description RENDER_GIT_COMMIT when set */
+                commit?: string | null;
+            };
+            sweeper?: {
+                /** Format: date-time */
+                lastTickStartedAt?: string | null;
+                /** Format: date-time */
+                lastTickFinishedAt?: string | null;
+                lastTickDurationMs?: number | null;
+                /** @description Error name only */
+                lastError?: string | null;
+            } | null;
+            /** @description Null when no runner runs in this process. */
+            evaluationRunner?: {
+                /** @enum {string} */
+                state?: "idle" | "running" | "draining" | "stopped";
+                activeRuns?: {
+                    /** Format: uuid */
+                    runId?: string;
+                    /** Format: date-time */
+                    startedAt?: string;
+                    ageSec?: number;
+                }[];
+                /** Format: date-time */
+                lastTickAt?: string | null;
+                lastTickDurationMs?: number | null;
+                /** Format: date-time */
+                lastClaimAt?: string | null;
+                /** Format: date-time */
+                lastCompletedAt?: string | null;
+                lastFailureCategory?: string | null;
+                oldestDueAgeSec?: number | null;
+                reapedLastPass?: number | null;
+            } | null;
+            gemini?: {
+                buckets?: {
+                    project?: string;
+                    model?: string;
+                    /** @enum {string} */
+                    state?: "available" | "cooling" | "exhausted";
+                    /** Format: date-time */
+                    until?: string | null;
+                    inFlight?: number;
+                    dailyRequests?: number;
+                    lastHourByClass?: {
+                        [key: string]: number;
+                    };
+                }[];
+                poolKeys?: {
+                    keyId?: string;
+                    healthy?: boolean;
+                    inFlight?: number;
+                    /** Format: date-time */
+                    cooldownUntil?: string | null;
+                }[];
+            };
+            /** @description Rolling window of the last 200 Supabase calls. */
+            db?: {
+                p50Ms?: number | null;
+                p95Ms?: number | null;
+                timeoutsLastHour?: number;
+            };
+            /** @description Requests served per route pattern since boot. */
+            requests?: {
+                [key: string]: number;
+            };
         };
     };
     responses: {
@@ -696,6 +891,7 @@ export interface components {
         };
     };
     parameters: {
+        McqAttemptId: string;
         RoomId: string;
     };
     requestBodies: never;
@@ -779,7 +975,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current in-process dispatch counters. */
+            /** @description Current in-process dispatch counters, plus (SPEC-0016) process, sweeper and evaluation-runner liveness, Gemini quota buckets, DB latency and per-route request counts. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1018,6 +1214,12 @@ export interface operations {
                     maxParticipants?: number;
                     visibility?: components["schemas"]["Visibility"];
                     level?: components["schemas"]["Level"];
+                    /**
+                     * @description Only session types with a working module can be created; jam and interview return 400 until theirs ship. Responses use SessionType, which lists every stored type.
+                     * @default gd
+                     * @enum {string}
+                     */
+                    sessionType?: "gd";
                 };
             };
         };
@@ -1201,7 +1403,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Still queued, waiting for enough participants. */
+            /** @description Still queued, waiting for enough participants. Also returned when the caller would have completed a group but topic generation failed: the caller is queued and nobody leaves the queue (SPEC-0016); polling again retries. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1242,6 +1444,15 @@ export interface operations {
                 };
             };
             429: components["responses"]["TooManyRequests"];
+            /** @description A group was claimed but the room could not be created or seated (`code: match_failed`). Every other matched member was put back in the queue; the caller should request a match again (SPEC-0016). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     leaveMatchQueue: {
@@ -1365,7 +1576,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description Evaluation is disabled or the durable job claim failed. */
+            /** @description Evaluation is disabled (`evaluation_disabled`), or it is temporarily unavailable (`evaluation_claim_failed`): the durable job claim failed, or this server instance is shutting down and no longer accepts new evaluation work (SPEC-0016). Retrying shortly reaches the next instance. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -1648,6 +1859,109 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    startMcqAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                testId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new or already-open attempt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McqAttemptStart"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            /** @description No question bank has been published yet. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    checkpointMcqAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["McqAttemptId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    seq: number;
+                    answers: components["schemas"]["McqAnswers"];
+                };
+            };
+        };
+        responses: {
+            /** @description Checkpoint outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "ok" | "stale" | "closed";
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    submitMcqAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["McqAttemptId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    answers?: components["schemas"]["McqAnswers"];
+                };
+            };
+        };
+        responses: {
+            /** @description The scored attempt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McqSubmitResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
         };
     };
 }

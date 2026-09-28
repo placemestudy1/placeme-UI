@@ -11,6 +11,7 @@ import {
   Shield,
   Shuffle,
   Sparkles,
+  ListChecks,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -90,9 +91,11 @@ function useNavItems() {
 
 // W1-4 (SCRUM-91): nav entries shown only while their feature flag is on
 // (lib/feature-flags). The flagged route itself must also call
-// requireFeatureFlag in beforeLoad, so a typed URL 404s too. SPEC-0017 PR 4
-// adds { to: "/mcq", label: "Tests", icon: …, flag: "mcq" } here.
-const flaggedWebNav: readonly { to: string; label: string; icon: typeof Home; flag: string }[] = [];
+// requireFeatureFlag in beforeLoad, so a typed URL 404s too.
+const flaggedWebNav: readonly { to: string; label: string; icon: typeof Home; flag: string }[] = [
+  // SPEC-0017 PR 4: MCQ practice tests.
+  { to: "/mcq", label: "Tests", icon: ListChecks, flag: "mcq" },
+];
 
 // PlaceMe logo mark, linking to home; `compact` hides the wordmark and shows
 // just the icon.

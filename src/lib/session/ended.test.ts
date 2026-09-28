@@ -41,6 +41,7 @@ describe("useEndedSessionResources (SCRUM-27)", () => {
     vi.mocked(getRoomStatus).mockResolvedValue({
       id: "room-1",
       status: "ended",
+      sessionType: "gd",
       code: "GD-1234",
       topicText: "Topic",
       durationSeconds: 900,
